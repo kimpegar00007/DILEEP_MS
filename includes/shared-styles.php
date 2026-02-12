@@ -336,6 +336,13 @@
         padding: 0.25rem 0.5rem;
         margin: 0 0.125rem;
     }
+    
+    .action-buttons-container {
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+        white-space: nowrap;
+    }
 
     /* Badge Consistency */
     .badge-status {

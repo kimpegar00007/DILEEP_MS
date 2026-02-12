@@ -157,22 +157,24 @@ $barangays = $db->query("SELECT DISTINCT barangay FROM beneficiaries ORDER BY ba
                                             </span>
                                         </td>
                                         <td>
-                                            <a href="beneficiary-view.php?id=<?php echo $beneficiary['id']; ?>" 
-                                               class="btn btn-sm btn-info action-btn" title="View">
-                                                <i class="bi bi-eye"></i>
-                                            </a>
-                                            <?php if ($auth->hasRole(['admin', 'encoder'])): ?>
-                                            <a href="beneficiary-form.php?id=<?php echo $beneficiary['id']; ?>" 
-                                               class="btn btn-sm btn-warning action-btn" title="Edit">
-                                                <i class="bi bi-pencil"></i>
-                                            </a>
-                                            <?php if ($auth->hasRole('admin')): ?>
-                                            <button onclick="deleteBeneficiary(<?php echo $beneficiary['id']; ?>)" 
-                                                    class="btn btn-sm btn-danger action-btn" title="Delete">
-                                                <i class="bi bi-trash"></i>
-                                            </button>
-                                            <?php endif; ?>
-                                            <?php endif; ?>
+                                            <div class="action-buttons-container">
+                                                <a href="beneficiary-view.php?id=<?php echo $beneficiary['id']; ?>" 
+                                                   class="btn btn-sm btn-info action-btn" title="View">
+                                                    <i class="bi bi-eye"></i>
+                                                </a>
+                                                <?php if ($auth->hasRole(['admin', 'encoder'])): ?>
+                                                <a href="beneficiary-form.php?id=<?php echo $beneficiary['id']; ?>" 
+                                                   class="btn btn-sm btn-warning action-btn" title="Edit">
+                                                    <i class="bi bi-pencil"></i>
+                                                </a>
+                                                <?php if ($auth->hasRole('admin')): ?>
+                                                <button onclick="deleteBeneficiary(<?php echo $beneficiary['id']; ?>)" 
+                                                        class="btn btn-sm btn-danger action-btn" title="Delete">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                                <?php endif; ?>
+                                                <?php endif; ?>
+                                            </div>
                                         </td>
                                     </tr>
                                     <?php endforeach; ?>
