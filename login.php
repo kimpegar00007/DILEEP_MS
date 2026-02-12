@@ -252,6 +252,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             width: 100%;
         }
 
+        .glass-input-group .password-toggle {
+            position: absolute;
+            right: 0.85rem;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: rgba(55, 65, 81, 0.50);
+            font-size: 1rem;
+            cursor: pointer;
+            padding: 0.25rem;
+            border-radius: 0.25rem;
+            transition: all 0.2s ease;
+            z-index: 2;
+        }
+
+        .glass-input-group .password-toggle:hover {
+            color: rgba(27, 122, 61, 0.70);
+            background: rgba(255, 255, 255, 0.10);
+        }
+
+        .glass-input-group .password-toggle:focus {
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(27, 122, 61, 0.18);
+        }
+
         /* ── Sign-in button ── */
         .btn-signin {
             display: block;
@@ -442,6 +468,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <input type="password" class="glass-input" id="password" name="password"
                                    placeholder="Enter your password" required
                                    autocomplete="current-password">
+                            <button type="button" class="password-toggle" id="passwordToggle" 
+                                    aria-label="Toggle password visibility" title="Show password">
+                                <i class="bi bi-eye" id="toggleIcon"></i>
+                            </button>
                         </div>
                     </div>
 
@@ -471,6 +501,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             form.addEventListener('submit', function() {
                 btn.disabled = true;
                 btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Signing In...';
+            });
+        }
+
+        // Password visibility toggle
+        var passwordToggle = document.getElementById('passwordToggle');
+        var passwordInput = document.getElementById('password');
+        var toggleIcon = document.getElementById('toggleIcon');
+
+        if (passwordToggle && passwordInput && toggleIcon) {
+            passwordToggle.addEventListener('click', function() {
+                var type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+                passwordInput.setAttribute('type', type);
+                
+                // Toggle icon
+                if (type === 'text') {
+                    toggleIcon.className = 'bi bi-eye-slash';
+                    passwordToggle.setAttribute('title', 'Hide password');
+                } else {
+                    toggleIcon.className = 'bi bi-eye';
+                    passwordToggle.setAttribute('title', 'Show password');
+                }
             });
         }
     })();

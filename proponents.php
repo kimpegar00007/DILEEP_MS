@@ -150,22 +150,24 @@ $districts = $db->query("SELECT DISTINCT district FROM proponents WHERE district
                                             </span>
                                         </td>
                                         <td>
-                                            <a href="proponent-view.php?id=<?php echo $proponent['id']; ?>" 
-                                               class="btn btn-sm btn-info action-btn" title="View">
-                                                <i class="bi bi-eye"></i>
-                                            </a>
-                                            <?php if ($auth->hasRole(['admin', 'encoder'])): ?>
-                                            <a href="proponent-form.php?id=<?php echo $proponent['id']; ?>" 
-                                               class="btn btn-sm btn-warning action-btn" title="Edit">
-                                                <i class="bi bi-pencil"></i>
-                                            </a>
-                                            <?php if ($auth->hasRole('admin')): ?>
-                                            <button onclick="deleteProponent(<?php echo $proponent['id']; ?>)" 
-                                                    class="btn btn-sm btn-danger action-btn" title="Delete">
-                                                <i class="bi bi-trash"></i>
-                                            </button>
-                                            <?php endif; ?>
-                                            <?php endif; ?>
+                                            <div class="action-buttons-container">
+                                                <a href="proponent-view.php?id=<?php echo $proponent['id']; ?>" 
+                                                   class="btn btn-sm btn-info action-btn" title="View">
+                                                    <i class="bi bi-eye"></i>
+                                                </a>
+                                                <?php if ($auth->hasRole(['admin', 'encoder'])): ?>
+                                                <a href="proponent-form.php?id=<?php echo $proponent['id']; ?>" 
+                                                   class="btn btn-sm btn-warning action-btn" title="Edit">
+                                                    <i class="bi bi-pencil"></i>
+                                                </a>
+                                                <?php if ($auth->hasRole('admin')): ?>
+                                                <button onclick="deleteProponent(<?php echo $proponent['id']; ?>)" 
+                                                        class="btn btn-sm btn-danger action-btn" title="Delete">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                                <?php endif; ?>
+                                                <?php endif; ?>
+                                            </div>
                                         </td>
                                     </tr>
                                     <?php endforeach; ?>

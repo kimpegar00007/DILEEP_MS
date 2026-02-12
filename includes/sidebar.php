@@ -26,6 +26,11 @@
                     <i class="bi bi-file-earmark-text" aria-hidden="true"></i> <span>Reports</span>
                 </a>
             </li>
+            <li class="nav-item">
+                <a class="nav-link <?php echo ($currentPage ?? '') === 'about' ? 'active' : ''; ?>" href="about.php" aria-current="<?php echo ($currentPage ?? '') === 'about' ? 'page' : 'false'; ?>">
+                    <i class="bi bi-info-circle" aria-hidden="true"></i> <span>About</span>
+                </a>
+            </li>
             <?php if ($auth->hasRole('admin')): ?>
             <li class="sidebar-divider"></li>
             <li class="sidebar-section-label">Administration</li>

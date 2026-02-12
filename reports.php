@@ -140,7 +140,7 @@ $districts = $db->query("SELECT DISTINCT district FROM proponents WHERE district
                             
                             <div class="col-md-1 d-flex align-items-end">
                                 <button type="submit" class="btn btn-primary w-100">
-                                    <i class="bi bi-file-earmark-bar-graph"></i> Generate
+                                    <i class="bi bi-file-earmark-bar-graph"></i> Create
                                 </button>
                             </div>
                         </form>
