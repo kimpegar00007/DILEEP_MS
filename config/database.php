@@ -53,39 +53,12 @@ if (!function_exists('env_any')) {
     }
 }
 
-$requestHost = '';
-if (isset($_SERVER['HTTP_HOST'])) {
-    $requestHost = strtolower((string) $_SERVER['HTTP_HOST']);
-}
-
-$isLocalHost = $requestHost === 'localhost'
-    || $requestHost === '127.0.0.1'
-    || strpos($requestHost, 'localhost:') === 0
-    || strpos($requestHost, '127.0.0.1:') === 0;
-
-$allowRemoteDbFromLocal = filter_var(env_any(['ALLOW_REMOTE_DB_FROM_LOCAL'], 'false'), FILTER_VALIDATE_BOOLEAN);
-
-$configuredHost = (string) env_any(['DB_HOST'], 'localhost');
-$configuredPort = (string) env_any(['DB_PORT'], '3306');
-$configuredName = (string) env_any(['DB_NAME', 'DB_DATABASE'], 'dilp_monitoring');
-$configuredUser = (string) env_any(['DB_USER', 'DB_USERNAME'], 'root');
-$configuredPass = (string) env_any(['DB_PASS', 'DB_PASSWORD'], '');
-
-$looksRemoteHost = $configuredHost !== 'localhost' && $configuredHost !== '127.0.0.1';
-
-if ($isLocalHost && !$allowRemoteDbFromLocal && $looksRemoteHost) {
-    $configuredHost = '127.0.0.1';
-    $configuredPort = '3306';
-    $configuredName = 'dilp_monitoring';
-    $configuredUser = 'root';
-    $configuredPass = '';
-}
-
-define('DB_HOST', $configuredHost);
-define('DB_PORT', $configuredPort);
-define('DB_NAME', $configuredName);
-define('DB_USER', $configuredUser);
-define('DB_PASS', $configuredPass);
+// Use 127.0.0.1 instead of localhost for better network compatibility
+define('DB_HOST', (string) env_any(['DB_HOST'], '127.0.0.1'));
+define('DB_PORT', (string) env_any(['DB_PORT'], '3306'));
+define('DB_NAME', (string) env_any(['DB_NAME', 'DB_DATABASE'], 'dilp_monitoring'));
+define('DB_USER', (string) env_any(['DB_USER', 'DB_USERNAME'], 'root'));
+define('DB_PASS', (string) env_any(['DB_PASS', 'DB_PASSWORD'], ''));
 define('DB_CHARSET', 'utf8mb4');
 define('DB_SOCKET', env_any(['DB_SOCKET'], ''));
 
@@ -113,8 +86,9 @@ class Database {
         try {
             return new PDO($dsn, DB_USER, DB_PASS, $options);
         } catch (PDOException $e) {
+            // If connection fails with unix socket or localhost, try TCP connection
             $shouldRetryTcp = empty(DB_SOCKET)
-                && strtolower((string) DB_HOST) === 'localhost'
+                && (strtolower((string) DB_HOST) === 'localhost' || DB_HOST === '127.0.0.1')
                 && (string) $e->getCode() === '2002';
 
             if (!$shouldRetryTcp) {

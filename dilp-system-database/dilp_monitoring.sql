@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost
--- Generation Time: Feb 05, 2026 at 04:44 AM
+-- Generation Time: Feb 12, 2026 at 02:25 AM
 -- Server version: 10.4.28-MariaDB
 -- PHP Version: 8.2.4
 
@@ -129,7 +129,59 @@ INSERT INTO `activity_logs` (`id`, `user_id`, `action`, `table_name`, `record_id
 (88, 3, 'logout', 'users', 3, 'User logged out', '::1', '2026-02-05 02:13:15'),
 (89, 1, 'login', 'users', 1, 'User logged in', '::1', '2026-02-05 02:13:19'),
 (90, 1, 'logout', 'users', 1, 'User logged out', '::1', '2026-02-05 02:17:58'),
-(91, 1, 'login', 'users', 1, 'User logged in', '::1', '2026-02-05 02:21:26');
+(91, 1, 'login', 'users', 1, 'User logged in', '::1', '2026-02-05 02:21:26'),
+(92, 1, 'login', 'users', 1, 'User logged in', '::1', '2026-02-05 06:39:42'),
+(93, 1, 'logout', 'users', 1, 'User logged out', '::1', '2026-02-05 06:39:47'),
+(94, 1, 'login', 'users', 1, 'User logged in', '::1', '2026-02-05 06:39:50'),
+(95, 1, 'logout', 'users', 1, 'User logged out', '::1', '2026-02-05 06:39:53'),
+(96, 1, 'login', 'users', 1, 'User logged in', '::1', '2026-02-11 03:22:34'),
+(97, 1, 'logout', 'users', 1, 'User logged out', '::1', '2026-02-11 03:22:38'),
+(98, 1, 'login', 'users', 1, 'User logged in', '::1', '2026-02-11 03:24:03'),
+(99, 1, 'delete', 'proponents', 29, 'Deleted proponent: LGU Test', '::1', '2026-02-11 03:46:12'),
+(100, 1, 'update', 'proponents', 30, 'Updated proponent', '::1', '2026-02-11 03:46:26'),
+(101, 1, 'delete', 'proponents', 28, 'Deleted proponent: Another Non-LGU', '::1', '2026-02-11 03:47:02'),
+(102, 1, 'create', 'beneficiaries', 2, 'Created new beneficiary', '::1', '2026-02-11 04:00:18'),
+(103, 1, 'logout', 'users', 1, 'User logged out', '::1', '2026-02-11 05:28:10'),
+(104, 1, 'login', 'users', 1, 'User logged in', '::1', '2026-02-11 05:28:18'),
+(105, 1, 'delete', 'beneficiaries', 2, 'Deleted beneficiary: John Rupert Dishwalla', '::1', '2026-02-11 05:31:23'),
+(106, 1, 'update', 'beneficiaries', 1, 'Updated beneficiary', '::1', '2026-02-11 05:31:33'),
+(107, 1, 'create', 'beneficiaries', 3, 'Created new beneficiary', '::1', '2026-02-11 05:32:07'),
+(108, 1, 'logout', 'users', 1, 'User logged out', '::1', '2026-02-11 05:53:23'),
+(109, 1, 'login', 'users', 1, 'User logged in', '::1', '2026-02-11 05:53:25'),
+(110, 1, 'logout', 'users', 1, 'User logged out', '::1', '2026-02-11 06:10:41'),
+(111, 1, 'login', 'users', 1, 'User logged in', '::1', '2026-02-11 06:10:42'),
+(112, 1, 'logout', 'users', 1, 'User logged out', '::1', '2026-02-11 06:14:56'),
+(113, 1, 'login', 'users', 1, 'User logged in', '::1', '2026-02-11 06:14:57'),
+(114, 1, 'update', 'users', 1, 'Updated user ID: 1', '::1', '2026-02-11 06:17:18'),
+(115, 1, 'logout', 'users', 1, 'User logged out', '::1', '2026-02-11 06:17:21'),
+(116, 1, 'login', 'users', 1, 'User logged in', '::1', '2026-02-11 06:17:34'),
+(117, 1, 'logout', 'users', 1, 'User logged out', '::1', '2026-02-11 06:21:39'),
+(118, 2, 'login', 'users', 2, 'User logged in', '::1', '2026-02-11 06:21:42'),
+(119, 2, 'logout', 'users', 2, 'User logged out', '::1', '2026-02-11 06:39:15'),
+(120, 1, 'login', 'users', 1, 'User logged in', '::1', '2026-02-11 06:39:32'),
+(121, 1, 'backup', 'system', 0, 'Downloaded full database backup (5 tables)', '::1', '2026-02-11 06:39:47'),
+(122, 1, 'export', 'beneficiaries', 0, 'Exported 2 records from beneficiaries as CSV', '::1', '2026-02-11 06:40:14'),
+(123, 1, 'import', 'beneficiaries', 0, 'Imported 2 records into beneficiaries from CSV', '::1', '2026-02-11 06:40:34'),
+(124, 1, 'delete', 'beneficiaries', 5, 'Deleted beneficiary: Jonas Dela Cruz', '::1', '2026-02-11 06:40:45'),
+(125, 1, 'delete', 'beneficiaries', 4, 'Deleted beneficiary: ROGER TOLMO', '::1', '2026-02-11 06:40:51'),
+(126, 1, 'logout', 'users', 1, 'User logged out', '::1', '2026-02-11 06:47:17'),
+(127, 1, 'login', 'users', 1, 'User logged in', '::1', '2026-02-11 06:47:30'),
+(128, 1, 'logout', 'users', 1, 'User logged out', '::1', '2026-02-11 06:48:11'),
+(129, 1, 'login', 'users', 1, 'User logged in', '::1', '2026-02-11 07:04:11'),
+(130, 1, 'logout', 'users', 1, 'User logged out', '::1', '2026-02-11 07:06:19'),
+(131, 1, 'login', 'users', 1, 'User logged in', '::1', '2026-02-11 07:10:43'),
+(132, 1, 'logout', 'users', 1, 'User logged out', '::1', '2026-02-11 07:42:50'),
+(133, 1, 'login', 'users', 1, 'User logged in', '::1', '2026-02-11 07:49:53'),
+(134, 1, 'logout', 'users', 1, 'User logged out', '::1', '2026-02-11 07:59:12'),
+(135, 1, 'login', 'users', 1, 'User logged in', '::1', '2026-02-11 08:22:13'),
+(136, 1, 'login', 'users', 1, 'User logged in', '::1', '2026-02-11 14:11:08'),
+(137, 1, 'create', 'beneficiaries', 6, 'Created new beneficiary', '::1', '2026-02-11 14:16:47'),
+(138, 1, 'create', 'proponents', 37, 'Created new proponent', '::1', '2026-02-11 14:19:22'),
+(139, 1, 'delete', 'proponents', 27, 'Deleted proponent: Non-LGU Test Organization', '::1', '2026-02-11 14:19:44'),
+(140, 1, 'delete', 'proponents', 12, 'Deleted proponent: Test LGU Proponent', '::1', '2026-02-11 14:19:58'),
+(141, 1, 'export', 'beneficiaries', 0, 'Exported 2 records from beneficiaries as CSV (2026-02-11 to 2026-02-11)', '::1', '2026-02-11 14:26:21'),
+(142, 1, 'logout', 'users', 1, 'User logged out', '::1', '2026-02-11 14:34:58'),
+(143, 1, 'login', 'users', 1, 'User logged in', '::1', '2026-02-11 14:35:25');
 
 -- --------------------------------------------------------
 
@@ -172,7 +224,9 @@ CREATE TABLE `beneficiaries` (
 --
 
 INSERT INTO `beneficiaries` (`id`, `last_name`, `first_name`, `middle_name`, `suffix`, `gender`, `barangay`, `municipality`, `contact_number`, `project_name`, `type_of_worker`, `amount_worth`, `noted_findings`, `date_complied_by_proponent`, `date_forwarded_to_ro6`, `rpmt_findings`, `date_approved`, `date_forwarded_to_nofo`, `date_turnover`, `date_monitoring`, `latitude`, `longitude`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`) VALUES
-(1, 'TOLMO', 'ROGER', 'TUAZON', 'JR', 'Male', 'Barangay 29 (Pob.)', 'BACOLOD CITY (Capital)', '', 'RICE RETAILING PROJECT', '', 30000.00, '', NULL, NULL, '', NULL, NULL, NULL, NULL, 10.66548618, 122.95009917, 'approved', 1, 1, '2026-02-03 14:26:15', '2026-02-03 14:35:06');
+(1, 'TOLMO', 'ROGER', 'TUAZON', 'JR', 'Male', 'Barangay 29 (Pob.)', 'BACOLOD CITY (Capital)', '', 'RICE RETAILING PROJECT', '', 30000.00, '', NULL, NULL, '', NULL, NULL, NULL, NULL, 10.66548612, 122.95009917, 'approved', 1, 1, '2026-02-03 14:26:15', '2026-02-11 05:31:33'),
+(3, 'Dela Cruz', 'Jonas', '', '', 'Male', 'Barangay 1 Pob. (Zone 1)', 'CADIZ CITY', '', 'RICE RETAILING PROJECT', 'Ambulant Vendor', 50000.00, '', NULL, NULL, '', NULL, NULL, NULL, NULL, 10.66527531, 122.94943398, 'pending', 1, 1, '2026-02-11 05:32:07', '2026-02-11 05:32:07'),
+(6, 'Ramsay', 'Jennifer', '', '', 'Female', 'Zone V (Pob.)', 'MURCIA', '', 'Cookery', '', 300000.00, '', NULL, NULL, '', NULL, NULL, NULL, NULL, 10.66548618, 122.95009917, 'approved', 1, 1, '2026-02-11 14:16:47', '2026-02-11 14:16:47');
 
 -- --------------------------------------------------------
 
@@ -234,7 +288,6 @@ INSERT INTO `proponents` (`id`, `proponent_type`, `date_received`, `noted_findin
 (1, 'LGU-associated', NULL, '', NULL, 0, NULL, '', 'LGU Sipalay City', 'SIPALAY INTEGRATED KABUHAYAN AGRO-ECO TOURISM Project (SIKOP)', 10000000.00, 0, 472, 270, 202, '', 'Enhancement', '', NULL, NULL, '', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2026-02-04', NULL, NULL, '2026-02-14', NULL, '', 9.79100014, 122.46803346, 'approved', 1, 1, '2026-02-03 14:43:18', '2026-02-04 04:41:05'),
 (9, 'Non-LGU-associated', '2026-01-15', 'Test findings', 'FORM-TEST-1770132022', 3, '2026-01-16', 'Test District', 'Form Test Non-LGU Proponent', 'Form Test Non-LGU Project', 50000.00, 2, 100, 50, 50, 'Farmers', 'Formation', 'Test Barangay', '2026-01-10', NULL, '', NULL, NULL, NULL, NULL, NULL, '', NULL, '', NULL, '2026-02-01', NULL, NULL, '2026-04-02', NULL, 'DOLE', 10.50000000, 123.00000000, 'pending', 1, 1, '2026-02-03 15:20:22', '2026-02-03 15:20:22'),
 (10, 'Non-LGU-associated', '2026-01-15', '', 'LOG-TEST-1770132049', 0, NULL, '', 'Log Test Proponent', 'Log Test Project', 10000.00, 0, 50, 0, 0, '', 'Formation', '', NULL, NULL, '', NULL, NULL, NULL, NULL, NULL, '', NULL, '', NULL, '2026-02-01', NULL, NULL, '2026-04-02', NULL, '', NULL, NULL, 'pending', 1, 1, '2026-02-03 15:20:49', '2026-02-03 15:20:49'),
-(12, 'LGU-associated', NULL, '', 'LGU-VERIFY-1770132115', 0, NULL, '', 'Test LGU Proponent', 'Test LGU Project', 25000.00, 0, 50, 0, 0, '', 'Formation', '', NULL, NULL, '', NULL, NULL, NULL, NULL, NULL, '', NULL, '', NULL, '2026-02-01', NULL, NULL, '2026-02-11', NULL, '', NULL, NULL, 'pending', 1, 1, '2026-02-03 15:21:55', '2026-02-03 15:21:55'),
 (13, 'Non-LGU-associated', NULL, '', 'NON-LGU-VERIFY-1770132115', 0, NULL, '', 'Test Non-LGU Proponent', 'Test Non-LGU Project', 50000.00, 0, 100, 0, 0, '', 'Formation', '', NULL, NULL, '', NULL, NULL, NULL, NULL, NULL, '', NULL, '', NULL, '2026-02-01', NULL, NULL, '2026-04-02', NULL, '', NULL, NULL, 'pending', 1, 1, '2026-02-03 15:21:55', '2026-02-03 15:21:55'),
 (16, 'Non-LGU-associated', NULL, '', 'MODEL-TEST-1770132146', 0, NULL, '', 'Model Test', 'Test', 10000.00, 0, 50, 0, 0, '', 'Formation', '', NULL, NULL, '', NULL, NULL, NULL, NULL, NULL, '', NULL, '', NULL, '2026-02-01', NULL, NULL, '2026-04-02', NULL, '', NULL, NULL, 'pending', 1, 1, '2026-02-03 15:22:26', '2026-02-03 15:22:26'),
 (21, 'Non-LGU-associated', NULL, '', NULL, 0, NULL, '', 'Test Non-LGU Organization', 'Community Livelihood Project', 75000.00, 0, 150, 75, 75, 'Farmers', 'Formation', 'Barangay Test', NULL, NULL, '', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2026-02-15', NULL, NULL, '2026-04-16', NULL, '', NULL, NULL, 'pending', 1, 1, '2026-02-03 15:24:32', '2026-02-03 15:24:32'),
@@ -243,13 +296,11 @@ INSERT INTO `proponents` (`id`, `proponent_type`, `date_received`, `noted_findin
 (24, 'LGU-associated', NULL, '', NULL, 0, NULL, '', 'Test LGU', 'LGU Project', 50000.00, 0, 100, 50, 50, '', 'Formation', '', NULL, NULL, '', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2026-02-15', NULL, NULL, '2026-02-25', NULL, '', NULL, NULL, 'pending', 1, 1, '2026-02-03 15:24:59', '2026-02-03 15:24:59'),
 (25, 'Non-LGU-associated', NULL, '', NULL, 0, NULL, '', 'Test Non-LGU 1', 'Test Project 1', 50000.00, 0, 100, 50, 50, '', 'Formation', '', NULL, NULL, '', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2026-02-15', NULL, NULL, '2026-04-16', NULL, '', NULL, NULL, 'pending', 1, 1, '2026-02-03 15:24:59', '2026-02-03 15:24:59'),
 (26, 'Non-LGU-associated', NULL, '', NULL, 0, NULL, '', 'Non-LGU Test Organization', 'Community Development Project', 75000.00, 0, 150, 75, 75, '', 'Formation', '', NULL, NULL, '', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2026-02-15', NULL, NULL, '2026-04-16', NULL, '', NULL, NULL, 'pending', 1, 1, '2026-02-03 15:25:50', '2026-02-03 15:25:50'),
-(27, 'Non-LGU-associated', NULL, '', NULL, 0, NULL, '', 'Non-LGU Test Organization', 'Community Development Project', 75000.00, 0, 150, 75, 75, '', 'Formation', '', NULL, NULL, '', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2026-02-15', NULL, NULL, '2026-04-16', NULL, '', NULL, NULL, 'pending', 1, 1, '2026-02-03 15:25:50', '2026-02-03 15:25:50'),
-(28, 'Non-LGU-associated', NULL, '', NULL, 0, NULL, '', 'Another Non-LGU', 'Community Development Project', 75000.00, 0, 150, 75, 75, '', 'Formation', '', NULL, NULL, '', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2026-02-15', NULL, NULL, '2026-04-16', NULL, '', NULL, NULL, 'pending', 1, 1, '2026-02-03 15:25:50', '2026-02-03 15:25:50'),
-(29, 'LGU-associated', NULL, '', NULL, 0, NULL, '', 'LGU Test', 'Community Development Project', 75000.00, 0, 150, 75, 75, '', 'Formation', '', NULL, NULL, '', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2026-02-15', NULL, NULL, '2026-02-25', NULL, '', NULL, NULL, 'pending', 1, 1, '2026-02-03 15:25:50', '2026-02-03 15:25:50'),
-(30, 'Non-LGU-associated', NULL, '', NULL, 0, NULL, '', 'Another Non-LGU', 'Community Development Project', 75000.00, 0, 150, 75, 75, '', 'Formation', '', NULL, NULL, '', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2026-02-15', NULL, NULL, '2026-04-16', NULL, '', NULL, NULL, 'pending', 1, 1, '2026-02-03 15:25:50', '2026-02-03 15:25:50'),
+(30, 'Non-LGU-associated', NULL, '', NULL, 0, NULL, '', 'Another Non-LGU-2', 'Community Development Project', 75000.00, 0, 150, 75, 75, '', 'Formation', '', NULL, NULL, '', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2026-02-15', NULL, NULL, '2026-04-16', '2026-08-15', '', NULL, NULL, 'pending', 1, 1, '2026-02-03 15:25:50', '2026-02-11 03:46:26'),
 (34, 'Non-LGU-associated', NULL, '', NULL, 0, NULL, '', 'GUIN-OLAYAN AGRARIAN REFORM COOPERATIVE (GARC)', 'GROUP AGRI-ENTERPRISE RETAILING COMMODITY PROJECT', 1500000.00, 0, 29, 0, 0, '', 'Formation', '', NULL, NULL, '', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2026-02-03', NULL, NULL, '2026-04-04', NULL, '', 10.91231296, 123.13324091, 'approved', 1, 1, '2026-02-03 15:27:56', '2026-02-03 15:29:11'),
 (35, 'Non-LGU-associated', NULL, '', NULL, 0, NULL, '', 'BULATA SMALL FISHERFOLKS ASSOCIATION (BUSFA)', 'BULATA LIVELIHOOD FOR INCOME GENERATING (BULIG) PROJECT', 1500000.00, 0, 50, 0, 0, '', 'Formation', '', NULL, NULL, '', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2026-02-04', NULL, NULL, '2026-04-05', NULL, '', NULL, NULL, 'pending', 1, 1, '2026-02-04 04:34:38', '2026-02-04 04:34:38'),
-(36, 'LGU-associated', NULL, '', NULL, 0, NULL, '', 'Cadiz City', 'ILAJAS', 3000000.00, 1, 100, 0, 0, '', 'Formation', '', NULL, NULL, '', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2026-02-05', NULL, NULL, '2026-02-15', '2026-08-05', '', 10.83324135, 123.27000579, 'approved', 1, 1, '2026-02-05 01:51:09', '2026-02-05 01:51:09');
+(36, 'LGU-associated', NULL, '', NULL, 0, NULL, '', 'Cadiz City', 'ILAJAS', 3000000.00, 1, 100, 0, 0, '', 'Formation', '', NULL, NULL, '', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2026-02-05', NULL, NULL, '2026-02-15', '2026-08-05', '', 10.83324135, 123.27000579, 'approved', 1, 1, '2026-02-05 01:51:09', '2026-02-05 01:51:09'),
+(37, 'Non-LGU-associated', NULL, '', NULL, 0, NULL, '', 'Small Farmers Group', 'Rice & Fish trading', 1000000.00, 1, 250, 100, 150, '', 'Formation', '', NULL, NULL, '', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2026-02-11', NULL, NULL, '2026-04-12', '2026-08-10', '', 10.57781639, 123.14599277, 'approved', 1, 1, '2026-02-11 14:19:22', '2026-02-11 14:19:22');
 
 --
 -- Triggers `proponents`
@@ -286,6 +337,28 @@ DELIMITER ;
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `proponent_associations`
+--
+
+CREATE TABLE `proponent_associations` (
+  `id` int(11) NOT NULL,
+  `proponent_id` int(11) NOT NULL,
+  `association_name` varchar(255) NOT NULL,
+  `association_address` varchar(500) DEFAULT NULL,
+  `sort_order` int(11) DEFAULT 0,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `proponent_associations`
+--
+
+INSERT INTO `proponent_associations` (`id`, `proponent_id`, `association_name`, `association_address`, `sort_order`, `created_at`) VALUES
+(1, 37, 'Small Farmers Group Branch 1', 'Bacolod City', 0, '2026-02-11 14:19:22');
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `users`
 --
 
@@ -306,7 +379,7 @@ CREATE TABLE `users` (
 --
 
 INSERT INTO `users` (`id`, `username`, `email`, `password`, `role`, `full_name`, `is_active`, `created_at`, `updated_at`) VALUES
-(1, 'admin', 'admin@dilp.gov.ph', '$2y$12$cxubeCJxgDoHaci9zO4Ud.b7uJ7PQQpWfOafrfLY2efdUQGNuRDLi', 'admin', 'System Administrator', 1, '2026-02-03 09:20:07', '2026-02-03 09:20:07'),
+(1, 'admin', 'admin@dilp.gov.ph', '$2y$10$a6B7wXCzG83VKX.lX/h/seGi7H40EqquOlKeKgU3ytp/W.fpuOTkm', 'admin', 'Kim Admin', 1, '2026-02-03 09:20:07', '2026-02-11 14:34:36'),
 (2, 'kayzel', 'kayzel@dilp.com', '$2y$10$BWQuVA4vDhm2MiFRTn1WXO7NyuNBBKa.AxBw3UFiYVbrCkm2l3qhm', 'encoder', 'Kayzel', 1, '2026-02-04 07:44:20', '2026-02-04 07:44:20'),
 (3, 'jona', 'jona@dilp.com', '$2y$10$cZIQmxS4jgtie9A5Iec4geSW1pYx859hf4j9oNlk2JIy9n0oyV/Na', 'encoder', 'Jona', 1, '2026-02-04 07:46:59', '2026-02-04 07:46:59'),
 (4, 'user', 'testuser@gmail.com', '$2y$10$PiaNVNl7pPhAPNeF8ri46ufDCHQi3kl9Bu9mIUk.RCxEj4WkwNFpe', 'user', 'test user', 1, '2026-02-04 07:47:46', '2026-02-04 07:47:46');
@@ -350,6 +423,13 @@ ALTER TABLE `proponents`
   ADD KEY `idx_proponents_date_approved` (`date_approved`);
 
 --
+-- Indexes for table `proponent_associations`
+--
+ALTER TABLE `proponent_associations`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `proponent_id` (`proponent_id`);
+
+--
 -- Indexes for table `users`
 --
 ALTER TABLE `users`
@@ -365,19 +445,25 @@ ALTER TABLE `users`
 -- AUTO_INCREMENT for table `activity_logs`
 --
 ALTER TABLE `activity_logs`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=92;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=144;
 
 --
 -- AUTO_INCREMENT for table `beneficiaries`
 --
 ALTER TABLE `beneficiaries`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
 -- AUTO_INCREMENT for table `proponents`
 --
 ALTER TABLE `proponents`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=37;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=38;
+
+--
+-- AUTO_INCREMENT for table `proponent_associations`
+--
+ALTER TABLE `proponent_associations`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `users`
@@ -408,6 +494,12 @@ ALTER TABLE `beneficiaries`
 ALTER TABLE `proponents`
   ADD CONSTRAINT `proponents_ibfk_1` FOREIGN KEY (`created_by`) REFERENCES `users` (`id`),
   ADD CONSTRAINT `proponents_ibfk_2` FOREIGN KEY (`updated_by`) REFERENCES `users` (`id`);
+
+--
+-- Constraints for table `proponent_associations`
+--
+ALTER TABLE `proponent_associations`
+  ADD CONSTRAINT `proponent_associations_ibfk_1` FOREIGN KEY (`proponent_id`) REFERENCES `proponents` (`id`) ON DELETE CASCADE;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
