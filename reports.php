@@ -20,22 +20,32 @@ $status = $_GET['status'] ?? '';
 
 $reportData = [];
 $reportGenerated = false;
+$errorMessage = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['generate'])) {
     $reportGenerated = true;
     
-    $filters = [
-        'date_from' => $dateFrom,
-        'date_to' => $dateTo,
-        'status' => $status
-    ];
+    if (!empty($dateFrom) && !empty($dateTo)) {
+        if (strtotime($dateFrom) > strtotime($dateTo)) {
+            $errorMessage = 'Invalid date range: "Date From" cannot be later than "Date To".';
+            $reportGenerated = false;
+        }
+    }
     
-    if ($reportType === 'beneficiaries') {
-        $filters['municipality'] = $municipality;
-        $reportData = $beneficiaryModel->getAll($filters);
-    } else {
-        $filters['district'] = $district;
-        $reportData = $proponentModel->getAll($filters);
+    if ($reportGenerated) {
+        $filters = [
+            'date_from' => $dateFrom,
+            'date_to' => $dateTo,
+            'status' => $status
+        ];
+        
+        if ($reportType === 'beneficiaries') {
+            $filters['municipality'] = $municipality;
+            $reportData = $beneficiaryModel->getAll($filters);
+        } else {
+            $filters['district'] = $district;
+            $reportData = $proponentModel->getAll($filters);
+        }
     }
 }
 
@@ -148,6 +158,11 @@ $districts = $db->query("SELECT DISTINCT district FROM proponents WHERE district
                 </div>
 
                 <?php if ($reportGenerated): ?>
+                <?php if (empty($reportData)): ?>
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-circle"></i> <strong>No records found</strong> matching your filter criteria. Try adjusting the date range, location, or status filters.
+                </div>
+                <?php else: ?>
                 <div class="report-summary">
                     <div class="row">
                         <div class="col-md-4 summary-item">
@@ -252,9 +267,15 @@ $districts = $db->query("SELECT DISTINCT district FROM proponents WHERE district
                         </div>
                     </div>
                 </div>
+                <?php endif; ?>
                 <?php else: ?>
+                <?php if (!empty($errorMessage)): ?>
+                <div class="alert alert-danger">
+                    <i class="bi bi-exclamation-triangle-fill"></i> <?php echo htmlspecialchars($errorMessage); ?>
+                </div>
+                <?php endif; ?>
                 <div class="alert alert-info">
-                    <i class="bi bi-info-circle"></i> Select report parameters above and click "Generate" to create a report.
+                    <i class="bi bi-info-circle"></i> Select report parameters above and click "Create" to generate a report.
                 </div>
                 <?php endif; ?>
             </main>

@@ -27,6 +27,11 @@
                 </a>
             </li>
             <li class="nav-item">
+                <a class="nav-link <?php echo ($currentPage ?? '') === 'fieldwork-schedule' ? 'active' : ''; ?>" href="fieldwork-schedule.php" aria-current="<?php echo ($currentPage ?? '') === 'fieldwork-schedule' ? 'page' : 'false'; ?>">
+                    <i class="bi bi-calendar-event" aria-hidden="true"></i> <span>Fieldwork Schedule</span>
+                </a>
+            </li>
+            <li class="nav-item">
                 <a class="nav-link <?php echo ($currentPage ?? '') === 'about' ? 'active' : ''; ?>" href="about.php" aria-current="<?php echo ($currentPage ?? '') === 'about' ? 'page' : 'false'; ?>">
                     <i class="bi bi-info-circle" aria-hidden="true"></i> <span>About</span>
                 </a>

@@ -6,7 +6,7 @@
     <div class="container-fluid">
         <a class="navbar-brand d-flex align-items-center" href="index.php">
             <img src="assets/dilp-logo.png" alt="DILP Logo" class="navbar-logo">
-            <span class="navbar-brand-text">DOLE DILEEP <span class="navbar-brand-sub">Monitoring System</span></span>
+            <span class="navbar-brand-text">DILEEP System<span class="navbar-brand-sub">Department of Labor and Employment - Integrated Livelihood and Emergency Employment Program - Monitoring System</span></span>
         </a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>

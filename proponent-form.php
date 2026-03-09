@@ -394,8 +394,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     </div>
                                     <div class="col-md-4 mb-3">
                                         <label class="form-label">Source of Funds</label>
-                                        <input type="text" name="source_of_funds" class="form-control"
-                                               value="<?php echo htmlspecialchars($proponent['source_of_funds'] ?? ''); ?>">
+                                        <select name="source_of_funds" class="form-select">
+                                            <option value="">Select Source</option>
+                                            <option value="DOLE" <?php echo (isset($proponent['source_of_funds']) && $proponent['source_of_funds'] === 'DOLE') ? 'selected' : ''; ?>>DOLE</option>
+                                            <option value="GAA" <?php echo (isset($proponent['source_of_funds']) && $proponent['source_of_funds'] === 'GAA') ? 'selected' : ''; ?>>GAA (General Appropriations Act)</option>
+                                            <option value="LGU" <?php echo (isset($proponent['source_of_funds']) && $proponent['source_of_funds'] === 'LGU') ? 'selected' : ''; ?>>LGU Counterpart</option>
+                                            <option value="NGO" <?php echo (isset($proponent['source_of_funds']) && $proponent['source_of_funds'] === 'NGO') ? 'selected' : ''; ?>>NGO/Private Sector</option>
+                                            <option value="TUPAD" <?php echo (isset($proponent['source_of_funds']) && $proponent['source_of_funds'] === 'TUPAD') ? 'selected' : ''; ?>>TUPAD</option>
+                                            <option value="SPES" <?php echo (isset($proponent['source_of_funds']) && $proponent['source_of_funds'] === 'SPES') ? 'selected' : ''; ?>>SPES</option>
+                                            <option value="Other" <?php echo (isset($proponent['source_of_funds']) && $proponent['source_of_funds'] === 'Other') ? 'selected' : ''; ?>>Other</option>
+                                        </select>
                                     </div>
                                 </div>
                             </div>

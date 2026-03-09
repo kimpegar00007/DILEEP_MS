@@ -4,16 +4,19 @@ require_once 'config/database.php';
 require_once 'includes/Auth.php';
 require_once 'models/Beneficiary.php';
 require_once 'models/Proponent.php';
+require_once 'models/FieldworkSchedule.php';
 
 $auth = new Auth();
 $auth->requireLogin();
 
 $beneficiaryModel = new Beneficiary();
 $proponentModel = new Proponent();
+$fieldworkModel = new FieldworkSchedule();
 
 // Get statistics
 $beneficiaryStats = $beneficiaryModel->getStatistics();
 $proponentStats = $proponentModel->getStatistics();
+$fieldworkStats = $fieldworkModel->getStatistics();
 
 // Get map data
 $beneficiaryMapData = $beneficiaryModel->getMapData();
@@ -22,6 +25,15 @@ $mapData = array_merge($beneficiaryMapData, $proponentMapData);
 
 // Get overdue liquidations
 $overdueLiquidations = $proponentModel->getOverdueLiquidations();
+
+// Get chart data
+$beneficiaryMunicipalityData = $beneficiaryModel->getMunicipalityDistribution();
+$beneficiaryProjectTypeData = $beneficiaryModel->getProjectTypeDistribution();
+$beneficiaryMonthlyTrends = $beneficiaryModel->getMonthlyTrends();
+$proponentDistrictData = $proponentModel->getDistrictDistribution();
+$proponentCategoryData = $proponentModel->getCategoryDistribution();
+$proponentFundingData = $proponentModel->getFundingSourceBreakdown();
+$proponentMonthlyTrends = $proponentModel->getMonthlyTrends();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -32,6 +44,7 @@ $overdueLiquidations = $proponentModel->getOverdueLiquidations();
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <?php include 'includes/shared-styles.php'; ?>
     <?php include 'includes/notification-styles.php'; ?>
     <style>
@@ -42,6 +55,130 @@ $overdueLiquidations = $proponentModel->getOverdueLiquidations();
         }
         .alert-overdue { border-left: 4px solid var(--dole-danger); }
         .leaflet-popup-content-wrapper { border-radius: 8px; }
+        
+        .card canvas {
+            max-width: 100%;
+            height: auto !important;
+        }
+        
+        #widget-charts .card-body {
+            min-height: 320px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+        }
+        
+        @media (max-width: 768px) {
+            #widget-charts .card-body {
+                min-height: 280px;
+            }
+        }
+        
+        @media print {
+            #widget-charts {
+                page-break-inside: avoid;
+            }
+            .card {
+                break-inside: avoid;
+            }
+            .fab-scroll-to-map {
+                display: none !important;
+            }
+        }
+
+        /* FAB Styles */
+        .fab-scroll-to-map {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #0d6efd 0%, #ca0a0a 100%);
+            color: white;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            box-shadow: 0 4px 12px rgba(255, 0, 0, 0.4);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            animation: fabPulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
+        @keyframes fabPulse {
+            0%, 100% {
+                box-shadow: 0 4px 12px rgba(13, 110, 253, 0.4);
+            }
+            50% {
+                box-shadow: 0 4px 24px rgba(13, 110, 253, 0.8);
+            }
+        }
+
+        .fab-scroll-to-map:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 20px rgba(13, 110, 253, 0.6);
+            animation: none;
+        }
+
+        .fab-scroll-to-map:active {
+            transform: scale(0.95);
+        }
+
+        .fab-scroll-to-map.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .bg-purple {
+            background: linear-gradient(135deg, #6f42c1 0%, #9b59b6 100%) !important;
+        }
+
+        @media (min-width: 1200px) {
+            .col-xl-2-4 {
+                flex: 0 0 auto;
+                width: 20%;
+            }
+        }
+
+        @media (max-width: 1199px) {
+            .col-xl-2-4 {
+                flex: 0 0 auto;
+                width: 33.333333%;
+            }
+        }
+
+        @media (max-width: 767px) {
+            .col-xl-2-4 {
+                flex: 0 0 auto;
+                width: 50%;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .fab-scroll-to-map {
+                bottom: 1.5rem;
+                right: 1.5rem;
+                width: 48px;
+                height: 48px;
+                font-size: 1.25rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .fab-scroll-to-map {
+                bottom: 1rem;
+                right: 1rem;
+                width: 44px;
+                height: 44px;
+                font-size: 1.1rem;
+            }
+        }
     </style>
 </head>
 <body>
@@ -90,6 +227,12 @@ $overdueLiquidations = $proponentModel->getOverdueLiquidations();
                                     <label class="form-check-label" for="toggleMap">Project Map</label>
                                 </div>
                             </li>
+                            <li>
+                                <div class="form-check form-switch mb-2">
+                                    <input class="form-check-input" type="checkbox" id="toggleCharts" checked onchange="DILP.dashboard.toggle('charts', this.checked)">
+                                    <label class="form-check-label" for="toggleCharts">Data Charts</label>
+                                </div>
+                            </li>
                             <li><hr class="dropdown-divider"></li>
                             <li>
                                 <button class="btn btn-sm btn-outline-primary w-100" onclick="DILP.dashboard.resetPrefs()">
@@ -103,7 +246,7 @@ $overdueLiquidations = $proponentModel->getOverdueLiquidations();
 
                 <!-- Statistics Cards -->
                 <div class="row g-3 mb-4" id="widget-stats">
-                    <div class="col-sm-6 col-lg-3">
+                    <div class="col-sm-6 col-xl-2-4">
                         <div class="card stat-card bg-primary text-white h-100">
                             <div class="card-body">
                                 <div class="d-flex justify-content-between align-items-start">
@@ -118,7 +261,7 @@ $overdueLiquidations = $proponentModel->getOverdueLiquidations();
                         </div>
                     </div>
 
-                    <div class="col-sm-6 col-lg-3">
+                    <div class="col-sm-6 col-xl-2-4">
                         <div class="card stat-card bg-success text-white h-100">
                             <div class="card-body">
                                 <div class="d-flex justify-content-between align-items-start">
@@ -133,7 +276,7 @@ $overdueLiquidations = $proponentModel->getOverdueLiquidations();
                         </div>
                     </div>
 
-                    <div class="col-sm-6 col-lg-3">
+                    <div class="col-sm-6 col-xl-2-4">
                         <div class="card stat-card bg-info text-white h-100">
                             <div class="card-body">
                                 <div class="d-flex justify-content-between align-items-start">
@@ -148,14 +291,28 @@ $overdueLiquidations = $proponentModel->getOverdueLiquidations();
                         </div>
                     </div>
 
-                    <div class="col-sm-6 col-lg-3">
+                    <div class="col-sm-6 col-xl-2-4">
+                        <div class="card stat-card bg-purple text-white h-100">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div class="stat-text-wrap">
+                                        <h6 class="card-title text-uppercase mb-1">Fieldwork Schedule</h6>
+                                        <h2 class="stat-number mb-0"><?php echo number_format($fieldworkStats['total']); ?></h2>
+                                        <small class="stat-detail">Ongoing: <?php echo number_format($fieldworkStats['ongoing']); ?> | Completed: <?php echo number_format($fieldworkStats['completed']); ?></small>
+                                    </div>
+                                    <i class="bi bi-calendar-check stat-icon flex-shrink-0"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-sm-6 col-xl-2-4">
                         <div class="card stat-card bg-warning text-dark h-100">
                             <div class="card-body">
                                 <div class="d-flex justify-content-between align-items-start">
                                     <div class="stat-text-wrap">
-                                        <h6 class="card-title text-uppercase mb-1">Total Amount</h6>
+                                        <h6 class="card-title text-uppercase mb-1">Total Amount (Individual + Group Projects)</h6>
                                         <h2 class="stat-number mb-0">₱<?php echo number_format($beneficiaryStats['total_amount'] + $proponentStats['total_amount'], 2); ?></h2>
-                                        <small class="stat-detail">Individual + Group Projects</small>
                                     </div>
                                     <i class="bi bi-cash-stack stat-icon flex-shrink-0"></i>
                                 </div>
@@ -227,6 +384,81 @@ $overdueLiquidations = $proponentModel->getOverdueLiquidations();
                     </div>
                 </div>
 
+                <!-- Data Visualization Charts -->
+                <div class="row g-3 mb-4" id="widget-charts">
+                    <!-- Beneficiary Municipality Distribution -->
+                    <div class="col-lg-6">
+                        <div class="card stat-card h-100">
+                            <div class="card-header bg-white">
+                                <h5 class="mb-0"><i class="bi bi-bar-chart-fill"></i> Top 10 Municipalities (Individual)</h5>
+                            </div>
+                            <div class="card-body">
+                                <canvas id="municipalityChart" style="max-height: 300px;"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Proponent District Distribution -->
+                    <div class="col-lg-6">
+                        <div class="card stat-card h-100">
+                            <div class="card-header bg-white">
+                                <h5 class="mb-0"><i class="bi bi-pie-chart-fill"></i> District Distribution (Groups)</h5>
+                            </div>
+                            <div class="card-body">
+                                <canvas id="districtChart" style="max-height: 300px;"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Project Type Distribution -->
+                    <div class="col-lg-6">
+                        <div class="card stat-card h-100">
+                            <div class="card-header bg-white">
+                                <h5 class="mb-0"><i class="bi bi-diagram-3-fill"></i> Worker Type Distribution</h5>
+                            </div>
+                            <div class="card-body">
+                                <canvas id="projectTypeChart" style="max-height: 300px;"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Funding Source Breakdown -->
+                    <div class="col-lg-6">
+                        <div class="card stat-card h-100">
+                            <div class="card-header bg-white">
+                                <h5 class="mb-0"><i class="bi bi-cash-coin"></i> Funding Source Breakdown</h5>
+                            </div>
+                            <div class="card-body">
+                                <canvas id="fundingChart" style="max-height: 300px;"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Category Distribution -->
+                    <div class="col-lg-6">
+                        <div class="card stat-card h-100">
+                            <div class="card-header bg-white">
+                                <h5 class="mb-0"><i class="bi bi-tags-fill"></i> Project Category Distribution</h5>
+                            </div>
+                            <div class="card-body">
+                                <canvas id="categoryChart" style="max-height: 300px;"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Monthly Trends -->
+                    <div class="col-lg-6">
+                        <div class="card stat-card h-100">
+                            <div class="card-header bg-white">
+                                <h5 class="mb-0"><i class="bi bi-graph-up"></i> Monthly Approval Trends (Last 12 Months)</h5>
+                            </div>
+                            <div class="card-body">
+                                <canvas id="trendsChart" style="max-height: 300px;"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Overdue Liquidations Alert -->
                 <div id="widget-overdue">
                 <?php if (count($overdueLiquidations) > 0): ?>
@@ -273,10 +505,341 @@ $overdueLiquidations = $proponentModel->getOverdueLiquidations();
         </div>
     </div>
 
+    <!-- FAB: Scroll to Map Button -->
+    <button class="fab-scroll-to-map" id="fabScrollToMap" aria-label="Scroll to map" title="View Project Map">
+        <i class="bi bi-geo-alt-fill"></i>
+    </button>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <?php include 'includes/notification-script.php'; ?>
     <?php include 'includes/ux-utilities.php'; ?>
+    <script>
+        // Chart.js Configuration and Initialization
+        Chart.defaults.font.family = "'Inter', 'Segoe UI', 'Roboto', sans-serif";
+        Chart.defaults.responsive = true;
+        Chart.defaults.maintainAspectRatio = true;
+
+        // Color palette for charts
+        const chartColors = {
+            primary: '#0d6efd',
+            success: '#198754',
+            info: '#0dcaf0',
+            warning: '#ffc107',
+            danger: '#dc3545',
+            secondary: '#6c757d',
+            purple: '#6f42c1',
+            orange: '#fd7e14',
+            teal: '#20c997',
+            pink: '#d63384'
+        };
+
+        const colorPalette = [
+            chartColors.primary, chartColors.success, chartColors.info, 
+            chartColors.warning, chartColors.danger, chartColors.purple,
+            chartColors.orange, chartColors.teal, chartColors.pink, chartColors.secondary
+        ];
+
+        // 1. Municipality Distribution Chart (Horizontal Bar)
+        const municipalityData = <?php echo json_encode($beneficiaryMunicipalityData); ?>;
+        if (municipalityData && municipalityData.length > 0) {
+            const municipalityCtx = document.getElementById('municipalityChart').getContext('2d');
+            new Chart(municipalityCtx, {
+                type: 'bar',
+                data: {
+                    labels: municipalityData.map(item => item.municipality),
+                    datasets: [{
+                        label: 'Number of Beneficiaries',
+                        data: municipalityData.map(item => item.count),
+                        backgroundColor: chartColors.primary,
+                        borderColor: chartColors.primary,
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return 'Beneficiaries: ' + context.parsed.x;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            ticks: { precision: 0 }
+                        }
+                    }
+                }
+            });
+        }
+
+        // 2. District Distribution Chart (Doughnut)
+        const districtData = <?php echo json_encode($proponentDistrictData); ?>;
+        if (districtData && districtData.length > 0) {
+            const districtCtx = document.getElementById('districtChart').getContext('2d');
+            new Chart(districtCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: districtData.map(item => item.district),
+                    datasets: [{
+                        label: 'Projects',
+                        data: districtData.map(item => item.count),
+                        backgroundColor: colorPalette,
+                        borderWidth: 2,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                            labels: { padding: 10, font: { size: 11 } }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.parsed || 0;
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = ((value / total) * 100).toFixed(1);
+                                    return label + ': ' + value + ' (' + percentage + '%)';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // 3. Project Type Distribution Chart (Pie)
+        const projectTypeData = <?php echo json_encode($beneficiaryProjectTypeData); ?>;
+        if (projectTypeData && projectTypeData.length > 0) {
+            const projectTypeCtx = document.getElementById('projectTypeChart').getContext('2d');
+            new Chart(projectTypeCtx, {
+                type: 'pie',
+                data: {
+                    labels: projectTypeData.map(item => item.type_of_worker),
+                    datasets: [{
+                        label: 'Count',
+                        data: projectTypeData.map(item => item.count),
+                        backgroundColor: colorPalette,
+                        borderWidth: 2,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { padding: 10, font: { size: 11 } }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.parsed || 0;
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = ((value / total) * 100).toFixed(1);
+                                    return label + ': ' + value + ' (' + percentage + '%)';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // 4. Funding Source Breakdown Chart (Bar)
+        const fundingData = <?php echo json_encode($proponentFundingData); ?>;
+        if (fundingData && fundingData.length > 0) {
+            const fundingCtx = document.getElementById('fundingChart').getContext('2d');
+            
+            // Generate colors based on funding source
+            const fundingColors = fundingData.map(item => {
+                if (item.source_of_funds === 'Not Specified') return chartColors.secondary;
+                if (item.source_of_funds === 'DOLE') return chartColors.primary;
+                if (item.source_of_funds === 'GAA') return chartColors.success;
+                if (item.source_of_funds === 'LGU') return chartColors.info;
+                if (item.source_of_funds === 'NGO') return chartColors.warning;
+                if (item.source_of_funds === 'TUPAD') return chartColors.purple;
+                if (item.source_of_funds === 'SPES') return chartColors.teal;
+                return chartColors.orange;
+            });
+            
+            new Chart(fundingCtx, {
+                type: 'bar',
+                data: {
+                    labels: fundingData.map(item => item.source_of_funds),
+                    datasets: [{
+                        label: 'Total Amount (₱)',
+                        data: fundingData.map(item => parseFloat(item.total_amount)),
+                        backgroundColor: fundingColors,
+                        borderColor: fundingColors,
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const count = fundingData[context.dataIndex].count;
+                                    return [
+                                        'Amount: ₱' + context.parsed.y.toLocaleString('en-PH', {minimumFractionDigits: 2}),
+                                        'Projects: ' + count
+                                    ];
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return '₱' + value.toLocaleString('en-PH');
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        } else {
+            // Display message when no data is available
+            const fundingCanvas = document.getElementById('fundingChart');
+            const fundingCtx = fundingCanvas.getContext('2d');
+            fundingCtx.font = '14px Inter, sans-serif';
+            fundingCtx.fillStyle = '#6c757d';
+            fundingCtx.textAlign = 'center';
+            fundingCtx.fillText('No funding source data available', fundingCanvas.width / 2, fundingCanvas.height / 2);
+        }
+
+        // 5. Category Distribution Chart (Doughnut)
+        const categoryData = <?php echo json_encode($proponentCategoryData); ?>;
+        if (categoryData && categoryData.length > 0) {
+            const categoryCtx = document.getElementById('categoryChart').getContext('2d');
+            new Chart(categoryCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: categoryData.map(item => item.category),
+                    datasets: [{
+                        label: 'Projects',
+                        data: categoryData.map(item => item.count),
+                        backgroundColor: colorPalette,
+                        borderWidth: 2,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                            labels: { padding: 10, font: { size: 11 } }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.parsed || 0;
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = ((value / total) * 100).toFixed(1);
+                                    return label + ': ' + value + ' (' + percentage + '%)';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // 6. Monthly Trends Chart (Line)
+        const beneficiaryTrends = <?php echo json_encode($beneficiaryMonthlyTrends); ?>;
+        const proponentTrends = <?php echo json_encode($proponentMonthlyTrends); ?>;
+        
+        if ((beneficiaryTrends && beneficiaryTrends.length > 0) || (proponentTrends && proponentTrends.length > 0)) {
+            const allMonths = new Set();
+            beneficiaryTrends.forEach(item => allMonths.add(item.month));
+            proponentTrends.forEach(item => allMonths.add(item.month));
+            const sortedMonths = Array.from(allMonths).sort();
+
+            const beneficiaryMap = {};
+            const proponentMap = {};
+            beneficiaryTrends.forEach(item => beneficiaryMap[item.month] = parseInt(item.count));
+            proponentTrends.forEach(item => proponentMap[item.month] = parseInt(item.count));
+
+            const trendsCtx = document.getElementById('trendsChart').getContext('2d');
+            new Chart(trendsCtx, {
+                type: 'line',
+                data: {
+                    labels: sortedMonths.map(month => {
+                        const date = new Date(month + '-01');
+                        return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+                    }),
+                    datasets: [
+                        {
+                            label: 'Individual Beneficiaries',
+                            data: sortedMonths.map(month => beneficiaryMap[month] || 0),
+                            borderColor: chartColors.primary,
+                            backgroundColor: chartColors.primary + '20',
+                            tension: 0.4,
+                            fill: true
+                        },
+                        {
+                            label: 'Group Proponents',
+                            data: sortedMonths.map(month => proponentMap[month] || 0),
+                            borderColor: chartColors.success,
+                            backgroundColor: chartColors.success + '20',
+                            tension: 0.4,
+                            fill: true
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: { padding: 15 }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': ' + context.parsed.y + ' approved';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: { precision: 0 }
+                        }
+                    }
+                }
+            });
+        }
+    </script>
     <script>
         // Initialize map centered on Negros Occidental
         var map = L.map('map').setView([10.5, 123.0], 9);
@@ -373,7 +936,7 @@ $overdueLiquidations = $proponentModel->getOverdueLiquidations();
     // Part 7: Dashboard Personalization
     DILP.dashboard = {
         _key: 'dilp_dashboard_prefs',
-        _defaults: { stats: true, status: true, overdue: true, map: true },
+        _defaults: { stats: true, status: true, overdue: true, map: true, charts: true },
 
         init() {
             const prefs = this.getPrefs();
@@ -420,6 +983,10 @@ $overdueLiquidations = $proponentModel->getOverdueLiquidations();
         { target: '.stat-card.bg-primary', title: 'Beneficiary Overview', description: 'View total individual beneficiaries with gender breakdown at a glance.' },
         { target: '.stat-card.bg-success', title: 'Proponent Overview', description: 'Track group proponents categorized by LGU and Non-LGU types.' },
         { target: '.stat-card.bg-warning', title: 'Financial Summary', description: 'See the combined total amount for all individual and group projects.' },
+        { target: '#widget-status', title: 'Status Overview', description: 'Monitor the status distribution of both individual beneficiaries and group proponents.' },
+        { target: '#widget-charts', title: 'Data Visualization', description: 'Interactive charts showing municipality distribution, project types, funding sources, and monthly trends.' },
+        { target: '#municipalityChart', title: 'Municipality Analysis', description: 'Bar chart displaying the top 10 municipalities with the most individual beneficiaries.' },
+        { target: '#trendsChart', title: 'Monthly Trends', description: 'Line chart tracking approval trends over the last 12 months for both individuals and groups.' },
         { target: '#map', title: 'Project Map', description: 'Interactive map showing project locations across Negros Occidental. Click markers for details.' },
         { target: '.sidebar', title: 'Navigation', description: 'Use the sidebar to navigate between Beneficiaries, Proponents, Reports, and more.' }
     ];
@@ -429,6 +996,42 @@ $overdueLiquidations = $proponentModel->getOverdueLiquidations();
         DILP.tour.init(dashboardTourSteps);
         DILP.tour.start();
     });
+    </script>
+    <script>
+    // FAB: Scroll to Map Functionality
+    (function() {
+        const fabBtn = document.getElementById('fabScrollToMap');
+        const mapSection = document.getElementById('widget-map');
+        
+        if (!fabBtn || !mapSection) return;
+
+        // Show/hide FAB based on scroll position
+        function updateFabVisibility() {
+            const mapRect = mapSection.getBoundingClientRect();
+            const isMapVisible = mapRect.top < window.innerHeight && mapRect.bottom > 0;
+            
+            if (isMapVisible) {
+                fabBtn.classList.remove('show');
+            } else {
+                fabBtn.classList.add('show');
+            }
+        }
+
+        // Smooth scroll to map section
+        function scrollToMap() {
+            mapSection.scrollIntoView({
+                behavior: 'smooth',
+                block: 'start'
+            });
+        }
+
+        // Event listeners
+        window.addEventListener('scroll', updateFabVisibility, { passive: true });
+        fabBtn.addEventListener('click', scrollToMap);
+
+        // Initial check
+        updateFabVisibility();
+    })();
     </script>
 </body>
 </html>

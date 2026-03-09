@@ -1,0 +1,194 @@
+# =====================================================
+# DILP Monitoring System - Namecheap .htaccess
+# =====================================================
+# Copy this file to .htaccess in your application root
+# =====================================================
+
+# Disable directory browsing
+Options -Indexes
+
+# Default index file
+DirectoryIndex index.php index.html
+
+# =====================================================
+# SECURITY: Protect Sensitive Files
+# =====================================================
+
+# Protect .env file
+<Files ".env">
+    Order allow,deny
+    Deny from all
+</Files>
+
+# Protect sensitive file types
+<FilesMatch "\.(env|sql|log|md|git|gitignore|example)$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# Protect backup and migration files
+<FilesMatch "(migration|backup|migrate).*\.(sql|php)$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# Protect config directory (allow only PHP to access)
+<DirectoryMatch "^/.*/config/">
+    Order allow,deny
+    Deny from all
+</DirectoryMatch>
+
+# =====================================================
+# FORCE HTTPS (Uncomment after SSL is installed)
+# =====================================================
+
+# RewriteEngine On
+# RewriteCond %{HTTPS} off
+# RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+# =====================================================
+# SECURITY HEADERS
+# =====================================================
+
+<IfModule mod_headers.c>
+    # Prevent MIME type sniffing
+    Header set X-Content-Type-Options "nosniff"
+    
+    # Prevent clickjacking
+    Header set X-Frame-Options "SAMEORIGIN"
+    
+    # Enable XSS protection
+    Header set X-XSS-Protection "1; mode=block"
+    
+    # Referrer policy
+    Header set Referrer-Policy "strict-origin-when-cross-origin"
+    
+    # Remove server signature
+    Header unset Server
+    Header unset X-Powered-By
+</IfModule>
+
+# =====================================================
+# PHP SETTINGS
+# =====================================================
+
+<IfModule mod_php7.c>
+    # Upload limits
+    php_value upload_max_filesize 10M
+    php_value post_max_size 10M
+    
+    # Execution limits
+    php_value max_execution_time 300
+    php_value max_input_time 300
+    php_value memory_limit 256M
+    
+    # Error handling (production)
+    php_flag display_errors Off
+    php_flag log_errors On
+    
+    # Session security
+    php_value session.cookie_httponly 1
+    php_value session.cookie_secure 1
+    php_value session.use_only_cookies 1
+    
+    # Timezone
+    php_value date.timezone "Asia/Manila"
+</IfModule>
+
+# =====================================================
+# COMPRESSION (for better performance)
+# =====================================================
+
+<IfModule mod_deflate.c>
+    # Compress HTML, CSS, JavaScript, Text, XML
+    AddOutputFilterByType DEFLATE text/html
+    AddOutputFilterByType DEFLATE text/css
+    AddOutputFilterByType DEFLATE text/javascript
+    AddOutputFilterByType DEFLATE text/plain
+    AddOutputFilterByType DEFLATE text/xml
+    AddOutputFilterByType DEFLATE application/javascript
+    AddOutputFilterByType DEFLATE application/json
+    AddOutputFilterByType DEFLATE application/xml
+</IfModule>
+
+# =====================================================
+# BROWSER CACHING
+# =====================================================
+
+<IfModule mod_expires.c>
+    ExpiresActive On
+    
+    # Images
+    ExpiresByType image/jpeg "access plus 1 year"
+    ExpiresByType image/png "access plus 1 year"
+    ExpiresByType image/gif "access plus 1 year"
+    ExpiresByType image/svg+xml "access plus 1 year"
+    ExpiresByType image/x-icon "access plus 1 year"
+    
+    # CSS and JavaScript
+    ExpiresByType text/css "access plus 1 month"
+    ExpiresByType application/javascript "access plus 1 month"
+    ExpiresByType text/javascript "access plus 1 month"
+    
+    # Fonts
+    ExpiresByType font/woff "access plus 1 year"
+    ExpiresByType font/woff2 "access plus 1 year"
+    ExpiresByType application/font-woff "access plus 1 year"
+    ExpiresByType application/font-woff2 "access plus 1 year"
+    
+    # Default
+    ExpiresDefault "access plus 1 month"
+</IfModule>
+
+# =====================================================
+# ERROR PAGES (Optional - create custom error pages)
+# =====================================================
+
+# ErrorDocument 404 /dilp-system/404.php
+# ErrorDocument 403 /dilp-system/403.php
+# ErrorDocument 500 /dilp-system/500.php
+
+# =====================================================
+# PREVENT ACCESS TO HIDDEN FILES
+# =====================================================
+
+<FilesMatch "^\.">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# =====================================================
+# BLOCK COMMON EXPLOIT ATTEMPTS
+# =====================================================
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    
+    # Block access to wp-admin (common bot target)
+    RewriteCond %{REQUEST_URI} ^/wp-admin [NC]
+    RewriteRule .* - [F,L]
+    
+    # Block suspicious query strings
+    RewriteCond %{QUERY_STRING} (<|%3C).*script.*(>|%3E) [NC,OR]
+    RewriteCond %{QUERY_STRING} GLOBALS(=|[|%[0-9A-Z]{0,2}) [OR]
+    RewriteCond %{QUERY_STRING} _REQUEST(=|[|%[0-9A-Z]{0,2})
+    RewriteRule .* - [F,L]
+    
+    # Block file injection attempts
+    RewriteCond %{REQUEST_URI} ^.*/(wp-config\.php|xmlrpc\.php) [NC,OR]
+    RewriteCond %{REQUEST_URI} ^.*/(\.|wp-config\.php|readme\.html|license\.txt) [NC]
+    RewriteRule .* - [F,L]
+</IfModule>
+
+# =====================================================
+# LIMIT REQUEST METHODS
+# =====================================================
+
+<LimitExcept GET POST HEAD>
+    Order allow,deny
+    Deny from all
+</LimitExcept>
+
+# =====================================================
+# END OF CONFIGURATION
+# =====================================================

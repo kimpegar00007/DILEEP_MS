@@ -209,6 +209,7 @@ $tableCount = $tablesStmt->rowCount();
                                             </div>
                                         </div>
                                         <small class="text-muted d-block mt-1 mb-3">Leave empty to export all records</small>
+                                        <div id="lastExportBeneficiaries" class="text-muted small mb-3" style="font-style: italic;"></div>
                                         <button type="button" class="btn btn-primary" onclick="exportData('beneficiaries')">
                                             <i class="bi bi-file-earmark-arrow-down"></i> Export Beneficiaries
                                         </button>
@@ -231,6 +232,7 @@ $tableCount = $tablesStmt->rowCount();
                                             </div>
                                         </div>
                                         <small class="text-muted d-block mt-1 mb-3">Leave empty to export all records</small>
+                                        <div id="lastExportProponents" class="text-muted small mb-3" style="font-style: italic;"></div>
                                         <button type="button" class="btn btn-primary" onclick="exportData('proponents')">
                                             <i class="bi bi-file-earmark-arrow-down"></i> Export Proponents
                                         </button>
@@ -285,6 +287,7 @@ $tableCount = $tablesStmt->rowCount();
                                                     <strong>Required columns:</strong> last_name, first_name, gender, barangay, municipality, project_name, amount_worth
                                                 </small>
                                             </div>
+                                            <div id="lastImportBeneficiaries" class="text-muted small mt-2" style="font-style: italic;"></div>
                                         </div>
                                     </div>
                                 </div>
@@ -327,6 +330,7 @@ $tableCount = $tablesStmt->rowCount();
                                                     <strong>Required columns:</strong> proponent_type, proponent_name, project_title, amount, total_beneficiaries, category
                                                 </small>
                                             </div>
+                                            <div id="lastImportProponents" class="text-muted small mt-2" style="font-style: italic;"></div>
                                         </div>
                                     </div>
                                 </div>
@@ -483,7 +487,26 @@ $tableCount = $tablesStmt->rowCount();
                     ? 'Your filtered ' + table + ' CSV file is downloading.'
                     : 'Your ' + table + ' CSV file is downloading (all records).';
                 showToast('success', 'Export Started', msg);
+                
+                // Save last export date
+                var now = new Date();
+                localStorage.setItem('lastExport_' + table, now.toISOString());
+                updateLastExportDisplay(table);
             }, 1500);
+        }
+        
+        function updateLastExportDisplay(table) {
+            var capTable = table.charAt(0).toUpperCase() + table.slice(1);
+            var lastExport = localStorage.getItem('lastExport_' + table);
+            var displayEl = document.getElementById('lastExport' + capTable);
+            
+            if (lastExport && displayEl) {
+                var date = new Date(lastExport);
+                var formattedDate = formatDateTime(date);
+                displayEl.textContent = 'Last exported: ' + formattedDate;
+            } else if (displayEl) {
+                displayEl.textContent = '';
+            }
         }
 
         // ==================== IMPORT ====================
@@ -620,6 +643,11 @@ $tableCount = $tablesStmt->rowCount();
 
                 if (data.success) {
                     showToast('success', 'Import Successful', data.message);
+                    
+                    // Save last import date
+                    var now = new Date();
+                    localStorage.setItem('lastImport_' + table, now.toISOString());
+                    
                     clearImport(table);
                     // Refresh page after short delay to update counts
                     setTimeout(function() { location.reload(); }, 2000);
@@ -708,7 +736,36 @@ $tableCount = $tablesStmt->rowCount();
                 });
         }
 
+        function updateLastImportDisplay(table) {
+            var capTable = table.charAt(0).toUpperCase() + table.slice(1);
+            var lastImport = localStorage.getItem('lastImport_' + table);
+            var displayEl = document.getElementById('lastImport' + capTable);
+            
+            if (lastImport && displayEl) {
+                var date = new Date(lastImport);
+                var formattedDate = formatDateTime(date);
+                displayEl.textContent = 'Last imported: ' + formattedDate;
+            } else if (displayEl) {
+                displayEl.textContent = '';
+            }
+        }
+
         // ==================== UTILITIES ====================
+        function formatDateTime(date) {
+            var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            var month = months[date.getMonth()];
+            var day = date.getDate();
+            var year = date.getFullYear();
+            var hours = date.getHours();
+            var minutes = date.getMinutes();
+            var ampm = hours >= 12 ? 'PM' : 'AM';
+            hours = hours % 12;
+            hours = hours ? hours : 12;
+            minutes = minutes < 10 ? '0' + minutes : minutes;
+            
+            return month + ' ' + day + ', ' + year + ' at ' + hours + ':' + minutes + ' ' + ampm;
+        }
+        
         function showToast(type, title, message) {
             if (typeof DILP !== 'undefined' && DILP.toast) {
                 DILP.toast[type](title, message);
@@ -775,6 +832,12 @@ $tableCount = $tablesStmt->rowCount();
 
         // Handle URL params for Google Drive callback messages
         $(document).ready(function() {
+            // Initialize last export/import date displays
+            updateLastExportDisplay('beneficiaries');
+            updateLastExportDisplay('proponents');
+            updateLastImportDisplay('beneficiaries');
+            updateLastImportDisplay('proponents');
+            
             var urlParams = new URLSearchParams(window.location.search);
             if (urlParams.get('gdrive') === 'connected') {
                 showToast('success', 'Google Drive Connected', 'Your Google Drive account has been linked successfully.');
