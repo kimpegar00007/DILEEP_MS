@@ -68,6 +68,14 @@ function createNotificationHTML(notification) {
                 </a>
             </div>
         `;
+    } else if (notification.type === 'fieldwork') {
+        actionButtons = `
+            <div class="notification-actions">
+                <a href="fieldwork-schedule.php" class="btn btn-sm btn-outline-primary">
+                    <i class="bi bi-calendar-event"></i> View Schedule
+                </a>
+            </div>
+        `;
     } else if (notification.type === 'monitoring' || notification.type === 'upcoming_monitoring') {
         if (notification.beneficiary_id) {
             actionButtons = `

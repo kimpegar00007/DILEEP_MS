@@ -65,6 +65,7 @@ define('DB_SOCKET', env_any(['DB_SOCKET'], ''));
 class Database {
     private static $instance = null;
     private $connection;
+    private $lastError = null;
     
     private function __construct() {
         try {
@@ -75,36 +76,71 @@ class Database {
     }
 
     private function connectWithFallback() {
-        $options = [
+        $options = $this->getPDOOptions();
+        $hostSequence = $this->getHostSequence();
+        $lastException = null;
+
+        foreach ($hostSequence as $host) {
+            try {
+                $dsn = $this->buildDSN($host);
+                $connection = new PDO($dsn, DB_USER, DB_PASS, $options);
+                return $connection;
+            } catch (PDOException $e) {
+                $lastException = $e;
+                error_log("Failed to connect with host '$host': " . $e->getMessage());
+                continue;
+            }
+        }
+
+        if ($lastException) {
+            throw $lastException;
+        }
+        throw new PDOException("No valid connection method available");
+    }
+
+    private function getPDOOptions() {
+        return [
             PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
             PDO::ATTR_EMULATE_PREPARES => false,
+            PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES " . DB_CHARSET,
+            PDO::ATTR_TIMEOUT => 10,
         ];
+    }
 
-        $dsn = $this->buildDSN();
-
-        try {
-            return new PDO($dsn, DB_USER, DB_PASS, $options);
-        } catch (PDOException $e) {
-            // If connection fails with unix socket or localhost, try TCP connection
-            $shouldRetryTcp = empty(DB_SOCKET)
-                && (strtolower((string) DB_HOST) === 'localhost' || DB_HOST === '127.0.0.1')
-                && (string) $e->getCode() === '2002';
-
-            if (!$shouldRetryTcp) {
-                throw $e;
-            }
-
-            $fallbackDsn = "mysql:host=127.0.0.1;port=" . DB_PORT . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET;
-            return new PDO($fallbackDsn, DB_USER, DB_PASS, $options);
+    private function getHostSequence() {
+        $hosts = [];
+        
+        if (!empty(DB_SOCKET)) {
+            $hosts[] = ['type' => 'socket', 'value' => DB_SOCKET];
         }
+
+        $currentHost = DB_HOST;
+        $hosts[] = ['type' => 'host', 'value' => $currentHost];
+
+        if ($currentHost === '127.0.0.1') {
+            $hosts[] = ['type' => 'host', 'value' => 'localhost'];
+        } elseif (strtolower($currentHost) === 'localhost') {
+            $hosts[] = ['type' => 'host', 'value' => '127.0.0.1'];
+        }
+
+        $hosts[] = ['type' => 'host', 'value' => 'localhost'];
+        $hosts[] = ['type' => 'host', 'value' => '127.0.0.1'];
+
+        $hostname = gethostname();
+        if ($hostname && $hostname !== false) {
+            $hosts[] = ['type' => 'host', 'value' => $hostname];
+            $hosts[] = ['type' => 'host', 'value' => 'localhost.localdomain'];
+        }
+
+        return array_unique($hosts, SORT_REGULAR);
     }
     
-    private function buildDSN() {
-        if (!empty(DB_SOCKET)) {
-            return "mysql:unix_socket=" . DB_SOCKET . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET;
+    private function buildDSN($hostConfig) {
+        if ($hostConfig['type'] === 'socket') {
+            return "mysql:unix_socket=" . $hostConfig['value'] . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET;
         }
-        return "mysql:host=" . DB_HOST . ";port=" . DB_PORT . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET;
+        return "mysql:host=" . $hostConfig['value'] . ";port=" . DB_PORT . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET;
     }
     
     private function handleConnectionError(PDOException $e) {
@@ -114,11 +150,17 @@ class Database {
         $debugInfo = "Database connection failed.\n";
         $debugInfo .= "Error Code: " . $errorCode . "\n";
         $debugInfo .= "Error Message: " . $errorMsg . "\n";
-        $debugInfo .= "Host: " . DB_HOST . "\n";
+        $debugInfo .= "Configured Host: " . DB_HOST . "\n";
         $debugInfo .= "Port: " . DB_PORT . "\n";
         $debugInfo .= "Database: " . DB_NAME . "\n";
         $debugInfo .= "User: " . DB_USER . "\n";
         $debugInfo .= "PDO Driver Available: " . (extension_loaded('pdo_mysql') ? 'yes' : 'no') . "\n";
+        $debugInfo .= "Socket: " . (empty(DB_SOCKET) ? 'not configured' : DB_SOCKET) . "\n";
+        $debugInfo .= "\nTroubleshooting Steps:\n";
+        $debugInfo .= "1. Verify MariaDB/MySQL is running\n";
+        $debugInfo .= "2. Check user permissions: GRANT ALL ON dilp_monitoring.* TO 'root'@'localhost';\n";
+        $debugInfo .= "3. Verify user exists for both 'localhost' and '127.0.0.1'\n";
+        $debugInfo .= "4. Check MariaDB bind-address in my.cnf (should be 0.0.0.0 or 127.0.0.1)\n";
         
         $appEnv = strtolower((string) getenv('APP_ENV'));
         $appDebug = filter_var(getenv('APP_DEBUG'), FILTER_VALIDATE_BOOLEAN);

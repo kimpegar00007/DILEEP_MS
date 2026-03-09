@@ -225,6 +225,150 @@ try {
         ];
     }
     
+    // Get fieldwork activities scheduled for today (same day)
+    try {
+        $sql = "SELECT 
+                    fs.id,
+                    fs.title,
+                    fs.location,
+                    fs.start_date,
+                    fs.end_date,
+                    fs.status,
+                    u.full_name as assigned_user_name
+                FROM fieldwork_schedule fs
+                LEFT JOIN users u ON fs.assigned_user_id = u.id
+                WHERE fs.status IN ('pending', 'ongoing')
+                AND fs.start_date = CURDATE()
+                ORDER BY fs.start_date ASC
+                LIMIT 20";
+
+        $stmt = $db->query($sql);
+        $todayFieldwork = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        foreach ($todayFieldwork as $item) {
+            $notifications[] = [
+                'id' => 'fieldwork_today_' . $item['id'],
+                'type' => 'fieldwork',
+                'title' => 'Fieldwork Today',
+                'message' => $item['title'] . ' is scheduled for today',
+                'details' => 'Assigned: ' . ($item['assigned_user_name'] ?? 'N/A') . ($item['location'] ? ' | Location: ' . $item['location'] : ''),
+                'fieldwork_id' => $item['id'],
+                'severity' => 'warning',
+                'timestamp' => strtotime($item['start_date'])
+            ];
+        }
+    } catch (PDOException $e) {
+        error_log("[Notifications] Fieldwork today query failed: " . $e->getMessage());
+    }
+
+    // Get fieldwork activities in 1 day
+    try {
+        $sql = "SELECT 
+                    fs.id,
+                    fs.title,
+                    fs.location,
+                    fs.start_date,
+                    fs.status,
+                    u.full_name as assigned_user_name
+                FROM fieldwork_schedule fs
+                LEFT JOIN users u ON fs.assigned_user_id = u.id
+                WHERE fs.status = 'pending'
+                AND DATEDIFF(fs.start_date, CURDATE()) = 1
+                ORDER BY fs.start_date ASC
+                LIMIT 20";
+
+        $stmt = $db->query($sql);
+        $tomorrowFieldwork = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        foreach ($tomorrowFieldwork as $item) {
+            $notifications[] = [
+                'id' => 'fieldwork_1day_' . $item['id'],
+                'type' => 'fieldwork',
+                'title' => 'Fieldwork Tomorrow',
+                'message' => $item['title'] . ' scheduled in 1 day',
+                'details' => 'Date: ' . date('M d, Y', strtotime($item['start_date'])) . ' | Assigned: ' . ($item['assigned_user_name'] ?? 'N/A'),
+                'fieldwork_id' => $item['id'],
+                'severity' => 'info',
+                'timestamp' => strtotime($item['start_date'])
+            ];
+        }
+    } catch (PDOException $e) {
+        error_log("[Notifications] Fieldwork 1-day query failed: " . $e->getMessage());
+    }
+
+    // Get fieldwork activities in 3 days
+    try {
+        $sql = "SELECT 
+                    fs.id,
+                    fs.title,
+                    fs.location,
+                    fs.start_date,
+                    fs.status,
+                    u.full_name as assigned_user_name,
+                    DATEDIFF(fs.start_date, CURDATE()) as days_remaining
+                FROM fieldwork_schedule fs
+                LEFT JOIN users u ON fs.assigned_user_id = u.id
+                WHERE fs.status = 'pending'
+                AND DATEDIFF(fs.start_date, CURDATE()) BETWEEN 2 AND 3
+                ORDER BY fs.start_date ASC
+                LIMIT 20";
+
+        $stmt = $db->query($sql);
+        $upcomingFieldwork = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        foreach ($upcomingFieldwork as $item) {
+            $notifications[] = [
+                'id' => 'fieldwork_upcoming_' . $item['id'],
+                'type' => 'fieldwork',
+                'title' => 'Upcoming Fieldwork',
+                'message' => $item['title'] . ' scheduled in ' . $item['days_remaining'] . ' days',
+                'details' => 'Date: ' . date('M d, Y', strtotime($item['start_date'])) . ' | Assigned: ' . ($item['assigned_user_name'] ?? 'N/A'),
+                'fieldwork_id' => $item['id'],
+                'severity' => 'info',
+                'timestamp' => strtotime($item['start_date'])
+            ];
+        }
+    } catch (PDOException $e) {
+        error_log("[Notifications] Fieldwork upcoming query failed: " . $e->getMessage());
+    }
+
+    // Get overdue/missed fieldwork activities
+    try {
+        $sql = "SELECT 
+                    fs.id,
+                    fs.title,
+                    fs.location,
+                    fs.start_date,
+                    fs.end_date,
+                    fs.status,
+                    u.full_name as assigned_user_name,
+                    DATEDIFF(CURDATE(), COALESCE(fs.end_date, fs.start_date)) as days_overdue
+                FROM fieldwork_schedule fs
+                LEFT JOIN users u ON fs.assigned_user_id = u.id
+                WHERE fs.status NOT IN ('completed', 'missed')
+                AND COALESCE(fs.end_date, fs.start_date) < CURDATE()
+                ORDER BY fs.start_date ASC
+                LIMIT 20";
+
+        $stmt = $db->query($sql);
+        $overdueFieldwork = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        foreach ($overdueFieldwork as $item) {
+            $notifications[] = [
+                'id' => 'fieldwork_overdue_' . $item['id'],
+                'type' => 'fieldwork',
+                'title' => 'Overdue Fieldwork',
+                'message' => $item['title'] . ' — not completed',
+                'details' => 'Was due: ' . date('M d, Y', strtotime($item['start_date'])) . ' (' . $item['days_overdue'] . ' day' . ($item['days_overdue'] != 1 ? 's' : '') . ' overdue)',
+                'fieldwork_id' => $item['id'],
+                'severity' => 'danger',
+                'timestamp' => strtotime($item['start_date'])
+            ];
+        }
+    } catch (PDOException $e) {
+        error_log("[Notifications] Fieldwork overdue query failed: " . $e->getMessage());
+    }
+
     // Sort notifications by severity and timestamp
     usort($notifications, function($a, $b) {
         $severityOrder = ['danger' => 0, 'warning' => 1, 'info' => 2];

@@ -157,13 +157,19 @@ class Beneficiary {
             $params[] = $filters['status'];
         }
         
-        if (!empty($filters['date_from'])) {
-            $sql .= " AND date_approved >= ?";
+        if (!empty($filters['date_from']) && !empty($filters['date_to'])) {
+            $sql .= " AND ((date_approved IS NOT NULL AND date_approved BETWEEN ? AND ?) OR (date_approved IS NULL AND DATE(created_at) BETWEEN ? AND ?))";
             $params[] = $filters['date_from'];
-        }
-        
-        if (!empty($filters['date_to'])) {
-            $sql .= " AND date_approved <= ?";
+            $params[] = $filters['date_to'];
+            $params[] = $filters['date_from'];
+            $params[] = $filters['date_to'];
+        } elseif (!empty($filters['date_from'])) {
+            $sql .= " AND ((date_approved IS NOT NULL AND date_approved >= ?) OR (date_approved IS NULL AND DATE(created_at) >= ?))";
+            $params[] = $filters['date_from'];
+            $params[] = $filters['date_from'];
+        } elseif (!empty($filters['date_to'])) {
+            $sql .= " AND ((date_approved IS NOT NULL AND date_approved <= ?) OR (date_approved IS NULL AND DATE(created_at) <= ?))";
+            $params[] = $filters['date_to'];
             $params[] = $filters['date_to'];
         }
         
@@ -228,6 +234,47 @@ class Beneficiary {
             $description,
             $_SERVER['REMOTE_ADDR'] ?? 'unknown'
         ]);
+    }
+    
+    public function getMunicipalityDistribution() {
+        $sql = "SELECT municipality, COUNT(*) as count 
+                FROM beneficiaries 
+                WHERE municipality IS NOT NULL AND municipality != ''
+                GROUP BY municipality 
+                ORDER BY count DESC 
+                LIMIT 10";
+        
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute();
+        return $stmt->fetchAll();
+    }
+    
+    public function getProjectTypeDistribution() {
+        $sql = "SELECT type_of_worker, COUNT(*) as count 
+                FROM beneficiaries 
+                WHERE type_of_worker IS NOT NULL AND type_of_worker != ''
+                GROUP BY type_of_worker 
+                ORDER BY count DESC";
+        
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute();
+        return $stmt->fetchAll();
+    }
+    
+    public function getMonthlyTrends() {
+        $sql = "SELECT 
+                DATE_FORMAT(date_approved, '%Y-%m') as month,
+                COUNT(*) as count,
+                SUM(amount_worth) as total_amount
+                FROM beneficiaries 
+                WHERE date_approved IS NOT NULL
+                AND date_approved >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
+                GROUP BY DATE_FORMAT(date_approved, '%Y-%m')
+                ORDER BY month ASC";
+        
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute();
+        return $stmt->fetchAll();
     }
     
     private function logDatabaseError($context, $errorInfo) {

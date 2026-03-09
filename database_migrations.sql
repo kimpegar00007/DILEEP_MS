@@ -137,6 +137,29 @@ CREATE INDEX idx_proponent_associations_proponent ON proponent_associations(prop
 CREATE INDEX idx_activity_logs_user ON activity_logs(user_id);
 CREATE INDEX idx_activity_logs_table ON activity_logs(table_name, record_id);
 
+-- Create Fieldwork Schedule table (for Schedule of Activities / Fieldwork module)
+CREATE TABLE IF NOT EXISTS fieldwork_schedule (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    location VARCHAR(500),
+    assigned_user_id INT NOT NULL,
+    start_date DATE NOT NULL,
+    end_date DATE,
+    status ENUM('pending', 'ongoing', 'completed', 'missed') DEFAULT 'pending',
+    created_by INT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (assigned_user_id) REFERENCES users(id),
+    FOREIGN KEY (created_by) REFERENCES users(id)
+);
+
+CREATE INDEX idx_fieldwork_status ON fieldwork_schedule(status);
+CREATE INDEX idx_fieldwork_start_date ON fieldwork_schedule(start_date);
+CREATE INDEX idx_fieldwork_end_date ON fieldwork_schedule(end_date);
+CREATE INDEX idx_fieldwork_assigned_user ON fieldwork_schedule(assigned_user_id);
+CREATE INDEX idx_fieldwork_created_by ON fieldwork_schedule(created_by);
+
 -- Insert default admin user (password: admin123 - hashed with bcrypt)
 -- Note: Change this password immediately after first login
 INSERT INTO users (username, email, password, role, full_name) VALUES 

@@ -235,13 +235,19 @@ class Proponent {
             $params[] = $filters['category'];
         }
         
-        if (!empty($filters['date_from'])) {
-            $sql .= " AND date_approved >= ?";
+        if (!empty($filters['date_from']) && !empty($filters['date_to'])) {
+            $sql .= " AND ((date_approved IS NOT NULL AND date_approved BETWEEN ? AND ?) OR (date_approved IS NULL AND DATE(created_at) BETWEEN ? AND ?))";
             $params[] = $filters['date_from'];
-        }
-        
-        if (!empty($filters['date_to'])) {
-            $sql .= " AND date_approved <= ?";
+            $params[] = $filters['date_to'];
+            $params[] = $filters['date_from'];
+            $params[] = $filters['date_to'];
+        } elseif (!empty($filters['date_from'])) {
+            $sql .= " AND ((date_approved IS NOT NULL AND date_approved >= ?) OR (date_approved IS NULL AND DATE(created_at) >= ?))";
+            $params[] = $filters['date_from'];
+            $params[] = $filters['date_from'];
+        } elseif (!empty($filters['date_to'])) {
+            $sql .= " AND ((date_approved IS NOT NULL AND date_approved <= ?) OR (date_approved IS NULL AND DATE(created_at) <= ?))";
+            $params[] = $filters['date_to'];
             $params[] = $filters['date_to'];
         }
         
@@ -406,6 +412,68 @@ class Proponent {
         } catch (PDOException $e) {
             error_log("[Proponent Model] Failed to log activity: " . $e->getMessage());
         }
+    }
+    
+    public function getDistrictDistribution() {
+        $sql = "SELECT district, COUNT(*) as count, SUM(amount) as total_amount 
+                FROM proponents 
+                WHERE district IS NOT NULL AND district != ''
+                GROUP BY district 
+                ORDER BY count DESC";
+        
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute();
+        return $stmt->fetchAll();
+    }
+    
+    public function getCategoryDistribution() {
+        $sql = "SELECT category, COUNT(*) as count 
+                FROM proponents 
+                WHERE category IS NOT NULL AND category != ''
+                GROUP BY category 
+                ORDER BY count DESC";
+        
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute();
+        return $stmt->fetchAll();
+    }
+    
+    public function getFundingSourceBreakdown() {
+        $sql = "SELECT 
+                CASE 
+                    WHEN source_of_funds IS NULL OR source_of_funds = '' THEN 'Not Specified'
+                    ELSE source_of_funds
+                END as source_of_funds,
+                COUNT(*) as count, 
+                SUM(amount) as total_amount 
+                FROM proponents 
+                GROUP BY 
+                    CASE 
+                        WHEN source_of_funds IS NULL OR source_of_funds = '' THEN 'Not Specified'
+                        ELSE source_of_funds
+                    END
+                ORDER BY total_amount DESC";
+        
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute();
+        return $stmt->fetchAll();
+    }
+    
+    public function getMonthlyTrends() {
+        $sql = "SELECT 
+                DATE_FORMAT(date_approved, '%Y-%m') as month,
+                COUNT(*) as count,
+                SUM(amount) as total_amount,
+                SUM(total_beneficiaries) as total_beneficiaries
+                FROM proponents 
+                WHERE date_approved IS NOT NULL
+                AND date_approved >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
+                GROUP BY DATE_FORMAT(date_approved, '%Y-%m')
+                ORDER BY month ASC";
+        
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute();
+        return $stmt->fetchAll();
     }
     
     private function logDatabaseError($context, $errorInfo) {
