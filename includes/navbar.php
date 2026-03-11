@@ -6,6 +6,9 @@
     <div class="container-fluid">
         <a class="navbar-brand d-flex align-items-center" href="index.php">
             <img src="assets/dilp-logo.png" alt="DILP Logo" class="navbar-logo">
+            <!-- Partner logos: Bagong Pilipinas and DOLE -->
+            <img src="assets/Bagong_Pilipinas_logo.png" alt="Bagong Pilipinas Logo" class="navbar-logo partner-logo" style="height:40px; width:auto; margin-left:8px;">
+            <img src="assets/dole.png" alt="DOLE Logo" class="navbar-logo partner-logo" style="height:40px; width:auto; margin-left:8px;">
             <span class="navbar-brand-text">DILEEP System<span class="navbar-brand-sub">Department of Labor and Employment - Integrated Livelihood and Emergency Employment Program - Monitoring System</span></span>
         </a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
