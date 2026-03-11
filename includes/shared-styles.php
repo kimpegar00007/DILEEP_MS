@@ -1,3 +1,4 @@
+<link rel="icon" href="assets/dileep-logo.ico" type="image/x-icon">
 <style>
     :root {
         --dole-primary: #1B7A3D;

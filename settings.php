@@ -36,6 +36,17 @@ $proponentCount = $db->query("SELECT COUNT(*) FROM proponents")->fetchColumn();
 // Get table list for backup info
 $tablesStmt = $db->query("SHOW TABLES");
 $tableCount = $tablesStmt->rowCount();
+
+// Maintenance mode status
+$maintenanceEnabled = false;
+try {
+    $stmt = $db->query("SELECT setting_value FROM system_settings WHERE setting_key = 'maintenance_mode'");
+    if ($stmt && $row = $stmt->fetch()) {
+        $maintenanceEnabled = ($row['setting_value'] === '1');
+    }
+} catch (PDOException $e) {
+    // Table may not exist yet — default to disabled
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -161,6 +172,24 @@ $tableCount = $tablesStmt->rowCount();
             <main class="col-md-10 ms-sm-auto px-md-4 py-4" id="mainContent" role="main">
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <h2><i class="bi bi-gear"></i> Settings</h2>
+                </div>
+
+                <!-- Maintenance Mode Card -->
+                <div class="settings-section">
+                    <h5><i class="bi bi-tools"></i> Site Maintenance</h5>
+                    <p class="text-muted mb-3">Enable maintenance mode to temporarily block access for regular users and encoders. Administrators will still be able to access the site.</p>
+                    <div class="d-flex align-items-center gap-3">
+                        <div id="maintenanceStatus" class="gdrive-status <?php echo $maintenanceEnabled ? 'connected' : 'disconnected'; ?>">
+                            <?php echo $maintenanceEnabled ? '<i class="bi bi-shield-lock"></i> Maintenance ON' : '<i class="bi bi-shield-check"></i> Maintenance OFF'; ?>
+                        </div>
+                        <div>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="maintenanceToggle" <?php echo $maintenanceEnabled ? 'checked' : ''; ?> onchange="toggleMaintenance(this.checked)">
+                                <label class="form-check-label" for="maintenanceToggle">Enable maintenance mode</label>
+                            </div>
+                        </div>
+                    </div>
+                    <small class="text-muted d-block mt-2">When enabled, users with roles <code>users</code> and <code>encoder</code> will be redirected to the maintenance page.</small>
                 </div>
 
                 <!-- Tabs Navigation -->
@@ -828,6 +857,63 @@ $tableCount = $tablesStmt->rowCount();
             }
 
             return rows;
+        }
+
+        // ==================== MAINTENANCE TOGGLE ====================
+        function toggleMaintenance(enabled) {
+            var confirmMsg = enabled
+                ? 'Enable maintenance mode? Users and encoders will be prevented from accessing the site.'
+                : 'Disable maintenance mode? The site will be available to all users.';
+
+            if (!confirm(confirmMsg)) {
+                // Revert checkbox
+                document.getElementById('maintenanceToggle').checked = !enabled;
+                return;
+            }
+
+            var form = new URLSearchParams();
+            form.append('value', enabled ? '1' : '0');
+
+            if (typeof DILP !== 'undefined' && DILP.loading) {
+                DILP.loading.show(enabled ? 'Enabling maintenance...' : 'Disabling maintenance...');
+            }
+
+            fetch('api/toggle-maintenance.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: form.toString()
+            })
+            .then(function(resp) { return resp.json(); })
+            .then(function(data) {
+                if (typeof DILP !== 'undefined' && DILP.loading) {
+                    DILP.loading.hide();
+                }
+                if (data.success) {
+                    var statusEl = document.getElementById('maintenanceStatus');
+                    if (enabled) {
+                        statusEl.classList.remove('disconnected');
+                        statusEl.classList.add('connected');
+                        statusEl.innerHTML = '<i class="bi bi-shield-lock"></i> Maintenance ON';
+                        showToast('success', 'Enabled', 'Maintenance mode enabled. Non-admin users will be blocked.');
+                    } else {
+                        statusEl.classList.remove('connected');
+                        statusEl.classList.add('disconnected');
+                        statusEl.innerHTML = '<i class="bi bi-shield-check"></i> Maintenance OFF';
+                        showToast('success', 'Disabled', 'Maintenance mode disabled. Site is available to all users.');
+                    }
+                } else {
+                    showToast('error', 'Error', data.message || 'Failed to update maintenance mode.');
+                    document.getElementById('maintenanceToggle').checked = !enabled;
+                }
+            })
+            .catch(function(err) {
+                if (typeof DILP !== 'undefined' && DILP.loading) {
+                    DILP.loading.hide();
+                }
+                console.error('Toggle maintenance error', err);
+                showToast('error', 'Error', 'Unexpected error while toggling maintenance mode.');
+                document.getElementById('maintenanceToggle').checked = !enabled;
+            });
         }
 
         // Handle URL params for Google Drive callback messages

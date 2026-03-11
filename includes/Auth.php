@@ -39,6 +39,18 @@ class Auth {
     public function isLoggedIn() {
         return isset($_SESSION['user_id']);
     }
+
+    public function isMaintenanceModeEnabled() {
+        try {
+            $stmt = $this->db->prepare("SELECT setting_value FROM system_settings WHERE setting_key = 'maintenance_mode' LIMIT 1");
+            $stmt->execute();
+            $row = $stmt->fetch();
+            return !empty($row['setting_value']) && $row['setting_value'] === '1';
+        } catch (PDOException $e) {
+            // Table or setting may not exist yet — treat as disabled
+            return false;
+        }
+    }
     
     public function getUser() {
         if (!$this->isLoggedIn()) {
@@ -69,6 +81,20 @@ class Auth {
         if (!$this->isLoggedIn()) {
             header('Location: login.php');
             exit;
+        }
+
+        // Enforce maintenance mode: if enabled, only admins may proceed
+        try {
+            if ($this->isMaintenanceModeEnabled()) {
+                $role = $_SESSION['role'] ?? '';
+                if ($role !== 'admin') {
+                    // Redirect non-admins to the maintenance page
+                    header('Location: maintenance.php');
+                    exit;
+                }
+            }
+        } catch (Exception $e) {
+            // On any error, fail open (allow access) — prevents accidental lockout
         }
     }
     
