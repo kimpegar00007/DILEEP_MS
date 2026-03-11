@@ -192,7 +192,22 @@ $proponentMonthlyTrends = $proponentModel->getMonthlyTrends();
             <!-- Main Content -->
             <main class="col-md-10 ms-sm-auto px-md-4 py-4" id="mainContent" role="main">
                 <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h2>Dashboard Overview</h2>
+                    <?php
+                    // Prepare a friendly, time-aware greeting using server time and the logged-in user's full name.
+                    $userInfo = $auth->getUser();
+                    $fullName = $userInfo['full_name'] ?? ($_SESSION['full_name'] ?? 'User');
+                    $hour = (int) date('H');
+                    if ($hour >= 5 && $hour < 12) {
+                        $timeGreeting = 'Good Morning';
+                    } elseif ($hour >= 12 && $hour < 17) {
+                        $timeGreeting = 'Good Afternoon';
+                    } elseif ($hour >= 17 && $hour < 21) {
+                        $timeGreeting = 'Good Evening';
+                    } else {
+                        $timeGreeting = 'Good Night';
+                    }
+                    ?>
+                    <h2 id="dashboardGreeting">Hello, <?php echo htmlspecialchars($fullName); ?> — <?php echo $timeGreeting; ?>!</h2>
                     <div class="d-flex gap-2 no-print">
                         <button class="btn btn-outline-primary btn-sm" id="startTourBtn" onclick="DILP.tour.start()" aria-label="Start guided tour" title="Start a guided tour of the dashboard">
                             <i class="bi bi-play-circle"></i> Start Tour
@@ -252,7 +267,7 @@ $proponentMonthlyTrends = $proponentModel->getMonthlyTrends();
                                 <div class="d-flex justify-content-between align-items-start">
                                     <div class="stat-text-wrap">
                                         <h6 class="card-title text-uppercase mb-1">Total Beneficiaries</h6>
-                                        <h2 class="stat-number mb-0"><?php echo number_format($beneficiaryStats['total']); ?></h2>
+                                        <h2 class="stat-number mb-0" data-value="<?php echo (int) $beneficiaryStats['total']; ?>" data-decimals="0"><?php echo number_format($beneficiaryStats['total']); ?></h2>
                                         <small class="stat-detail">Male: <?php echo number_format($beneficiaryStats['male_count']); ?> | Female: <?php echo number_format($beneficiaryStats['female_count']); ?></small>
                                     </div>
                                     <i class="bi bi-person stat-icon flex-shrink-0"></i>
@@ -267,7 +282,7 @@ $proponentMonthlyTrends = $proponentModel->getMonthlyTrends();
                                 <div class="d-flex justify-content-between align-items-start">
                                     <div class="stat-text-wrap">
                                         <h6 class="card-title text-uppercase mb-1">Total Proponents</h6>
-                                        <h2 class="stat-number mb-0"><?php echo number_format($proponentStats['total']); ?></h2>
+                                        <h2 class="stat-number mb-0" data-value="<?php echo (int) $proponentStats['total']; ?>" data-decimals="0"><?php echo number_format($proponentStats['total']); ?></h2>
                                         <small class="stat-detail">LGU: <?php echo number_format($proponentStats['lgu_count']); ?> | Non-LGU: <?php echo number_format($proponentStats['non_lgu_count']); ?></small>
                                     </div>
                                     <i class="bi bi-people stat-icon flex-shrink-0"></i>
@@ -282,7 +297,7 @@ $proponentMonthlyTrends = $proponentModel->getMonthlyTrends();
                                 <div class="d-flex justify-content-between align-items-start">
                                     <div class="stat-text-wrap">
                                         <h6 class="card-title text-uppercase mb-1">Beneficiaries (Groups)</h6>
-                                        <h2 class="stat-number mb-0"><?php echo number_format($proponentStats['total_beneficiaries'] ?? 0); ?></h2>
+                                        <h2 class="stat-number mb-0" data-value="<?php echo (int) ($proponentStats['total_beneficiaries'] ?? 0); ?>" data-decimals="0"><?php echo number_format($proponentStats['total_beneficiaries'] ?? 0); ?></h2>
                                         <small class="stat-detail">Male: <?php echo number_format($proponentStats['total_male'] ?? 0); ?> | Female: <?php echo number_format($proponentStats['total_female'] ?? 0); ?></small>
                                     </div>
                                     <i class="bi bi-people-fill stat-icon flex-shrink-0"></i>
@@ -297,7 +312,7 @@ $proponentMonthlyTrends = $proponentModel->getMonthlyTrends();
                                 <div class="d-flex justify-content-between align-items-start">
                                     <div class="stat-text-wrap">
                                         <h6 class="card-title text-uppercase mb-1">Fieldwork Schedule</h6>
-                                        <h2 class="stat-number mb-0"><?php echo number_format($fieldworkStats['total']); ?></h2>
+                                        <h2 class="stat-number mb-0" data-value="<?php echo (int) $fieldworkStats['total']; ?>" data-decimals="0"><?php echo number_format($fieldworkStats['total']); ?></h2>
                                         <small class="stat-detail">Ongoing: <?php echo number_format($fieldworkStats['ongoing']); ?> | Completed: <?php echo number_format($fieldworkStats['completed']); ?></small>
                                     </div>
                                     <i class="bi bi-calendar-check stat-icon flex-shrink-0"></i>
@@ -312,7 +327,8 @@ $proponentMonthlyTrends = $proponentModel->getMonthlyTrends();
                                 <div class="d-flex justify-content-between align-items-start">
                                     <div class="stat-text-wrap">
                                         <h6 class="card-title text-uppercase mb-1">Total Amount (Individual + Group Projects)</h6>
-                                        <h2 class="stat-number mb-0">₱<?php echo number_format($beneficiaryStats['total_amount'] + $proponentStats['total_amount'], 2); ?></h2>
+                                        <?php $totalAmount = floatval($beneficiaryStats['total_amount'] + $proponentStats['total_amount']); ?>
+                                        <h2 class="stat-number mb-0" data-value="<?php echo htmlspecialchars($totalAmount); ?>" data-decimals="2" data-prefix="₱"><?php echo '₱' . number_format($totalAmount, 2); ?></h2>
                                     </div>
                                     <i class="bi bi-cash-stack stat-icon flex-shrink-0"></i>
                                 </div>
@@ -331,19 +347,19 @@ $proponentMonthlyTrends = $proponentModel->getMonthlyTrends();
                             <div class="card-body d-flex align-items-center">
                                 <div class="row text-center w-100">
                                     <div class="col">
-                                        <h4 class="text-secondary mb-1"><?php echo $beneficiaryStats['pending']; ?></h4>
+                                        <h4 class="text-secondary mb-1 stat-count" data-value="<?php echo (int) $beneficiaryStats['pending']; ?>" data-decimals="0"><?php echo number_format($beneficiaryStats['pending']); ?></h4>
                                         <small class="text-muted">Pending</small>
                                     </div>
                                     <div class="col">
-                                        <h4 class="text-primary mb-1"><?php echo $beneficiaryStats['approved']; ?></h4>
+                                        <h4 class="text-primary mb-1 stat-count" data-value="<?php echo (int) $beneficiaryStats['approved']; ?>" data-decimals="0"><?php echo number_format($beneficiaryStats['approved']); ?></h4>
                                         <small class="text-muted">Approved</small>
                                     </div>
                                     <div class="col">
-                                        <h4 class="text-success mb-1"><?php echo $beneficiaryStats['implemented']; ?></h4>
+                                        <h4 class="text-success mb-1 stat-count" data-value="<?php echo (int) $beneficiaryStats['implemented']; ?>" data-decimals="0"><?php echo number_format($beneficiaryStats['implemented']); ?></h4>
                                         <small class="text-muted">Implemented</small>
                                     </div>
                                     <div class="col">
-                                        <h4 class="text-info mb-1"><?php echo $beneficiaryStats['monitored']; ?></h4>
+                                        <h4 class="text-info mb-1 stat-count" data-value="<?php echo (int) $beneficiaryStats['monitored']; ?>" data-decimals="0"><?php echo number_format($beneficiaryStats['monitored']); ?></h4>
                                         <small class="text-muted">Monitored</small>
                                     </div>
                                 </div>
@@ -359,23 +375,23 @@ $proponentMonthlyTrends = $proponentModel->getMonthlyTrends();
                             <div class="card-body d-flex align-items-center">
                                 <div class="row text-center w-100">
                                     <div class="col">
-                                        <h4 class="text-secondary mb-1"><?php echo $proponentStats['pending']; ?></h4>
+                                        <h4 class="text-secondary mb-1 stat-count" data-value="<?php echo (int) $proponentStats['pending']; ?>" data-decimals="0"><?php echo number_format($proponentStats['pending']); ?></h4>
                                         <small class="text-muted">Pending</small>
                                     </div>
                                     <div class="col">
-                                        <h4 class="text-primary mb-1"><?php echo $proponentStats['approved']; ?></h4>
+                                        <h4 class="text-primary mb-1 stat-count" data-value="<?php echo (int) $proponentStats['approved']; ?>" data-decimals="0"><?php echo number_format($proponentStats['approved']); ?></h4>
                                         <small class="text-muted">Approved</small>
                                     </div>
                                     <div class="col">
-                                        <h4 class="text-success mb-1"><?php echo $proponentStats['implemented']; ?></h4>
+                                        <h4 class="text-success mb-1 stat-count" data-value="<?php echo (int) $proponentStats['implemented']; ?>" data-decimals="0"><?php echo number_format($proponentStats['implemented']); ?></h4>
                                         <small class="text-muted">Implemented</small>
                                     </div>
                                     <div class="col">
-                                        <h4 class="text-warning mb-1"><?php echo $proponentStats['liquidated']; ?></h4>
+                                        <h4 class="text-warning mb-1 stat-count" data-value="<?php echo (int) $proponentStats['liquidated']; ?>" data-decimals="0"><?php echo number_format($proponentStats['liquidated']); ?></h4>
                                         <small class="text-muted">Liquidated</small>
                                     </div>
                                     <div class="col">
-                                        <h4 class="text-info mb-1"><?php echo $proponentStats['monitored']; ?></h4>
+                                        <h4 class="text-info mb-1 stat-count" data-value="<?php echo (int) $proponentStats['monitored']; ?>" data-decimals="0"><?php echo number_format($proponentStats['monitored']); ?></h4>
                                         <small class="text-muted">Monitored</small>
                                     </div>
                                 </div>
@@ -515,6 +531,55 @@ $proponentMonthlyTrends = $proponentModel->getMonthlyTrends();
     <?php include 'includes/notification-script.php'; ?>
     <?php include 'includes/ux-utilities.php'; ?>
     <script>
+        // Minimal number counter animation for dashboard stat cards
+        (function() {
+            function formatNumber(value, decimals) {
+                if (decimals && decimals > 0) {
+                    return value.toLocaleString('en-PH', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+                }
+                return Math.round(value).toLocaleString('en-PH');
+            }
+
+            function animateValue(el, start, end, duration, decimals, prefix) {
+                const startTime = performance.now();
+
+                function tick(now) {
+                    const progress = Math.min((now - startTime) / duration, 1);
+                    // easeOutCubic
+                    const eased = 1 - Math.pow(1 - progress, 3);
+                    const current = start + (end - start) * eased;
+                    el.textContent = (prefix || '') + formatNumber(current, decimals);
+                    if (progress < 1) {
+                        requestAnimationFrame(tick);
+                    }
+                }
+
+                requestAnimationFrame(tick);
+            }
+
+            document.addEventListener('DOMContentLoaded', function() {
+                // Include both large stat-number cards and smaller status counts
+                const nodes = document.querySelectorAll('.stat-number[data-value], .stat-count[data-value]');
+                nodes.forEach(function(el) {
+                    const raw = el.getAttribute('data-value');
+                    const decimals = parseInt(el.getAttribute('data-decimals') || '0', 10);
+                    const prefix = el.getAttribute('data-prefix') || '';
+
+                    // Parse numeric value safely
+                    const target = decimals > 0 ? parseFloat(raw) : parseInt(raw, 10) || 0;
+                    // Optionally skip animating zero values
+                    if (!target) {
+                        el.textContent = (prefix || '') + formatNumber(0, decimals);
+                        return;
+                    }
+
+                    // Start from 0 for counts, or 0.00 for amounts
+                    const start = 0;
+                    const duration = 1200 + Math.min(800, Math.abs(target) / 100 * 200); // scale with size
+                    animateValue(el, start, target, duration, decimals, prefix);
+                });
+            });
+        })();
         // Chart.js Configuration and Initialization
         Chart.defaults.font.family = "'Inter', 'Segoe UI', 'Roboto', sans-serif";
         Chart.defaults.responsive = true;

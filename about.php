@@ -5,13 +5,23 @@ require_once 'includes/Auth.php';
 
 $auth = new Auth();
 $auth->requireLogin();
+// App metadata (attempt to read from a VERSION file if present)
+$appName = 'DOLE DILEEP Monitoring System';
+if (file_exists(__DIR__ . '/VERSION')) {
+    $appVersion = trim(file_get_contents(__DIR__ . '/VERSION')) ?: '1.0.0';
+} else {
+    $appVersion = '1.0.0';
+}
+$release_year = date('Y');
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>About - DOLE DILEEP Monitoring System</title>
+    <meta name="description" content="DILEEP Monitoring System — web-based platform for managing beneficiaries and proponents under DOLE DILEEP in Negros Occidental.">
+    <title>About - <?php echo htmlspecialchars($appName); ?></title>
+    <meta name="theme-color" content="#1B7A3D">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
     <?php include 'includes/shared-styles.php'; ?>
@@ -221,24 +231,24 @@ $auth->requireLogin();
             <?php include 'includes/sidebar.php'; ?>
 
             <!-- Main Content -->
-            <main class="col-md-10 ms-sm-auto px-md-4 py-4" id="mainContent" role="main">
+            <main class="col-md-10 ms-sm-auto px-md-4 py-4" id="mainContent" role="main" aria-describedby="aboutDesc">
                 <!-- Hero Section -->
                 <div class="about-hero">
                     <div class="about-hero-content p-4">
                         <div class="row align-items-center">
                             <div class="col-lg-8">
                                 <h1 class="display-4 fw-bold mb-4">About the DILEEP Monitoring System</h1>
-                                <p class="lead mb-0">A comprehensive web-based platform for monitoring and managing Department of Labor and Employment - DILEEP program beneficiaries and proponents across Negros Occidental.</p>
+                                <p id="aboutDesc" class="lead mb-0">A comprehensive web-based platform for monitoring and managing Department of Labor and Employment - DILEEP program beneficiaries and proponents across Negros Occidental.</p>
                             </div>
                             <div class="col-lg-4">
                                 <div class="d-flex flex-column align-items-lg-end align-items-start text-lg-end text-start gap-3 mt-3 mt-lg-0">
-                                    <div class="text-center text-lg-end">
+                                    <div class="text-center text-lg-end" aria-hidden="false">
                                         <div class="h6 mb-1 opacity-75">Version</div>
-                                        <div class="h4 mb-0">1.0.0</div>
+                                        <div class="h4 mb-0"><?php echo htmlspecialchars($appVersion); ?></div>
                                     </div>
                                     <div class="text-center text-lg-end">
                                         <div class="h6 mb-1 opacity-75">Released</div>
-                                        <div class="h4 mb-0">2026</div>
+                                        <div class="h4 mb-0"><?php echo htmlspecialchars($release_year); ?></div>
                                     </div>
                                 </div>
                             </div>
@@ -250,7 +260,7 @@ $auth->requireLogin();
                 <div class="row mb-4">
                     <div class="col-lg-8 mx-auto">
                         <div class="developer-card">
-                            <img src="assets/m1k0yw0rkz.png" alt="Elziakim Pegar" class="developer-avatar">
+                            <img src="assets/m1k0yw0rkz.png" alt="Elziakim Pegar — developer" class="developer-avatar">
                             <h2 class="developer-name">m1k0yw0rkz</h2>
                             <div class="developer-alias">Elziakim Pegar</div>
                             <p class="developer-bio">
