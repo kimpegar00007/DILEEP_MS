@@ -2,7 +2,7 @@
 
 A comprehensive web-based system for monitoring and tracking the Department of Labor and Employment's Integrated Livelihood Program (DILP) beneficiaries and proponents in Negros Occidental, Philippines.
 
-## 🎯 Overview
+## Overview
 
 This system enables government offices to efficiently record, track, and monitor information about both individual beneficiaries and group proponents of the DILP program, with features including:
 
@@ -13,41 +13,13 @@ This system enables government offices to efficiently record, track, and monitor
 - Comprehensive reporting and analytics
 - Role-based access control
 
-## 🚀 Quick Start
-
 ### Prerequisites
 - XAMPP (Apache + MySQL + PHP)
 - Modern web browser
 - Minimum 512MB RAM
 - 500MB free disk space
 
-### Installation (5 minutes)
-
-1. **Install XAMPP**
-   - Download from: https://www.apachefriends.org
-   - Run installer and start Apache + MySQL
-
-2. **Setup Files**
-   ```
-   Extract dilp-system folder to:
-   C:\xampp\htdocs\dilp-system  (Windows)
-   /opt/lampp/htdocs/dilp-system  (Linux)
-   ```
-
-3. **Create Database**
-   - Open http://localhost/phpmyadmin
-   - Create database named: `dilp_monitoring`
-   - Import `database_migrations.sql`
-
-4. **Access System**
-   - Navigate to: http://localhost/dilp-system
-   - Default login:
-     - Username: `admin`
-     - Password: `admin123`
-
-> ⚠️ **IMPORTANT**: Change the default password immediately after first login!
-
-## 📋 Features
+## Features
 
 ### Individual Beneficiaries Module
 - Full CRUD operations
@@ -84,7 +56,7 @@ This system enables government offices to efficiently record, track, and monitor
 - Secure password management
 - Session control
 
-## 🗺️ Map Visualization
+## Map Visualization
 
 The system features an interactive map showing:
 - **Blue Markers**: Individual beneficiaries
@@ -92,7 +64,7 @@ The system features an interactive map showing:
 - Click markers to view project details
 - Automatic filtering by status (approved, implemented, monitored)
 
-## 👥 User Roles
+## User Roles
 
 | Role | Permissions |
 |------|-------------|
@@ -100,7 +72,7 @@ The system features an interactive map showing:
 | **Encoder** | Create, read, update beneficiaries and proponents, view reports |
 | **User** | View-only access for monitoring and reporting |
 
-## 📊 Data Tracked
+## Data Tracked
 
 ### Beneficiaries (Individuals)
 - Personal info (name, gender, location, contact)
@@ -121,7 +93,7 @@ The system features an interactive map showing:
 - Source of funds
 - Complete process timeline
 
-## 🔒 Security Features
+## Security Features
 
 - Bcrypt password hashing
 - Role-based access control (RBAC)
@@ -131,7 +103,7 @@ The system features an interactive map showing:
 - Activity logging with IP addresses
 - Automatic liquidation deadline enforcement
 
-## 📱 Technical Stack
+## Technical Stack
 
 - **Backend**: PHP 7.4+ (native PHP, no framework required)
 - **Database**: MySQL 5.7+ / MariaDB 10.3+
@@ -167,30 +139,7 @@ dilp-system/
 └── README.md                 # This file
 ```
 
-## 🔧 Configuration
-
-### Database Settings
-Edit `config/database.php`:
-```php
-define('DB_HOST', 'localhost');
-define('DB_NAME', 'dilp_monitoring');
-define('DB_USER', 'root');
-define('DB_PASS', '');  // Your MySQL password
-```
-
-### Timezone (Optional)
-Add to `config/database.php`:
-```php
-date_default_timezone_set('Asia/Manila');
-```
-
-## 📖 Documentation
-
-- **Installation Guide**: See `INSTALLATION_GUIDE.md` for detailed setup instructions
-- **User Manual**: Access from the Help menu within the system
-- **API Documentation**: Coming soon
-
-## 🐛 Troubleshooting
+## Troubleshooting
 
 ### Cannot connect to database
 - Check MySQL is running in XAMPP
@@ -206,68 +155,3 @@ date_default_timezone_set('Asia/Manila');
 - Default: admin / admin123
 - Clear browser cache and cookies
 - Check users table in database
-
-For more troubleshooting, see `INSTALLATION_GUIDE.md` Section 7.
-
-## 📞 Support
-
-For technical assistance:
-1. Review `INSTALLATION_GUIDE.md`
-2. Check activity logs for errors
-3. Contact system administrator
-4. Refer to XAMPP documentation
-
-## 🔄 Updates and Maintenance
-
-### Recommended Maintenance Schedule
-- **Daily**: Monitor system access
-- **Weekly**: Database backup
-- **Monthly**: Review activity logs
-- **Quarterly**: User account audit
-- **Annually**: System update review
-
-### Backup Procedure
-1. Open phpMyAdmin
-2. Select `dilp_monitoring` database
-3. Click "Export" tab
-4. Choose "Quick" method
-5. Click "Go"
-6. Save SQL file with date stamp
-
-## 📜 License
-
-This system is developed for the Department of Labor and Employment (DOLE) Region VI for official government use.
-
-## 👨‍💻 Credits
-
-Developed for:
-**Department of Labor and Employment - Region VI**
-Negros Occidental, Philippines
-
-System Version: 1.0.0
-Date: February 2026
-
----
-
-## 🎓 Getting Started Checklist
-
-- [ ] XAMPP installed and running
-- [ ] Database created and imported
-- [ ] System files in htdocs folder
-- [ ] Accessed via http://localhost/dilp-system
-- [ ] Logged in with default credentials
-- [ ] Default password changed
-- [ ] Test beneficiary added
-- [ ] Test proponent added
-- [ ] Map loading correctly
-- [ ] Users can be created (Admin only)
-
-## 📞 Quick Links
-
-- **Access System**: http://localhost/dilp-system
-- **phpMyAdmin**: http://localhost/phpmyadmin
-- **XAMPP Control**: Usually in Start Menu or Applications
-
----
-
-**Need help? See INSTALLATION_GUIDE.md for detailed instructions!**
