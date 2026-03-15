@@ -157,18 +157,33 @@ class Beneficiary {
             $params[] = $filters['status'];
         }
         
+        // Support filtering by a specific date field (whitelisted)
+        $allowedDateFields = [
+            'date_complied_by_proponent',
+            'date_forwarded_to_ro6',
+            'date_approved',
+            'date_forwarded_to_nofo',
+            'date_turnover',
+            'date_monitoring'
+        ];
+
+        $dateField = 'date_approved';
+        if (!empty($filters['date_field']) && in_array($filters['date_field'], $allowedDateFields, true)) {
+            $dateField = $filters['date_field'];
+        }
+
         if (!empty($filters['date_from']) && !empty($filters['date_to'])) {
-            $sql .= " AND ((date_approved IS NOT NULL AND date_approved BETWEEN ? AND ?) OR (date_approved IS NULL AND DATE(created_at) BETWEEN ? AND ?))";
+            $sql .= " AND ((" . $dateField . " IS NOT NULL AND " . $dateField . " BETWEEN ? AND ?) OR (" . $dateField . " IS NULL AND DATE(created_at) BETWEEN ? AND ?))";
             $params[] = $filters['date_from'];
             $params[] = $filters['date_to'];
             $params[] = $filters['date_from'];
             $params[] = $filters['date_to'];
         } elseif (!empty($filters['date_from'])) {
-            $sql .= " AND ((date_approved IS NOT NULL AND date_approved >= ?) OR (date_approved IS NULL AND DATE(created_at) >= ?))";
+            $sql .= " AND ((" . $dateField . " IS NOT NULL AND " . $dateField . " >= ?) OR (" . $dateField . " IS NULL AND DATE(created_at) >= ?))";
             $params[] = $filters['date_from'];
             $params[] = $filters['date_from'];
         } elseif (!empty($filters['date_to'])) {
-            $sql .= " AND ((date_approved IS NOT NULL AND date_approved <= ?) OR (date_approved IS NULL AND DATE(created_at) <= ?))";
+            $sql .= " AND ((" . $dateField . " IS NOT NULL AND " . $dateField . " <= ?) OR (" . $dateField . " IS NULL AND DATE(created_at) <= ?))";
             $params[] = $filters['date_to'];
             $params[] = $filters['date_to'];
         }

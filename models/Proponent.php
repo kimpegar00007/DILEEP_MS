@@ -235,20 +235,66 @@ class Proponent {
             $params[] = $filters['category'];
         }
         
-        if (!empty($filters['date_from']) && !empty($filters['date_to'])) {
-            $sql .= " AND ((date_approved IS NOT NULL AND date_approved BETWEEN ? AND ?) OR (date_approved IS NULL AND DATE(created_at) BETWEEN ? AND ?))";
-            $params[] = $filters['date_from'];
-            $params[] = $filters['date_to'];
-            $params[] = $filters['date_from'];
-            $params[] = $filters['date_to'];
-        } elseif (!empty($filters['date_from'])) {
-            $sql .= " AND ((date_approved IS NOT NULL AND date_approved >= ?) OR (date_approved IS NULL AND DATE(created_at) >= ?))";
-            $params[] = $filters['date_from'];
-            $params[] = $filters['date_from'];
-        } elseif (!empty($filters['date_to'])) {
-            $sql .= " AND ((date_approved IS NOT NULL AND date_approved <= ?) OR (date_approved IS NULL AND DATE(created_at) <= ?))";
-            $params[] = $filters['date_to'];
-            $params[] = $filters['date_to'];
+        // Support filtering by a specific date field (whitelisted)
+        $allowedDateFields = [
+            'letter_of_intent_date',
+            'date_forwarded_to_ro6',
+            'date_complied_by_proponent',
+            'date_complied_by_proponent_nofo',
+            'date_forwarded_to_nofo',
+            'date_approved',
+            'date_check_release',
+            'check_date_issued',
+            'or_date_issued',
+            'date_turnover',
+            'date_implemented',
+            'date_liquidated',
+            'date_monitoring',
+            // 'source_of_funds' is treated specially (non-date)
+        ];
+
+        $dateField = 'date_approved';
+        $isSourceOfFundsFilter = false;
+
+        if (!empty($filters['date_field'])) {
+            if ($filters['date_field'] === 'source_of_funds') {
+                $isSourceOfFundsFilter = true;
+            } elseif (in_array($filters['date_field'], $allowedDateFields, true)) {
+                $dateField = $filters['date_field'];
+            }
+        }
+
+        if ($isSourceOfFundsFilter) {
+            // Filter records with non-empty source_of_funds. Optionally apply date range to created_at if provided.
+            $sql .= " AND (source_of_funds IS NOT NULL AND source_of_funds != '')";
+
+            if (!empty($filters['date_from']) && !empty($filters['date_to'])) {
+                $sql .= " AND (DATE(created_at) BETWEEN ? AND ?)";
+                $params[] = $filters['date_from'];
+                $params[] = $filters['date_to'];
+            } elseif (!empty($filters['date_from'])) {
+                $sql .= " AND (DATE(created_at) >= ?)";
+                $params[] = $filters['date_from'];
+            } elseif (!empty($filters['date_to'])) {
+                $sql .= " AND (DATE(created_at) <= ?)";
+                $params[] = $filters['date_to'];
+            }
+        } else {
+            if (!empty($filters['date_from']) && !empty($filters['date_to'])) {
+                $sql .= " AND ((" . $dateField . " IS NOT NULL AND " . $dateField . " BETWEEN ? AND ?) OR (" . $dateField . " IS NULL AND DATE(created_at) BETWEEN ? AND ?))";
+                $params[] = $filters['date_from'];
+                $params[] = $filters['date_to'];
+                $params[] = $filters['date_from'];
+                $params[] = $filters['date_to'];
+            } elseif (!empty($filters['date_from'])) {
+                $sql .= " AND ((" . $dateField . " IS NOT NULL AND " . $dateField . " >= ?) OR (" . $dateField . " IS NULL AND DATE(created_at) >= ?))";
+                $params[] = $filters['date_from'];
+                $params[] = $filters['date_from'];
+            } elseif (!empty($filters['date_to'])) {
+                $sql .= " AND ((" . $dateField . " IS NOT NULL AND " . $dateField . " <= ?) OR (" . $dateField . " IS NULL AND DATE(created_at) <= ?))";
+                $params[] = $filters['date_to'];
+                $params[] = $filters['date_to'];
+            }
         }
         
         if (!empty($filters['search'])) {

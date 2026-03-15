@@ -17,10 +17,38 @@ $dateTo = $_GET['date_to'] ?? '';
 $municipality = $_GET['municipality'] ?? '';
 $district = $_GET['district'] ?? '';
 $status = $_GET['status'] ?? '';
+$selectedStatus = $status; // keep backward-compatible variable name
 
 $reportData = [];
 $reportGenerated = false;
 $errorMessage = '';
+
+// Predefine the available status/date-field options for both report types so the form can render them
+$beneficiaryStatusOptions = [
+    'date_complied_by_proponent' => 'Date Complied by Proponent/ACP',
+    'date_forwarded_to_ro6' => 'Date Forwarded to RO6 for RPMT Evaluation',
+    'date_approved' => 'Date Approved',
+    'date_forwarded_to_nofo' => 'Date Forwarded of Approved Proposal to NOFO',
+    'date_turnover' => 'Date of Turn-over',
+    'date_monitoring' => 'Date of Monitoring'
+];
+
+$proponentStatusOptions = [
+    'letter_of_intent_date' => 'Letter of Intent - Date Received',
+    'date_forwarded_to_ro6' => 'Date Forwarded to RO6 for RPMT',
+    'date_complied_by_proponent' => 'Date Complied by Proponent/ACP',
+    'date_complied_by_proponent_nofo' => 'Date Complied by Proponent/ACP/NOFO',
+    'date_forwarded_to_nofo' => 'Date Forwarded to NOFO',
+    'date_approved' => 'Date Approved',
+    'date_check_release' => 'Date of Check Release',
+    'check_date_issued' => 'Check Date Issued',
+    'or_date_issued' => 'OR Date Issued',
+    'source_of_funds' => 'Source of Funds',
+    'date_turnover' => 'Date of Turn-over',
+    'date_implemented' => 'Date Implemented',
+    'date_liquidated' => 'Date Liquidated',
+    'date_monitoring' => 'Date of Monitoring'
+];
 
 if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['generate'])) {
     $reportGenerated = true;
@@ -36,9 +64,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['generate'])) {
         $filters = [
             'date_from' => $dateFrom,
             'date_to' => $dateTo,
-            'status' => $status
         ];
-        
+
+        // Determine whether the selected status corresponds to a date field (or source_of_funds)
+        if (!empty($selectedStatus)) {
+            if ($reportType === 'beneficiaries' && isset($beneficiaryStatusOptions[$selectedStatus])) {
+                $filters['date_field'] = $selectedStatus;
+            } elseif ($reportType === 'proponents' && isset($proponentStatusOptions[$selectedStatus])) {
+                // source_of_funds is a special non-date filter handled in model
+                $filters['date_field'] = $selectedStatus;
+            } else {
+                // Fallback: treat as plain status (legacy behavior)
+                $filters['status'] = $selectedStatus;
+            }
+        }
+
         if ($reportType === 'beneficiaries') {
             $filters['municipality'] = $municipality;
             $reportData = $beneficiaryModel->getAll($filters);
@@ -141,10 +181,15 @@ $districts = $db->query("SELECT DISTINCT district FROM proponents WHERE district
                                 <label class="form-label">Status</label>
                                 <select name="status" class="form-select">
                                     <option value="">All</option>
-                                    <option value="pending" <?php echo $status === 'pending' ? 'selected' : ''; ?>>Pending</option>
-                                    <option value="approved" <?php echo $status === 'approved' ? 'selected' : ''; ?>>Approved</option>
-                                    <option value="implemented" <?php echo $status === 'implemented' ? 'selected' : ''; ?>>Implemented</option>
-                                    <option value="monitored" <?php echo $status === 'monitored' ? 'selected' : ''; ?>>Monitored</option>
+                                    <?php if ($reportType === 'beneficiaries'): ?>
+                                        <?php foreach ($beneficiaryStatusOptions as $key => $label): ?>
+                                            <option value="<?php echo htmlspecialchars($key); ?>" <?php echo $selectedStatus === $key ? 'selected' : ''; ?>><?php echo htmlspecialchars($label); ?></option>
+                                        <?php endforeach; ?>
+                                    <?php else: ?>
+                                        <?php foreach ($proponentStatusOptions as $key => $label): ?>
+                                            <option value="<?php echo htmlspecialchars($key); ?>" <?php echo $selectedStatus === $key ? 'selected' : ''; ?>><?php echo htmlspecialchars($label); ?></option>
+                                        <?php endforeach; ?>
+                                    <?php endif; ?>
                                 </select>
                             </div>
                             
@@ -298,20 +343,41 @@ $districts = $db->query("SELECT DISTINCT district FROM proponents WHERE district
                 }
             });
             
+            var statusOptions = {
+                'beneficiaries': <?php echo json_encode($beneficiaryStatusOptions); ?>,
+                'proponents': <?php echo json_encode($proponentStatusOptions); ?>
+            };
+
+            function rebuildStatusOptions(reportType, selected) {
+                var $sel = $('select[name="status"]');
+                $sel.empty();
+                $sel.append($('<option>').attr('value', '').text('All'));
+                var opts = statusOptions[reportType] || {};
+                $.each(opts, function(k, v) {
+                    var $opt = $('<option>').attr('value', k).text(v);
+                    if (k === selected) $opt.prop('selected', true);
+                    $sel.append($opt);
+                });
+            }
+
             $('#reportType').on('change', function() {
-                if ($(this).val() === 'beneficiaries') {
+                var val = $(this).val();
+                if (val === 'beneficiaries') {
                     $('#municipalityFilter').show();
                     $('#districtFilter').hide();
                 } else {
                     $('#municipalityFilter').hide();
                     $('#districtFilter').show();
                 }
+                rebuildStatusOptions(val, '');
             });
-            
+
+            // Initialize filters/status select based on current selection
             if ($('#reportType').val() === 'proponents') {
                 $('#municipalityFilter').hide();
                 $('#districtFilter').show();
             }
+            rebuildStatusOptions($('#reportType').val(), '<?php echo addslashes($selectedStatus); ?>');
         });
     </script>
     <?php include 'includes/notification-script.php'; ?>
