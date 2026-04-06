@@ -35,7 +35,8 @@
             0 4px 20px rgba(21, 90, 44, 0.15),
             inset 0 -1px 0 rgba(255, 255, 255, 0.10);
         border-bottom: 1px solid rgba(255, 255, 255, 0.12);
-        position: relative;
+        position: sticky;
+        top: 0;
         z-index: 1030;
         padding: 0.5rem 1rem;
     }
@@ -159,10 +160,13 @@
         backdrop-filter: blur(20px) saturate(160%);
         -webkit-backdrop-filter: blur(20px) saturate(160%);
         min-height: calc(100vh - 56px);
+        max-height: calc(100vh - 56px);
         box-shadow: 2px 0 12px rgba(27, 122, 61, 0.06);
         border-right: 1px solid rgba(255, 255, 255, 0.45);
-        position: relative;
-        overflow: hidden;
+        position: sticky;
+        top: 56px;
+        overflow-y: auto;
+        overflow-x: hidden;
     }
 
     .sidebar-inner {

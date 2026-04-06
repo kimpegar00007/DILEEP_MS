@@ -44,7 +44,7 @@ $districts = $db->query("SELECT DISTINCT district FROM proponents WHERE district
 
             <main class="col-md-10 ms-sm-auto px-md-4 py-4" id="mainContent" role="main">
                 <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h2><i class="bi bi-people"></i> Group Proponents</h2>
+                    <h2><i class="bi bi-people"></i> DILP Proponents</h2>
                     <?php if ($auth->hasRole(['admin', 'encoder'])): ?>
                     <a href="proponent-form.php" class="btn btn-primary">
                         <i class="bi bi-plus-circle"></i> Add New Proponent

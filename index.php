@@ -259,23 +259,47 @@ $proponentMonthlyTrends = $proponentModel->getMonthlyTrends();
                     </div>
                 </div>
 
-                <!-- Statistics Cards -->
-                <div class="row g-3 mb-4" id="widget-stats">
-                    <div class="col-sm-6 col-xl-2-4">
-                        <div class="card stat-card bg-primary text-white h-100">
-                            <div class="card-body">
-                                <div class="d-flex justify-content-between align-items-start">
-                                    <div class="stat-text-wrap">
-                                        <h6 class="card-title text-uppercase mb-1">Total Beneficiaries</h6>
-                                        <h2 class="stat-number mb-0" data-value="<?php echo (int) $beneficiaryStats['total']; ?>" data-decimals="0"><?php echo number_format($beneficiaryStats['total']); ?></h2>
-                                        <small class="stat-detail">Male: <?php echo number_format($beneficiaryStats['male_count']); ?> | Female: <?php echo number_format($beneficiaryStats['female_count']); ?></small>
-                                    </div>
-                                    <i class="bi bi-person stat-icon flex-shrink-0"></i>
+                <!-- Dashboard Filters -->
+                <div class="card mb-4 no-print" id="dashboard-filters">
+                    <div class="card-body py-2">
+                        <div class="row align-items-center">
+                            <div class="col-auto">
+                                <label class="form-label mb-0 fw-semibold"><i class="bi bi-funnel"></i> Filter Data:</label>
+                            </div>
+                            <div class="col-auto">
+                                <select id="filter-year" class="form-select form-select-sm" style="width: auto;">
+                                    <option value="">All Years</option>
+                                    <?php 
+                                    $currentYear = (int) date('Y');
+                                    for ($y = $currentYear; $y >= $currentYear - 5; $y--): 
+                                    ?>
+                                    <option value="<?php echo $y; ?>"><?php echo $y; ?></option>
+                                    <?php endfor; ?>
+                                </select>
+                            </div>
+                            <div class="col-auto">
+                                <div class="form-check mb-0">
+                                    <input class="form-check-input" type="checkbox" id="filter-approved-only">
+                                    <label class="form-check-label" for="filter-approved-only">Approved Only</label>
                                 </div>
+                            </div>
+                            <div class="col-auto">
+                                <button type="button" class="btn btn-primary btn-sm" onclick="applyDashboardFilters()">
+                                    <i class="bi bi-check-lg"></i> Apply
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="resetDashboardFilters()">
+                                    <i class="bi bi-x-lg"></i> Reset
+                                </button>
+                            </div>
+                            <div class="col-auto" id="filter-status" style="display: none;">
+                                <span class="badge bg-info"><i class="bi bi-funnel-fill"></i> Filters Active</span>
                             </div>
                         </div>
                     </div>
+                </div>
 
+                <!-- Statistics Cards -->
+                <div class="row g-3 mb-4" id="widget-stats">
                     <div class="col-sm-6 col-xl-2-4">
                         <div class="card stat-card bg-success text-white h-100">
                             <div class="card-body">
@@ -286,6 +310,21 @@ $proponentMonthlyTrends = $proponentModel->getMonthlyTrends();
                                         <small class="stat-detail">LGU: <?php echo number_format($proponentStats['lgu_count']); ?> | Non-LGU: <?php echo number_format($proponentStats['non_lgu_count']); ?></small>
                                     </div>
                                     <i class="bi bi-people stat-icon flex-shrink-0"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-sm-6 col-xl-2-4">
+                        <div class="card stat-card bg-primary text-white h-100">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div class="stat-text-wrap">
+                                        <h6 class="card-title text-uppercase mb-1">Total Beneficiaries</h6>
+                                        <h2 class="stat-number mb-0" data-value="<?php echo (int) $beneficiaryStats['total']; ?>" data-decimals="0"><?php echo number_format($beneficiaryStats['total']); ?></h2>
+                                        <small class="stat-detail">Male: <?php echo number_format($beneficiaryStats['male_count']); ?> | Female: <?php echo number_format($beneficiaryStats['female_count']); ?></small>
+                                    </div>
+                                    <i class="bi bi-person stat-icon flex-shrink-0"></i>
                                 </div>
                             </div>
                         </div>
@@ -1097,6 +1136,167 @@ $proponentMonthlyTrends = $proponentModel->getMonthlyTrends();
         // Initial check
         updateFabVisibility();
     })();
+    </script>
+    <script>
+    // Dashboard Filter Functionality
+    async function applyDashboardFilters() {
+        const year = document.getElementById('filter-year').value;
+        const approvedOnly = document.getElementById('filter-approved-only').checked;
+        const filterStatus = document.getElementById('filter-status');
+        
+        // Show loading state
+        document.querySelectorAll('.stat-number').forEach(el => {
+            el.innerHTML = '<i class="bi bi-hourglass-split"></i>';
+        });
+        
+        try {
+            const params = new URLSearchParams();
+            if (year) params.append('year', year);
+            if (approvedOnly) params.append('approved_only', '1');
+            
+            const response = await fetch(`api/dashboard-stats.php?${params}`);
+            const data = await response.json();
+            
+            if (data.success) {
+                // Update statistics cards
+                updateStatCards(data);
+                
+                // Update charts (wrapped in try-catch to prevent errors from blocking success)
+                try {
+                    updateCharts(data);
+                } catch (chartError) {
+                    console.warn('Chart update warning:', chartError);
+                }
+                
+                // Show filter active badge
+                if (year || approvedOnly) {
+                    filterStatus.style.display = '';
+                } else {
+                    filterStatus.style.display = 'none';
+                }
+                
+                if (typeof DILP !== 'undefined' && DILP.toast) {
+                    DILP.toast.success('Filters Applied', 'Dashboard data has been filtered.');
+                }
+            } else {
+                if (typeof DILP !== 'undefined' && DILP.toast) {
+                    DILP.toast.error('Error', data.message || 'Failed to apply filters.');
+                }
+            }
+        } catch (error) {
+            console.error('Filter error:', error);
+            if (typeof DILP !== 'undefined' && DILP.toast) {
+                DILP.toast.error('Error', 'Failed to fetch filtered data.');
+            }
+        }
+    }
+    
+    function resetDashboardFilters() {
+        document.getElementById('filter-year').value = '';
+        document.getElementById('filter-approved-only').checked = false;
+        document.getElementById('filter-status').style.display = 'none';
+        
+        // Reload page to reset all data
+        location.reload();
+    }
+    
+    function updateStatCards(data) {
+        const bs = data.beneficiaryStats;
+        const ps = data.proponentStats;
+        
+        // Find and update stat cards by their titles
+        const statCards = document.querySelectorAll('.stat-card');
+        statCards.forEach(card => {
+            const title = card.querySelector('.card-title')?.textContent?.trim().toUpperCase();
+            const numberEl = card.querySelector('.stat-number');
+            const detailEl = card.querySelector('.stat-detail');
+            
+            if (!numberEl) return;
+            
+            switch(title) {
+                case 'TOTAL PROPONENTS':
+                    numberEl.textContent = Number(ps.total || 0).toLocaleString();
+                    if (detailEl) detailEl.textContent = `LGU: ${Number(ps.lgu_count || 0).toLocaleString()} | Non-LGU: ${Number(ps.non_lgu_count || 0).toLocaleString()}`;
+                    break;
+                case 'TOTAL BENEFICIARIES':
+                    numberEl.textContent = Number(bs.total || 0).toLocaleString();
+                    if (detailEl) detailEl.textContent = `Male: ${Number(bs.male_count || 0).toLocaleString()} | Female: ${Number(bs.female_count || 0).toLocaleString()}`;
+                    break;
+                case 'BENEFICIARIES (GROUPS)':
+                    numberEl.textContent = Number(ps.total_beneficiaries || 0).toLocaleString();
+                    if (detailEl) detailEl.textContent = `Male: ${Number(ps.total_male || 0).toLocaleString()} | Female: ${Number(ps.total_female || 0).toLocaleString()}`;
+                    break;
+                case 'TOTAL AMOUNT':
+                    const totalAmount = (parseFloat(bs.total_amount) || 0) + (parseFloat(ps.total_amount) || 0);
+                    numberEl.textContent = '₱' + totalAmount.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                    break;
+            }
+        });
+    }
+    
+    function updateCharts(data) {
+        // Update Municipality Chart
+        if (typeof municipalityChart !== 'undefined' && data.municipalityDistribution) {
+            municipalityChart.data.labels = data.municipalityDistribution.map(m => m.municipality);
+            municipalityChart.data.datasets[0].data = data.municipalityDistribution.map(m => m.count);
+            municipalityChart.update();
+        }
+        
+        // Update District Chart
+        if (typeof districtChart !== 'undefined' && data.districtDistribution) {
+            districtChart.data.labels = data.districtDistribution.map(d => d.district);
+            districtChart.data.datasets[0].data = data.districtDistribution.map(d => d.count);
+            districtChart.update();
+        }
+        
+        // Update Worker Type Chart
+        if (typeof workerTypeChart !== 'undefined' && data.workerTypeDistribution) {
+            workerTypeChart.data.labels = data.workerTypeDistribution.map(w => w.type_of_worker);
+            workerTypeChart.data.datasets[0].data = data.workerTypeDistribution.map(w => w.count);
+            workerTypeChart.update();
+        }
+        
+        // Update Funding Source Chart
+        if (typeof fundingChart !== 'undefined' && data.fundingSourceBreakdown) {
+            fundingChart.data.labels = data.fundingSourceBreakdown.map(f => f.source_of_funds);
+            fundingChart.data.datasets[0].data = data.fundingSourceBreakdown.map(f => parseFloat(f.total_amount) || 0);
+            fundingChart.update();
+        }
+        
+        // Update Category Chart
+        if (typeof categoryChart !== 'undefined' && data.categoryDistribution) {
+            categoryChart.data.labels = data.categoryDistribution.map(c => c.category);
+            categoryChart.data.datasets[0].data = data.categoryDistribution.map(c => c.count);
+            categoryChart.update();
+        }
+        
+        // Update Trends Chart
+        if (typeof trendsChart !== 'undefined') {
+            const benefMonths = data.monthlyBeneficiaryTrends || [];
+            const propMonths = data.monthlyProponentTrends || [];
+            
+            // Merge months
+            const allMonths = [...new Set([...benefMonths.map(b => b.month), ...propMonths.map(p => p.month)])].sort();
+            
+            const benefData = allMonths.map(m => {
+                const found = benefMonths.find(b => b.month === m);
+                return found ? parseInt(found.count) : 0;
+            });
+            
+            const propData = allMonths.map(m => {
+                const found = propMonths.find(p => p.month === m);
+                return found ? parseInt(found.count) : 0;
+            });
+            
+            trendsChart.data.labels = allMonths.map(m => {
+                const [year, month] = m.split('-');
+                return new Date(year, month - 1).toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+            });
+            trendsChart.data.datasets[0].data = benefData;
+            trendsChart.data.datasets[1].data = propData;
+            trendsChart.update();
+        }
+    }
     </script>
 </body>
 </html>

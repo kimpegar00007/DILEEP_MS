@@ -522,6 +522,73 @@ class Proponent {
         return $stmt->fetchAll();
     }
     
+    public function getReturns($proponentId) {
+        try {
+            $sql = "SELECT pr.*, u.full_name as returned_by_name 
+                    FROM proponent_returns pr 
+                    LEFT JOIN users u ON pr.returned_by = u.id 
+                    WHERE pr.proponent_id = ? 
+                    ORDER BY pr.return_date DESC, pr.created_at DESC";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$proponentId]);
+            return $stmt->fetchAll();
+        } catch (PDOException $e) {
+            return [];
+        }
+    }
+    
+    public function addReturn($proponentId, $returnDate, $reason, $returnedBy = null) {
+        try {
+            // Ensure table exists
+            $this->db->exec("
+                CREATE TABLE IF NOT EXISTS proponent_returns (
+                    id INT PRIMARY KEY AUTO_INCREMENT,
+                    proponent_id INT NOT NULL,
+                    return_date DATE NOT NULL,
+                    reason TEXT,
+                    returned_by INT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            ");
+            
+            $stmt = $this->db->prepare(
+                "INSERT INTO proponent_returns (proponent_id, return_date, reason, returned_by) VALUES (?, ?, ?, ?)"
+            );
+            $result = $stmt->execute([$proponentId, $returnDate, $reason, $returnedBy]);
+            
+            if ($result) {
+                $this->logActivity('return', $proponentId, 'Application returned: ' . substr($reason, 0, 100));
+            }
+            
+            return $result;
+        } catch (PDOException $e) {
+            $this->logDatabaseError('Failed to add return', [
+                'code' => $e->getCode(),
+                'message' => $e->getMessage()
+            ]);
+            return false;
+        }
+    }
+    
+    public function deleteReturn($returnId) {
+        try {
+            $stmt = $this->db->prepare("DELETE FROM proponent_returns WHERE id = ?");
+            return $stmt->execute([$returnId]);
+        } catch (PDOException $e) {
+            return false;
+        }
+    }
+    
+    public function getReturnCount($proponentId) {
+        try {
+            $stmt = $this->db->prepare("SELECT COUNT(*) FROM proponent_returns WHERE proponent_id = ?");
+            $stmt->execute([$proponentId]);
+            return (int) $stmt->fetchColumn();
+        } catch (PDOException $e) {
+            return 0;
+        }
+    }
+    
     private function logDatabaseError($context, $errorInfo) {
         $logMessage = "[Proponent Model] " . $context . "\n";
         
