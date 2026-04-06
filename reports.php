@@ -140,6 +140,7 @@ $districts = $db->query("SELECT DISTINCT district FROM proponents WHERE district
                                 <select name="type" id="reportType" class="form-select" required>
                                     <option value="beneficiaries" <?php echo $reportType === 'beneficiaries' ? 'selected' : ''; ?>>Individual Beneficiaries</option>
                                     <option value="proponents" <?php echo $reportType === 'proponents' ? 'selected' : ''; ?>>Group Proponents</option>
+                                    <option value="cqpr" <?php echo $reportType === 'cqpr' ? 'selected' : ''; ?>>CQPR (Consolidated Quarterly)</option>
                                 </select>
                             </div>
                             
@@ -202,7 +203,10 @@ $districts = $db->query("SELECT DISTINCT district FROM proponents WHERE district
                     </div>
                 </div>
 
-                <?php if ($reportGenerated): ?>
+                <?php if ($reportType === 'cqpr' && $reportGenerated): ?>
+                <!-- CQPR Report -->
+                <?php include 'includes/cqpr-report-template.php'; ?>
+                <?php elseif ($reportGenerated): ?>
                 <?php if (empty($reportData)): ?>
                 <div class="alert alert-warning">
                     <i class="bi bi-exclamation-circle"></i> <strong>No records found</strong> matching your filter criteria. Try adjusting the date range, location, or status filters.
@@ -365,17 +369,28 @@ $districts = $db->query("SELECT DISTINCT district FROM proponents WHERE district
                 if (val === 'beneficiaries') {
                     $('#municipalityFilter').show();
                     $('#districtFilter').hide();
-                } else {
+                    $('select[name="status"]').closest('.col-md-2').show();
+                } else if (val === 'proponents') {
                     $('#municipalityFilter').hide();
                     $('#districtFilter').show();
+                    $('select[name="status"]').closest('.col-md-2').show();
+                } else if (val === 'cqpr') {
+                    $('#municipalityFilter').hide();
+                    $('#districtFilter').hide();
+                    $('select[name="status"]').closest('.col-md-2').hide();
                 }
                 rebuildStatusOptions(val, '');
             });
 
             // Initialize filters/status select based on current selection
-            if ($('#reportType').val() === 'proponents') {
+            var currentType = $('#reportType').val();
+            if (currentType === 'proponents') {
                 $('#municipalityFilter').hide();
                 $('#districtFilter').show();
+            } else if (currentType === 'cqpr') {
+                $('#municipalityFilter').hide();
+                $('#districtFilter').hide();
+                $('select[name="status"]').closest('.col-md-2').hide();
             }
             rebuildStatusOptions($('#reportType').val(), '<?php echo addslashes($selectedStatus); ?>');
         });

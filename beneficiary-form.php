@@ -418,6 +418,53 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 alert('Error loading barangays data.');
             }
         }
+        
+        document.getElementById('barangay').addEventListener('change', function() {
+            autoGeocode();
+        });
+        
+        async function autoGeocode() {
+            const municipality = document.getElementById('municipality').value;
+            const barangay = document.getElementById('barangay').value;
+            const latInput = document.querySelector('input[name="latitude"]');
+            const lngInput = document.querySelector('input[name="longitude"]');
+            
+            if (!municipality) return;
+            
+            const geoStatus = document.getElementById('geo-status');
+            if (geoStatus) geoStatus.remove();
+            
+            const statusEl = document.createElement('small');
+            statusEl.id = 'geo-status';
+            statusEl.className = 'text-info d-block mt-1';
+            statusEl.innerHTML = '<i class="bi bi-hourglass-split"></i> Fetching coordinates...';
+            latInput.parentElement.appendChild(statusEl);
+            
+            try {
+                const params = new URLSearchParams({ municipality });
+                if (barangay) params.append('barangay', barangay);
+                
+                const response = await fetch(`api/geocode.php?${params}`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    latInput.value = result.latitude.toFixed(8);
+                    lngInput.value = result.longitude.toFixed(8);
+                    statusEl.className = 'text-success d-block mt-1';
+                    statusEl.innerHTML = '<i class="bi bi-check-circle"></i> Coordinates auto-filled';
+                    setTimeout(() => statusEl.remove(), 3000);
+                } else {
+                    statusEl.className = 'text-warning d-block mt-1';
+                    statusEl.innerHTML = '<i class="bi bi-exclamation-triangle"></i> ' + result.message;
+                    setTimeout(() => statusEl.remove(), 5000);
+                }
+            } catch (error) {
+                console.error('Geocoding error:', error);
+                statusEl.className = 'text-danger d-block mt-1';
+                statusEl.innerHTML = '<i class="bi bi-x-circle"></i> Geocoding failed';
+                setTimeout(() => statusEl.remove(), 3000);
+            }
+        }
     </script>
     <?php include 'includes/footer.php'; ?>
 </body>

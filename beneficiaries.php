@@ -7,6 +7,12 @@ require_once 'models/Beneficiary.php';
 $auth = new Auth();
 $auth->requireLogin();
 
+// Check if user selected "Group" type - redirect to proponents page
+if (isset($_GET['type']) && $_GET['type'] === 'group') {
+    header('Location: proponents.php');
+    exit;
+}
+
 $beneficiaryModel = new Beneficiary();
 
 // Get filters from query string
@@ -48,7 +54,7 @@ $barangays = $db->query("SELECT DISTINCT barangay FROM beneficiaries ORDER BY ba
             <!-- Main Content -->
             <main class="col-md-10 ms-sm-auto px-md-4 py-4" id="mainContent" role="main">
                 <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h2><i class="bi bi-person"></i> Individual Beneficiaries</h2>
+                    <h2><i class="bi bi-person"></i> Beneficiaries</h2>
                     <?php if ($auth->hasRole(['admin', 'encoder'])): ?>
                     <a href="beneficiary-form.php" class="btn btn-primary">
                         <i class="bi bi-plus-circle"></i> Add New Beneficiary
@@ -60,7 +66,14 @@ $barangays = $db->query("SELECT DISTINCT barangay FROM beneficiaries ORDER BY ba
                 <div class="card filters-card mb-4">
                     <div class="card-body">
                         <form method="GET" action="" class="row g-3">
-                            <div class="col-md-3">
+                            <div class="col-md-2">
+                                <label class="form-label">Beneficiary Type</label>
+                                <select name="type" class="form-select" onchange="this.form.submit()">
+                                    <option value="individual" <?php echo ($_GET['type'] ?? 'individual') === 'individual' ? 'selected' : ''; ?>>Individual</option>
+                                    <option value="group" <?php echo ($_GET['type'] ?? '') === 'group' ? 'selected' : ''; ?>>Group (Proponents)</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2">
                                 <label class="form-label">Search</label>
                                 <input type="text" name="search" class="form-control" 
                                        placeholder="Name or Project" value="<?php echo htmlspecialchars($filters['search']); ?>">

@@ -322,16 +322,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 <h5><i class="bi bi-calendar-check"></i> Process Dates</h5>
                                 <div class="row">
                                     <div class="col-md-4 mb-3">
-                                        <label class="form-label">Letter of Intent - Date Received</label>
+                                        <label class="form-label">DILP Application - Date Received</label>
                                         <input type="date" name="letter_of_intent_date" class="form-control"
                                                value="<?php echo $proponent['letter_of_intent_date'] ?? ''; ?>">
                                     </div>
                                     <div class="col-md-4 mb-3">
-                                        <label class="form-label">Date Forwarded to RO6 for RPMT</label>
+                                        <label class="form-label">Date Forwarded to NIR for RPMT</label>
                                         <input type="date" name="date_forwarded_to_ro6" class="form-control"
                                                value="<?php echo $proponent['date_forwarded_to_ro6'] ?? ''; ?>">
                                     </div>
-                                    <div class="col-md-4 mb-3">
+                                    <div class="col-md-4 mb-3" style="display: none;">
                                         <label class="form-label">Date Complied by Proponent/ACP</label>
                                         <input type="date" name="date_complied_by_proponent" class="form-control"
                                                value="<?php echo $proponent['date_complied_by_proponent'] ?? ''; ?>">
@@ -345,7 +345,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 </div>
                                 <div class="row">
                                     <div class="col-md-4 mb-3">
-                                        <label class="form-label">Date Complied by Proponent/ACP/NOFO</label>
+                                        <label class="form-label">Date Complied by Proponent</label>
                                         <input type="date" name="date_complied_by_proponent_nofo" class="form-control"
                                                value="<?php echo $proponent['date_complied_by_proponent_nofo'] ?? ''; ?>">
                                     </div>
@@ -360,6 +360,75 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                                value="<?php echo $proponent['date_approved'] ?? ''; ?>">
                                     </div>
                                 </div>
+                            </div>
+
+                            <div class="form-section">
+                                <h5><i class="bi bi-arrow-return-left"></i> Application Return History
+                                    <?php if ($isEdit): 
+                                        $returnCount = $proponentModel->getReturnCount($proponent['id']);
+                                        if ($returnCount > 0): ?>
+                                        <span class="badge bg-warning text-dark ms-2"><?php echo $returnCount; ?> Return(s)</span>
+                                    <?php endif; endif; ?>
+                                </h5>
+                                
+                                <?php if ($isEdit): 
+                                    $returns = $proponentModel->getReturns($proponent['id']);
+                                    if (!empty($returns)): ?>
+                                <div class="table-responsive mb-3">
+                                    <table class="table table-sm table-bordered">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Date Returned</th>
+                                                <th>Reason</th>
+                                                <th>Returned By</th>
+                                                <th style="width: 80px;">Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <?php foreach ($returns as $return): ?>
+                                            <tr>
+                                                <td><?php echo date('M d, Y', strtotime($return['return_date'])); ?></td>
+                                                <td><?php echo htmlspecialchars($return['reason']); ?></td>
+                                                <td><?php echo htmlspecialchars($return['returned_by_name'] ?? 'N/A'); ?></td>
+                                                <td>
+                                                    <button type="button" class="btn btn-sm btn-outline-danger" 
+                                                            onclick="deleteReturn(<?php echo $return['id']; ?>)" title="Delete">
+                                                        <i class="bi bi-trash"></i>
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                            <?php endforeach; ?>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <?php else: ?>
+                                <p class="text-muted mb-3"><i class="bi bi-info-circle"></i> No return history recorded.</p>
+                                <?php endif; ?>
+                                
+                                <div class="card bg-light">
+                                    <div class="card-body py-2">
+                                        <h6 class="mb-2"><i class="bi bi-plus-circle"></i> Add New Return Entry</h6>
+                                        <div class="row g-2">
+                                            <div class="col-md-3">
+                                                <label class="form-label small">Return Date</label>
+                                                <input type="date" id="new_return_date" class="form-control form-control-sm">
+                                            </div>
+                                            <div class="col-md-7">
+                                                <label class="form-label small">Reason for Return</label>
+                                                <input type="text" id="new_return_reason" class="form-control form-control-sm" 
+                                                       placeholder="Enter reason for application return">
+                                            </div>
+                                            <div class="col-md-2 d-flex align-items-end">
+                                                <button type="button" class="btn btn-sm btn-warning w-100" onclick="addReturn()">
+                                                    <i class="bi bi-plus"></i> Add
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <?php else: ?>
+                                <p class="text-muted"><i class="bi bi-info-circle"></i> Save the proponent first to add return history entries.</p>
+                                <?php endif; ?>
                             </div>
 
                             <div class="form-section">
@@ -396,12 +465,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                         <label class="form-label">Source of Funds</label>
                                         <select name="source_of_funds" class="form-select">
                                             <option value="">Select Source</option>
-                                            <option value="DOLE" <?php echo (isset($proponent['source_of_funds']) && $proponent['source_of_funds'] === 'DOLE') ? 'selected' : ''; ?>>DOLE</option>
-                                            <option value="GAA" <?php echo (isset($proponent['source_of_funds']) && $proponent['source_of_funds'] === 'GAA') ? 'selected' : ''; ?>>GAA (General Appropriations Act)</option>
-                                            <option value="LGU" <?php echo (isset($proponent['source_of_funds']) && $proponent['source_of_funds'] === 'LGU') ? 'selected' : ''; ?>>LGU Counterpart</option>
-                                            <option value="NGO" <?php echo (isset($proponent['source_of_funds']) && $proponent['source_of_funds'] === 'NGO') ? 'selected' : ''; ?>>NGO/Private Sector</option>
-                                            <option value="TUPAD" <?php echo (isset($proponent['source_of_funds']) && $proponent['source_of_funds'] === 'TUPAD') ? 'selected' : ''; ?>>TUPAD</option>
-                                            <option value="SPES" <?php echo (isset($proponent['source_of_funds']) && $proponent['source_of_funds'] === 'SPES') ? 'selected' : ''; ?>>SPES</option>
+                                            <option value="GAA" <?php echo (isset($proponent['source_of_funds']) && $proponent['source_of_funds'] === 'GAA') ? 'selected' : ''; ?>>GAA (General Appropriation Act)</option>
+                                            <option value="Centrally Managed Fund" <?php echo (isset($proponent['source_of_funds']) && $proponent['source_of_funds'] === 'Centrally Managed Fund') ? 'selected' : ''; ?>>Centrally Managed Fund/Central Office</option>
                                             <option value="Other" <?php echo (isset($proponent['source_of_funds']) && $proponent['source_of_funds'] === 'Other') ? 'selected' : ''; ?>>Other</option>
                                         </select>
                                     </div>
@@ -445,16 +510,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <div class="form-section">
                                 <h5><i class="bi bi-geo-alt"></i> Location (For Map Visualization)</h5>
                                 <div class="row">
+                                    <div class="col-md-4 mb-3">
+                                        <label class="form-label">Municipality/City</label>
+                                        <select id="geo_municipality" class="form-select">
+                                            <option value="">Select to auto-fill coordinates</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                        <label class="form-label">Barangay</label>
+                                        <select id="geo_barangay" class="form-select" disabled>
+                                            <option value="">Select Municipality first</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-4 mb-3 d-flex align-items-end">
+                                        <button type="button" id="btn-geocode" class="btn btn-outline-primary w-100" onclick="fetchGeocode()">
+                                            <i class="bi bi-geo-alt-fill"></i> Auto-fill Coordinates
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="row">
                                     <div class="col-md-6 mb-3">
                                         <label class="form-label">Latitude</label>
-                                        <input type="text" name="latitude" class="form-control" 
+                                        <input type="text" name="latitude" id="latitude" class="form-control" 
                                                placeholder="e.g., 10.5"
                                                value="<?php echo $proponent['latitude'] ?? ''; ?>">
                                         <small class="text-muted">Decimal degrees format</small>
                                     </div>
                                     <div class="col-md-6 mb-3">
                                         <label class="form-label">Longitude</label>
-                                        <input type="text" name="longitude" class="form-control" 
+                                        <input type="text" name="longitude" id="longitude" class="form-control" 
                                                placeholder="e.g., 123.0"
                                                value="<?php echo $proponent['longitude'] ?? ''; ?>">
                                         <small class="text-muted">Decimal degrees format</small>
@@ -638,6 +722,198 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     '</div>';
                 
                 associationsContainer.appendChild(row);
+            }
+        }
+        
+        // Geocoding functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            loadGeoMunicipalities();
+        });
+        
+        async function loadGeoMunicipalities() {
+            try {
+                const response = await fetch('api/get-locations.php?action=cities');
+                const result = await response.json();
+                
+                if (result.success) {
+                    const select = document.getElementById('geo_municipality');
+                    select.innerHTML = '<option value="">Select to auto-fill coordinates</option>';
+                    
+                    result.data.forEach(city => {
+                        const option = document.createElement('option');
+                        option.value = city.name;
+                        option.textContent = city.name;
+                        option.dataset.code = city.code;
+                        select.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading municipalities:', error);
+            }
+        }
+        
+        document.getElementById('geo_municipality').addEventListener('change', async function() {
+            const selectedOption = this.options[this.selectedIndex];
+            const cityCode = selectedOption.dataset.code;
+            const barangaySelect = document.getElementById('geo_barangay');
+            
+            if (cityCode) {
+                barangaySelect.disabled = true;
+                barangaySelect.innerHTML = '<option value="">Loading...</option>';
+                
+                try {
+                    const response = await fetch(`api/get-locations.php?action=barangays&city_code=${cityCode}`);
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        barangaySelect.innerHTML = '<option value="">Select Barangay (optional)</option>';
+                        result.data.forEach(brgy => {
+                            const option = document.createElement('option');
+                            option.value = brgy.name;
+                            option.textContent = brgy.name;
+                            barangaySelect.appendChild(option);
+                        });
+                        barangaySelect.disabled = false;
+                    }
+                } catch (error) {
+                    console.error('Error loading barangays:', error);
+                    barangaySelect.innerHTML = '<option value="">Error loading</option>';
+                }
+                
+                // Auto-geocode when municipality changes
+                autoGeocode();
+            } else {
+                barangaySelect.disabled = true;
+                barangaySelect.innerHTML = '<option value="">Select Municipality first</option>';
+            }
+        });
+        
+        // Auto-geocode when barangay changes
+        document.getElementById('geo_barangay').addEventListener('change', function() {
+            autoGeocode();
+        });
+        
+        async function autoGeocode() {
+            const municipality = document.getElementById('geo_municipality').value;
+            const barangay = document.getElementById('geo_barangay').value;
+            const latInput = document.getElementById('latitude');
+            const lngInput = document.getElementById('longitude');
+            const btn = document.getElementById('btn-geocode');
+            
+            if (!municipality) return;
+            
+            // Show loading state on button
+            btn.disabled = true;
+            btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Fetching...';
+            
+            try {
+                const params = new URLSearchParams({ municipality });
+                if (barangay) params.append('barangay', barangay);
+                
+                const response = await fetch(`api/geocode.php?${params}`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    latInput.value = result.latitude.toFixed(8);
+                    lngInput.value = result.longitude.toFixed(8);
+                    btn.innerHTML = '<i class="bi bi-check-circle"></i> Coordinates Filled';
+                    btn.classList.remove('btn-outline-primary');
+                    btn.classList.add('btn-success');
+                    setTimeout(() => {
+                        btn.innerHTML = '<i class="bi bi-geo-alt-fill"></i> Auto-fill Coordinates';
+                        btn.classList.remove('btn-success');
+                        btn.classList.add('btn-outline-primary');
+                    }, 2000);
+                } else {
+                    btn.innerHTML = '<i class="bi bi-exclamation-triangle"></i> Not Found';
+                    btn.classList.remove('btn-outline-primary');
+                    btn.classList.add('btn-warning');
+                    setTimeout(() => {
+                        btn.innerHTML = '<i class="bi bi-geo-alt-fill"></i> Auto-fill Coordinates';
+                        btn.classList.remove('btn-warning');
+                        btn.classList.add('btn-outline-primary');
+                    }, 3000);
+                }
+            } catch (error) {
+                console.error('Geocoding error:', error);
+                btn.innerHTML = '<i class="bi bi-x-circle"></i> Error';
+                setTimeout(() => {
+                    btn.innerHTML = '<i class="bi bi-geo-alt-fill"></i> Auto-fill Coordinates';
+                }, 2000);
+            }
+            
+            btn.disabled = false;
+        }
+        
+        function fetchGeocode() {
+            const municipality = document.getElementById('geo_municipality').value;
+            if (!municipality) {
+                alert('Please select a municipality first.');
+                return;
+            }
+            autoGeocode();
+        }
+        
+        // Application Return History Functions
+        async function addReturn() {
+            const returnDate = document.getElementById('new_return_date').value;
+            const reason = document.getElementById('new_return_reason').value;
+            const proponentId = <?php echo $isEdit ? (int)$proponent['id'] : 0; ?>;
+            
+            if (!returnDate) {
+                alert('Please select a return date.');
+                return;
+            }
+            
+            if (!reason.trim()) {
+                alert('Please enter a reason for the return.');
+                return;
+            }
+            
+            try {
+                const response = await fetch('api/proponent-returns.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        proponent_id: proponentId,
+                        return_date: returnDate,
+                        reason: reason
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    location.reload();
+                } else {
+                    alert(result.message || 'Failed to add return entry.');
+                }
+            } catch (error) {
+                console.error('Error adding return:', error);
+                alert('Failed to add return entry.');
+            }
+        }
+        
+        async function deleteReturn(returnId) {
+            if (!confirm('Are you sure you want to delete this return entry?')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`api/proponent-returns.php?id=${returnId}`, {
+                    method: 'DELETE'
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    location.reload();
+                } else {
+                    alert(result.message || 'Failed to delete return entry.');
+                }
+            } catch (error) {
+                console.error('Error deleting return:', error);
+                alert('Failed to delete return entry.');
             }
         }
     </script>
