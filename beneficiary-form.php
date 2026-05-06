@@ -32,6 +32,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'gender' => $_POST['gender'] ?? '',
         'barangay' => trim($_POST['barangay'] ?? ''),
         'municipality' => trim($_POST['municipality'] ?? ''),
+        'province' => trim($_POST['province'] ?? ''),
         'contact_number' => trim($_POST['contact_number'] ?? ''),
         'project_name' => trim($_POST['project_name'] ?? ''),
         'type_of_worker' => trim($_POST['type_of_worker'] ?? ''),
@@ -54,14 +55,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($data['gender'])) $errors[] = 'Gender is required';
     if (empty($data['barangay'])) $errors[] = 'Barangay is required';
     if (empty($data['municipality'])) $errors[] = 'Municipality is required';
+    if (empty($data['province'])) $errors[] = 'Province is required';
     if (empty($data['project_name'])) $errors[] = 'Project name is required';
     if ($data['amount_worth'] <= 0) $errors[] = 'Amount must be greater than zero';
     
-    if ($data['latitude'] !== null && ($data['latitude'] < 9.0 || $data['latitude'] > 12.0)) {
-        $errors[] = 'Latitude must be between 9.0 and 12.0 for Negros Occidental';
+    $provinceRanges = [
+        'Negros Occidental' => ['lat' => [9.0, 12.0], 'lng' => [122.0, 124.0]],
+        'Negros Oriental' => ['lat' => [9.0, 10.5], 'lng' => [122.5, 123.5]],
+        'Siquijor' => ['lat' => [9.0, 9.5], 'lng' => [123.0, 123.8]]
+    ];
+    
+    if ($data['latitude'] !== null && !empty($data['province']) && isset($provinceRanges[$data['province']])) {
+        $range = $provinceRanges[$data['province']];
+        if ($data['latitude'] < $range['lat'][0] || $data['latitude'] > $range['lat'][1]) {
+            $errors[] = "Latitude must be between {$range['lat'][0]} and {$range['lat'][1]} for {$data['province']}";
+        }
     }
-    if ($data['longitude'] !== null && ($data['longitude'] < 122.0 || $data['longitude'] > 124.0)) {
-        $errors[] = 'Longitude must be between 122.0 and 124.0 for Negros Occidental';
+    if ($data['longitude'] !== null && !empty($data['province']) && isset($provinceRanges[$data['province']])) {
+        $range = $provinceRanges[$data['province']];
+        if ($data['longitude'] < $range['lng'][0] || $data['longitude'] > $range['lng'][1]) {
+            $errors[] = "Longitude must be between {$range['lng'][0]} and {$range['lng'][1]} for {$data['province']}";
+        }
     }
     if (($data['latitude'] !== null && $data['longitude'] === null) || ($data['latitude'] === null && $data['longitude'] !== null)) {
         $errors[] = 'Both latitude and longitude must be provided together';
@@ -110,7 +124,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <main class="col-md-10 ms-sm-auto px-md-4 py-4" id="mainContent" role="main">
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <h2><i class="bi bi-person"></i> <?php echo $isEdit ? 'Edit' : 'Add New'; ?> Beneficiary</h2>
-                    <a href="beneficiaries.php" class="btn btn-secondary">
+                    <a href="unified-beneficiaries-proponents.php" class="btn btn-secondary">
                         <i class="bi bi-arrow-left"></i> Back to List
                     </a>
                 </div>
@@ -169,6 +183,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                             <option value="Male" <?php echo ($beneficiary['gender'] ?? '') === 'Male' ? 'selected' : ''; ?>>Male</option>
                                             <option value="Female" <?php echo ($beneficiary['gender'] ?? '') === 'Female' ? 'selected' : ''; ?>>Female</option>
                                         </select>
+                                    </div>
+                                    <div class="col-md-3 mb-3">
+                                        <label class="form-label">Province <span class="text-danger">*</span></label>
+                                        <select name="province" id="province" class="form-select" required>
+                                            <option value="">Select Province</option>
+                                        </select>
+                                        <input type="hidden" id="province_value" value="<?php echo htmlspecialchars($beneficiary['province'] ?? ''); ?>">
                                     </div>
                                     <div class="col-md-3 mb-3">
                                         <label class="form-label">City/Municipality <span class="text-danger">*</span></label>
@@ -322,14 +343,57 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <script>
         let citiesData = [];
         let cityCodeMap = {};
+        let provinceCodeMap = {};
         
         document.addEventListener('DOMContentLoaded', function() {
-            loadCities();
+            loadProvinces();
         });
         
-        async function loadCities() {
+        async function loadProvinces() {
             try {
-                const response = await fetch('api/get-locations.php?action=cities');
+                const response = await fetch('api/get-locations.php?action=provinces');
+                const result = await response.json();
+                
+                if (result.success) {
+                    const provinceSelect = document.getElementById('province');
+                    const savedProvince = document.getElementById('province_value').value;
+                    
+                    provinceSelect.innerHTML = '<option value="">Select Province</option>';
+                    
+                    result.data.forEach(province => {
+                        const option = document.createElement('option');
+                        option.value = province.name;
+                        option.textContent = province.name;
+                        option.dataset.code = province.code;
+                        
+                        if (savedProvince && province.name === savedProvince) {
+                            option.selected = true;
+                        }
+                        
+                        provinceSelect.appendChild(option);
+                        provinceCodeMap[province.name] = province.code;
+                    });
+                    
+                    if (savedProvince) {
+                        const selectedOption = provinceSelect.querySelector(`option[value="${savedProvince}"]`);
+                        if (selectedOption) {
+                            const provinceCode = selectedOption.dataset.code;
+                            await loadCities(provinceCode);
+                        }
+                    }
+                } else {
+                    console.error('Failed to load provinces:', result.message);
+                    alert('Failed to load provinces data. Please refresh the page.');
+                }
+            } catch (error) {
+                console.error('Error loading provinces:', error);
+                alert('Error loading provinces data. Please check your connection.');
+            }
+        }
+        
+        async function loadCities(provinceCode) {
+            try {
+                const response = await fetch(`api/get-locations.php?action=cities&province_code=${provinceCode}`);
                 const result = await response.json();
                 
                 if (result.success) {
@@ -338,6 +402,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     const savedMunicipality = document.getElementById('municipality_value').value;
                     
                     municipalitySelect.innerHTML = '<option value="">Select City/Municipality</option>';
+                    municipalitySelect.disabled = false;
                     
                     result.data.forEach(city => {
                         const option = document.createElement('option');
@@ -369,6 +434,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 alert('Error loading cities data. Please check your connection.');
             }
         }
+        
+        document.getElementById('province').addEventListener('change', async function() {
+            const selectedOption = this.options[this.selectedIndex];
+            const provinceCode = selectedOption.dataset.code;
+            const municipalitySelect = document.getElementById('municipality');
+            const barangaySelect = document.getElementById('barangay');
+            
+            municipalitySelect.innerHTML = '<option value="">Select City/Municipality</option>';
+            municipalitySelect.disabled = true;
+            barangaySelect.innerHTML = '<option value="">Select City/Municipality first</option>';
+            barangaySelect.disabled = true;
+            
+            if (provinceCode) {
+                await loadCities(provinceCode);
+            }
+        });
         
         document.getElementById('municipality').addEventListener('change', async function() {
             const selectedOption = this.options[this.selectedIndex];
@@ -424,6 +505,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         });
         
         async function autoGeocode() {
+            const province = document.getElementById('province').value;
             const municipality = document.getElementById('municipality').value;
             const barangay = document.getElementById('barangay').value;
             const latInput = document.querySelector('input[name="latitude"]');
@@ -442,6 +524,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             try {
                 const params = new URLSearchParams({ municipality });
+                if (province) params.append('province', province);
                 if (barangay) params.append('barangay', barangay);
                 
                 const response = await fetch(`api/geocode.php?${params}`);

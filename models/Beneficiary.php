@@ -11,12 +11,12 @@ class Beneficiary {
     
     public function create($data) {
         $sql = "INSERT INTO beneficiaries (
-            last_name, first_name, middle_name, suffix, gender, barangay, municipality,
+            last_name, first_name, middle_name, suffix, gender, barangay, municipality, province,
             contact_number, project_name, type_of_worker, amount_worth, noted_findings,
             date_complied_by_proponent, date_forwarded_to_ro6, rpmt_findings, date_approved,
             date_forwarded_to_nofo, date_turnover, date_monitoring, latitude, longitude,
             status, created_by, updated_by
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         
         try {
             $stmt = $this->db->prepare($sql);
@@ -27,9 +27,9 @@ class Beneficiary {
             
             $result = $stmt->execute([
                 $data['last_name'], $data['first_name'], $data['middle_name'], $data['suffix'],
-                $data['gender'], $data['barangay'], $data['municipality'], $data['contact_number'],
-                $data['project_name'], $data['type_of_worker'], $data['amount_worth'],
-                $data['noted_findings'], $data['date_complied_by_proponent'],
+                $data['gender'], $data['barangay'], $data['municipality'], $data['province'] ?? null,
+                $data['contact_number'], $data['project_name'], $data['type_of_worker'], 
+                $data['amount_worth'], $data['noted_findings'], $data['date_complied_by_proponent'],
                 $data['date_forwarded_to_ro6'], $data['rpmt_findings'], $data['date_approved'],
                 $data['date_forwarded_to_nofo'], $data['date_turnover'], $data['date_monitoring'],
                 $data['latitude'], $data['longitude'], $data['status'],
@@ -58,7 +58,7 @@ class Beneficiary {
     public function update($id, $data) {
         $sql = "UPDATE beneficiaries SET
             last_name = ?, first_name = ?, middle_name = ?, suffix = ?, gender = ?,
-            barangay = ?, municipality = ?, contact_number = ?, project_name = ?,
+            barangay = ?, municipality = ?, province = ?, contact_number = ?, project_name = ?,
             type_of_worker = ?, amount_worth = ?, noted_findings = ?,
             date_complied_by_proponent = ?, date_forwarded_to_ro6 = ?, rpmt_findings = ?,
             date_approved = ?, date_forwarded_to_nofo = ?, date_turnover = ?,
@@ -74,9 +74,9 @@ class Beneficiary {
             
             $result = $stmt->execute([
                 $data['last_name'], $data['first_name'], $data['middle_name'], $data['suffix'],
-                $data['gender'], $data['barangay'], $data['municipality'], $data['contact_number'],
-                $data['project_name'], $data['type_of_worker'], $data['amount_worth'],
-                $data['noted_findings'], $data['date_complied_by_proponent'],
+                $data['gender'], $data['barangay'], $data['municipality'], $data['province'] ?? null,
+                $data['contact_number'], $data['project_name'], $data['type_of_worker'], 
+                $data['amount_worth'], $data['noted_findings'], $data['date_complied_by_proponent'],
                 $data['date_forwarded_to_ro6'], $data['rpmt_findings'], $data['date_approved'],
                 $data['date_forwarded_to_nofo'], $data['date_turnover'], $data['date_monitoring'],
                 $data['latitude'], $data['longitude'], $data['status'],

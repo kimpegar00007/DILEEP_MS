@@ -173,7 +173,7 @@ if (!$beneficiary) {
                                     <p><?php echo $beneficiary['date_complied_by_proponent'] ? date('F d, Y', strtotime($beneficiary['date_complied_by_proponent'])) : 'Not set'; ?></p>
                                 </div>
                                 <div class="view-item">
-                                    <label>Date Forwarded to RO6</label>
+                                    <label>Date Forwarded to NIR</label>
                                     <p><?php echo $beneficiary['date_forwarded_to_ro6'] ? date('F d, Y', strtotime($beneficiary['date_forwarded_to_ro6'])) : 'Not set'; ?></p>
                                 </div>
                                 <div class="view-item">

@@ -12,13 +12,8 @@
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link <?php echo ($currentPage ?? '') === 'beneficiaries' ? 'active' : ''; ?>" href="beneficiaries.php" aria-current="<?php echo ($currentPage ?? '') === 'beneficiaries' ? 'page' : 'false'; ?>">
-                    <i class="bi bi-person" aria-hidden="true"></i> <span>Beneficiaries</span>
-                </a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link <?php echo ($currentPage ?? '') === 'proponents' ? 'active' : ''; ?>" href="proponents.php" aria-current="<?php echo ($currentPage ?? '') === 'proponents' ? 'page' : 'false'; ?>">
-                    <i class="bi bi-people" aria-hidden="true"></i> <span>Proponents</span>
+                <a class="nav-link <?php echo ($currentPage ?? '') === 'unified' ? 'active' : ''; ?>" href="unified-beneficiaries-proponents.php" aria-current="<?php echo ($currentPage ?? '') === 'unified' ? 'page' : 'false'; ?>">
+                    <i class="bi bi-layers" aria-hidden="true"></i> <span>Beneficiaries & Proponents</span>
                 </a>
             </li>
             <li class="nav-item">

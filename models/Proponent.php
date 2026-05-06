@@ -25,7 +25,7 @@ class Proponent {
             
             $sql = "INSERT INTO proponents (
                 proponent_type, date_received, noted_findings, control_number, number_of_copies,
-                date_copies_received, district, proponent_name, project_title, amount,
+                date_copies_received, district, province, proponent_name, project_title, amount,
                 number_of_associations, total_beneficiaries, male_beneficiaries, female_beneficiaries,
                 type_of_beneficiaries, category, recipient_barangays, letter_of_intent_date,
                 date_forwarded_to_ro6, rpmt_findings, date_complied_by_proponent,
@@ -33,7 +33,7 @@ class Proponent {
                 date_check_release, check_number, check_date_issued, or_number, or_date_issued,
                 date_turnover, date_implemented, date_liquidated, liquidation_deadline, date_monitoring,
                 source_of_funds, latitude, longitude, status, created_by, updated_by
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
             
             $stmt = $this->db->prepare($sql);
             if (!$stmt) {
@@ -45,9 +45,9 @@ class Proponent {
             $params = [
                 $data['proponent_type'], $data['date_received'], $data['noted_findings'],
                 $data['control_number'], $data['number_of_copies'], $data['date_copies_received'],
-                $data['district'], $data['proponent_name'], $data['project_title'], $data['amount'],
-                $data['number_of_associations'], $data['total_beneficiaries'],
-                $data['male_beneficiaries'], $data['female_beneficiaries'],
+                $data['district'], $data['province'] ?? null, $data['proponent_name'], 
+                $data['project_title'], $data['amount'], $data['number_of_associations'], 
+                $data['total_beneficiaries'], $data['male_beneficiaries'], $data['female_beneficiaries'],
                 $data['type_of_beneficiaries'], $data['category'], $data['recipient_barangays'],
                 $data['letter_of_intent_date'], $data['date_forwarded_to_ro6'], $data['rpmt_findings'],
                 $data['date_complied_by_proponent'], $data['date_complied_by_proponent_nofo'],
@@ -114,16 +114,17 @@ class Proponent {
             
             $sql = "UPDATE proponents SET
                 proponent_type = ?, date_received = ?, noted_findings = ?, control_number = ?,
-                number_of_copies = ?, date_copies_received = ?, district = ?, proponent_name = ?,
-                project_title = ?, amount = ?, number_of_associations = ?, total_beneficiaries = ?,
-                male_beneficiaries = ?, female_beneficiaries = ?, type_of_beneficiaries = ?,
-                category = ?, recipient_barangays = ?, letter_of_intent_date = ?,
-                date_forwarded_to_ro6 = ?, rpmt_findings = ?, date_complied_by_proponent = ?,
-                date_complied_by_proponent_nofo = ?, date_forwarded_to_nofo = ?, date_approved = ?,
-                date_check_release = ?, check_number = ?, check_date_issued = ?, or_number = ?,
-                or_date_issued = ?, date_turnover = ?, date_implemented = ?, date_liquidated = ?,
-                liquidation_deadline = ?, date_monitoring = ?, source_of_funds = ?, latitude = ?, longitude = ?, status = ?,
-                updated_by = ?
+                number_of_copies = ?, date_copies_received = ?, district = ?, province = ?, 
+                proponent_name = ?, project_title = ?, amount = ?, number_of_associations = ?, 
+                total_beneficiaries = ?, male_beneficiaries = ?, female_beneficiaries = ?,
+                type_of_beneficiaries = ?, category = ?, recipient_barangays = ?, 
+                letter_of_intent_date = ?, date_forwarded_to_ro6 = ?, rpmt_findings = ?, 
+                date_complied_by_proponent = ?, date_complied_by_proponent_nofo = ?, 
+                date_forwarded_to_nofo = ?, date_approved = ?, date_check_release = ?, 
+                check_number = ?, check_date_issued = ?, or_number = ?, or_date_issued = ?, 
+                date_turnover = ?, date_implemented = ?, date_liquidated = ?,
+                liquidation_deadline = ?, date_monitoring = ?, source_of_funds = ?, 
+                latitude = ?, longitude = ?, status = ?, updated_by = ?
             WHERE id = ?";
             
             $stmt = $this->db->prepare($sql);
@@ -136,9 +137,9 @@ class Proponent {
             $result = $stmt->execute([
                 $data['proponent_type'], $data['date_received'], $data['noted_findings'],
                 $data['control_number'], $data['number_of_copies'], $data['date_copies_received'],
-                $data['district'], $data['proponent_name'], $data['project_title'], $data['amount'],
-                $data['number_of_associations'], $data['total_beneficiaries'],
-                $data['male_beneficiaries'], $data['female_beneficiaries'],
+                $data['district'], $data['province'] ?? null, $data['proponent_name'], 
+                $data['project_title'], $data['amount'], $data['number_of_associations'], 
+                $data['total_beneficiaries'], $data['male_beneficiaries'], $data['female_beneficiaries'],
                 $data['type_of_beneficiaries'], $data['category'], $data['recipient_barangays'],
                 $data['letter_of_intent_date'], $data['date_forwarded_to_ro6'], $data['rpmt_findings'],
                 $data['date_complied_by_proponent'], $data['date_complied_by_proponent_nofo'],
