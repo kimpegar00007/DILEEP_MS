@@ -193,9 +193,10 @@ $proponentMonthlyTrends = $proponentModel->getMonthlyTrends();
             <main class="col-md-10 ms-sm-auto px-md-4 py-4" id="mainContent" role="main">
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <?php
-                    // Prepare a friendly, time-aware greeting using server time and the logged-in user's full name.
+                    // Prepare a friendly, time-aware greeting using Philippine time (UTC+8) and the logged-in user's full name.
                     $userInfo = $auth->getUser();
                     $fullName = $userInfo['full_name'] ?? ($_SESSION['full_name'] ?? 'User');
+                    date_default_timezone_set('Asia/Manila');
                     $hour = (int) date('H');
                     if ($hour >= 5 && $hour < 12) {
                         $timeGreeting = 'Good Morning';
@@ -265,6 +266,14 @@ $proponentMonthlyTrends = $proponentModel->getMonthlyTrends();
                         <div class="row align-items-center">
                             <div class="col-auto">
                                 <label class="form-label mb-0 fw-semibold"><i class="bi bi-funnel"></i> Filter Data:</label>
+                            </div>
+                            <div class="col-auto">
+                                <select id="filter-province" class="form-select form-select-sm" style="width: auto;">
+                                    <option value="">All Provinces</option>
+                                    <option value="Negros Occidental">Negros Occidental</option>
+                                    <option value="Negros Oriental">Negros Oriental</option>
+                                    <option value="Siquijor">Siquijor</option>
+                                </select>
                             </div>
                             <div class="col-auto">
                                 <select id="filter-year" class="form-select form-select-sm" style="width: auto;">
@@ -646,9 +655,10 @@ $proponentMonthlyTrends = $proponentModel->getMonthlyTrends();
 
         // 1. Municipality Distribution Chart (Horizontal Bar)
         const municipalityData = <?php echo json_encode($beneficiaryMunicipalityData); ?>;
+        window.municipalityChart = null;
         if (municipalityData && municipalityData.length > 0) {
             const municipalityCtx = document.getElementById('municipalityChart').getContext('2d');
-            new Chart(municipalityCtx, {
+            window.municipalityChart = new Chart(municipalityCtx, {
                 type: 'bar',
                 data: {
                     labels: municipalityData.map(item => item.municipality),
@@ -686,9 +696,10 @@ $proponentMonthlyTrends = $proponentModel->getMonthlyTrends();
 
         // 2. District Distribution Chart (Doughnut)
         const districtData = <?php echo json_encode($proponentDistrictData); ?>;
+        window.districtChart = null;
         if (districtData && districtData.length > 0) {
             const districtCtx = document.getElementById('districtChart').getContext('2d');
-            new Chart(districtCtx, {
+            window.districtChart = new Chart(districtCtx, {
                 type: 'doughnut',
                 data: {
                     labels: districtData.map(item => item.district),
@@ -726,9 +737,10 @@ $proponentMonthlyTrends = $proponentModel->getMonthlyTrends();
 
         // 3. Project Type Distribution Chart (Pie)
         const projectTypeData = <?php echo json_encode($beneficiaryProjectTypeData); ?>;
+        window.workerTypeChart = null;
         if (projectTypeData && projectTypeData.length > 0) {
             const projectTypeCtx = document.getElementById('projectTypeChart').getContext('2d');
-            new Chart(projectTypeCtx, {
+            window.workerTypeChart = new Chart(projectTypeCtx, {
                 type: 'pie',
                 data: {
                     labels: projectTypeData.map(item => item.type_of_worker),
@@ -766,9 +778,10 @@ $proponentMonthlyTrends = $proponentModel->getMonthlyTrends();
 
         // 4. Funding Source Breakdown Chart (Bar)
         const fundingData = <?php echo json_encode($proponentFundingData); ?>;
+        window.fundingChart = null;
         if (fundingData && fundingData.length > 0) {
             const fundingCtx = document.getElementById('fundingChart').getContext('2d');
-            
+
             // Generate colors based on funding source
             const fundingColors = fundingData.map(item => {
                 if (item.source_of_funds === 'Not Specified') return chartColors.secondary;
@@ -780,8 +793,8 @@ $proponentMonthlyTrends = $proponentModel->getMonthlyTrends();
                 if (item.source_of_funds === 'SPES') return chartColors.teal;
                 return chartColors.orange;
             });
-            
-            new Chart(fundingCtx, {
+
+            window.fundingChart = new Chart(fundingCtx, {
                 type: 'bar',
                 data: {
                     labels: fundingData.map(item => item.source_of_funds),
@@ -834,9 +847,10 @@ $proponentMonthlyTrends = $proponentModel->getMonthlyTrends();
 
         // 5. Category Distribution Chart (Doughnut)
         const categoryData = <?php echo json_encode($proponentCategoryData); ?>;
+        window.categoryChart = null;
         if (categoryData && categoryData.length > 0) {
             const categoryCtx = document.getElementById('categoryChart').getContext('2d');
-            new Chart(categoryCtx, {
+            window.categoryChart = new Chart(categoryCtx, {
                 type: 'doughnut',
                 data: {
                     labels: categoryData.map(item => item.category),
@@ -875,7 +889,8 @@ $proponentMonthlyTrends = $proponentModel->getMonthlyTrends();
         // 6. Monthly Trends Chart (Line)
         const beneficiaryTrends = <?php echo json_encode($beneficiaryMonthlyTrends); ?>;
         const proponentTrends = <?php echo json_encode($proponentMonthlyTrends); ?>;
-        
+        window.trendsChart = null;
+
         if ((beneficiaryTrends && beneficiaryTrends.length > 0) || (proponentTrends && proponentTrends.length > 0)) {
             const allMonths = new Set();
             beneficiaryTrends.forEach(item => allMonths.add(item.month));
@@ -888,7 +903,7 @@ $proponentMonthlyTrends = $proponentModel->getMonthlyTrends();
             proponentTrends.forEach(item => proponentMap[item.month] = parseInt(item.count));
 
             const trendsCtx = document.getElementById('trendsChart').getContext('2d');
-            new Chart(trendsCtx, {
+            window.trendsChart = new Chart(trendsCtx, {
                 type: 'line',
                 data: {
                     labels: sortedMonths.map(month => {
@@ -1140,6 +1155,7 @@ $proponentMonthlyTrends = $proponentModel->getMonthlyTrends();
     <script>
     // Dashboard Filter Functionality
     async function applyDashboardFilters() {
+        const province = document.getElementById('filter-province').value;
         const year = document.getElementById('filter-year').value;
         const approvedOnly = document.getElementById('filter-approved-only').checked;
         const filterStatus = document.getElementById('filter-status');
@@ -1151,6 +1167,7 @@ $proponentMonthlyTrends = $proponentModel->getMonthlyTrends();
         
         try {
             const params = new URLSearchParams();
+            if (province) params.append('province', province);
             if (year) params.append('year', year);
             if (approvedOnly) params.append('approved_only', '1');
             
@@ -1169,14 +1186,19 @@ $proponentMonthlyTrends = $proponentModel->getMonthlyTrends();
                 }
                 
                 // Show filter active badge
-                if (year || approvedOnly) {
+                if (province || year || approvedOnly) {
                     filterStatus.style.display = '';
                 } else {
                     filterStatus.style.display = 'none';
                 }
                 
+                // Show appropriate message
                 if (typeof DILP !== 'undefined' && DILP.toast) {
-                    DILP.toast.success('Filters Applied', 'Dashboard data has been filtered.');
+                    if (data.hasData === false) {
+                        DILP.toast.warning('No Data Found', 'No records match the selected filters. Try adjusting your filter criteria.');
+                    } else {
+                        DILP.toast.success('Filters Applied', 'Dashboard data has been filtered.');
+                    }
                 }
             } else {
                 if (typeof DILP !== 'undefined' && DILP.toast) {
@@ -1192,6 +1214,7 @@ $proponentMonthlyTrends = $proponentModel->getMonthlyTrends();
     }
     
     function resetDashboardFilters() {
+        document.getElementById('filter-province').value = '';
         document.getElementById('filter-year').value = '';
         document.getElementById('filter-approved-only').checked = false;
         document.getElementById('filter-status').style.display = 'none';
@@ -1203,98 +1226,143 @@ $proponentMonthlyTrends = $proponentModel->getMonthlyTrends();
     function updateStatCards(data) {
         const bs = data.beneficiaryStats;
         const ps = data.proponentStats;
-        
-        // Find and update stat cards by their titles
-        const statCards = document.querySelectorAll('.stat-card');
+        const fs = data.fieldworkStats;
+
+        // Find and update stat cards by their titles (only main stats cards, not status overview)
+        const statCards = document.querySelectorAll('#widget-stats .stat-card');
         statCards.forEach(card => {
-            const title = card.querySelector('.card-title')?.textContent?.trim().toUpperCase();
-            const numberEl = card.querySelector('.stat-number');
-            const detailEl = card.querySelector('.stat-detail');
-            
-            if (!numberEl) return;
-            
-            switch(title) {
-                case 'TOTAL PROPONENTS':
-                    numberEl.textContent = Number(ps.total || 0).toLocaleString();
-                    if (detailEl) detailEl.textContent = `LGU: ${Number(ps.lgu_count || 0).toLocaleString()} | Non-LGU: ${Number(ps.non_lgu_count || 0).toLocaleString()}`;
-                    break;
-                case 'TOTAL BENEFICIARIES':
-                    numberEl.textContent = Number(bs.total || 0).toLocaleString();
-                    if (detailEl) detailEl.textContent = `Male: ${Number(bs.male_count || 0).toLocaleString()} | Female: ${Number(bs.female_count || 0).toLocaleString()}`;
-                    break;
-                case 'BENEFICIARIES (GROUPS)':
-                    numberEl.textContent = Number(ps.total_beneficiaries || 0).toLocaleString();
-                    if (detailEl) detailEl.textContent = `Male: ${Number(ps.total_male || 0).toLocaleString()} | Female: ${Number(ps.total_female || 0).toLocaleString()}`;
-                    break;
-                case 'TOTAL AMOUNT':
-                    const totalAmount = (parseFloat(bs.total_amount) || 0) + (parseFloat(ps.total_amount) || 0);
-                    numberEl.textContent = '₱' + totalAmount.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
-                    break;
+            try {
+                const title = card.querySelector('.card-title')?.textContent?.trim().toUpperCase();
+                const numberEl = card.querySelector('.stat-number');
+                const detailEl = card.querySelector('.stat-detail');
+
+                if (!numberEl) return;
+
+                switch(title) {
+                    case 'TOTAL PROPONENTS':
+                        numberEl.textContent = Number(ps?.total || 0).toLocaleString();
+                        if (detailEl) detailEl.textContent = `LGU: ${Number(ps?.lgu_count || 0).toLocaleString()} | Non-LGU: ${Number(ps?.non_lgu_count || 0).toLocaleString()}`;
+                        break;
+                    case 'TOTAL BENEFICIARIES':
+                        numberEl.textContent = Number(bs?.total || 0).toLocaleString();
+                        if (detailEl) detailEl.textContent = `Male: ${Number(bs?.male_count || 0).toLocaleString()} | Female: ${Number(bs?.female_count || 0).toLocaleString()}`;
+                        break;
+                    case 'BENEFICIARIES (GROUPS)':
+                        numberEl.textContent = Number(ps?.total_beneficiaries || 0).toLocaleString();
+                        if (detailEl) detailEl.textContent = `Male: ${Number(ps?.total_male || 0).toLocaleString()} | Female: ${Number(ps?.total_female || 0).toLocaleString()}`;
+                        break;
+                    case 'FIELDWORK SCHEDULE':
+                        numberEl.textContent = Number(fs?.total || 0).toLocaleString();
+                        if (detailEl) detailEl.textContent = `Ongoing: ${Number(fs?.ongoing || 0).toLocaleString()} | Completed: ${Number(fs?.completed || 0).toLocaleString()}`;
+                        break;
+                    default:
+                        // Handle "Total Amount (Individual + Group Projects)" - starts with "TOTAL AMOUNT"
+                        if (title && title.startsWith('TOTAL AMOUNT')) {
+                            const totalAmount = (parseFloat(bs?.total_amount) || 0) + (parseFloat(ps?.total_amount) || 0);
+                            numberEl.textContent = '₱' + totalAmount.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                        }
+                        break;
+                }
+            } catch (cardError) {
+                console.warn('Error updating stat card:', cardError);
             }
         });
+
+        // Update status overview cards (pending, approved, implemented, monitored, liquidated counts)
+        updateStatusOverview(data);
+    }
+
+    function updateStatusOverview(data) {
+        const bs = data.beneficiaryStats;
+        const ps = data.proponentStats;
+
+        // Update Individual Beneficiaries Status counts
+        const benefStatusCard = document.querySelector('#widget-status .col-md-6:first-child');
+        if (benefStatusCard) {
+            const counts = benefStatusCard.querySelectorAll('.stat-count');
+            if (counts.length >= 4) {
+                counts[0].textContent = Number(bs.pending || 0).toLocaleString();      // Pending
+                counts[1].textContent = Number(bs.approved || 0).toLocaleString();     // Approved
+                counts[2].textContent = Number(bs.implemented || 0).toLocaleString();  // Implemented
+                counts[3].textContent = Number(bs.monitored || 0).toLocaleString();    // Monitored
+            }
+        }
+
+        // Update Group Proponents Status counts
+        const propStatusCard = document.querySelector('#widget-status .col-md-6:last-child');
+        if (propStatusCard) {
+            const counts = propStatusCard.querySelectorAll('.stat-count');
+            if (counts.length >= 5) {
+                counts[0].textContent = Number(ps.pending || 0).toLocaleString();      // Pending
+                counts[1].textContent = Number(ps.approved || 0).toLocaleString();     // Approved
+                counts[2].textContent = Number(ps.implemented || 0).toLocaleString();  // Implemented
+                counts[3].textContent = Number(ps.liquidated || 0).toLocaleString();   // Liquidated
+                counts[4].textContent = Number(ps.monitored || 0).toLocaleString();    // Monitored
+            }
+        }
     }
     
     function updateCharts(data) {
         // Update Municipality Chart
-        if (typeof municipalityChart !== 'undefined' && data.municipalityDistribution) {
-            municipalityChart.data.labels = data.municipalityDistribution.map(m => m.municipality);
-            municipalityChart.data.datasets[0].data = data.municipalityDistribution.map(m => m.count);
-            municipalityChart.update();
+        if (window.municipalityChart && data.municipalityDistribution) {
+            window.municipalityChart.data.labels = data.municipalityDistribution.map(m => m.municipality);
+            window.municipalityChart.data.datasets[0].data = data.municipalityDistribution.map(m => m.count);
+            window.municipalityChart.update();
         }
-        
+
         // Update District Chart
-        if (typeof districtChart !== 'undefined' && data.districtDistribution) {
-            districtChart.data.labels = data.districtDistribution.map(d => d.district);
-            districtChart.data.datasets[0].data = data.districtDistribution.map(d => d.count);
-            districtChart.update();
+        if (window.districtChart && data.districtDistribution) {
+            window.districtChart.data.labels = data.districtDistribution.map(d => d.district);
+            window.districtChart.data.datasets[0].data = data.districtDistribution.map(d => d.count);
+            window.districtChart.update();
         }
-        
+
         // Update Worker Type Chart
-        if (typeof workerTypeChart !== 'undefined' && data.workerTypeDistribution) {
-            workerTypeChart.data.labels = data.workerTypeDistribution.map(w => w.type_of_worker);
-            workerTypeChart.data.datasets[0].data = data.workerTypeDistribution.map(w => w.count);
-            workerTypeChart.update();
+        if (window.workerTypeChart && data.workerTypeDistribution) {
+            window.workerTypeChart.data.labels = data.workerTypeDistribution.map(w => w.type_of_worker);
+            window.workerTypeChart.data.datasets[0].data = data.workerTypeDistribution.map(w => w.count);
+            window.workerTypeChart.update();
         }
-        
+
         // Update Funding Source Chart
-        if (typeof fundingChart !== 'undefined' && data.fundingSourceBreakdown) {
-            fundingChart.data.labels = data.fundingSourceBreakdown.map(f => f.source_of_funds);
-            fundingChart.data.datasets[0].data = data.fundingSourceBreakdown.map(f => parseFloat(f.total_amount) || 0);
-            fundingChart.update();
+        if (window.fundingChart && data.fundingSourceBreakdown) {
+            window.fundingChart.data.labels = data.fundingSourceBreakdown.map(f => f.source_of_funds);
+            window.fundingChart.data.datasets[0].data = data.fundingSourceBreakdown.map(f => parseFloat(f.total_amount) || 0);
+            window.fundingChart.update();
         }
-        
+
         // Update Category Chart
-        if (typeof categoryChart !== 'undefined' && data.categoryDistribution) {
-            categoryChart.data.labels = data.categoryDistribution.map(c => c.category);
-            categoryChart.data.datasets[0].data = data.categoryDistribution.map(c => c.count);
-            categoryChart.update();
+        if (window.categoryChart && data.categoryDistribution) {
+            window.categoryChart.data.labels = data.categoryDistribution.map(c => c.category);
+            window.categoryChart.data.datasets[0].data = data.categoryDistribution.map(c => c.count);
+            window.categoryChart.update();
         }
-        
+
         // Update Trends Chart
-        if (typeof trendsChart !== 'undefined') {
+        if (window.trendsChart && (data.monthlyBeneficiaryTrends || data.monthlyProponentTrends)) {
             const benefMonths = data.monthlyBeneficiaryTrends || [];
             const propMonths = data.monthlyProponentTrends || [];
-            
+
             // Merge months
             const allMonths = [...new Set([...benefMonths.map(b => b.month), ...propMonths.map(p => p.month)])].sort();
-            
+
             const benefData = allMonths.map(m => {
                 const found = benefMonths.find(b => b.month === m);
                 return found ? parseInt(found.count) : 0;
             });
-            
+
             const propData = allMonths.map(m => {
                 const found = propMonths.find(p => p.month === m);
                 return found ? parseInt(found.count) : 0;
             });
-            
-            trendsChart.data.labels = allMonths.map(m => {
+
+            window.trendsChart.data.labels = allMonths.map(m => {
                 const [year, month] = m.split('-');
                 return new Date(year, month - 1).toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
             });
-            trendsChart.data.datasets[0].data = benefData;
-            trendsChart.data.datasets[1].data = propData;
-            trendsChart.update();
+            window.trendsChart.data.datasets[0].data = benefData;
+            window.trendsChart.data.datasets[1].data = propData;
+            window.trendsChart.update();
         }
     }
     </script>

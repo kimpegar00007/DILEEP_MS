@@ -14,7 +14,34 @@ $jsonBasePath = dirname(__DIR__) . '/philippines-region-province-citymun-brgy-ma
 
 try {
     switch ($action) {
+        case 'provinces':
+            $provinces = [
+                [
+                    'code' => '0645',
+                    'name' => 'Negros Occidental'
+                ],
+                [
+                    'code' => '0746',
+                    'name' => 'Negros Oriental'
+                ],
+                [
+                    'code' => '0761',
+                    'name' => 'Siquijor'
+                ]
+            ];
+            
+            echo json_encode(['success' => true, 'data' => $provinces], JSON_UNESCAPED_UNICODE);
+            break;
+            
         case 'cities':
+            $provinceCode = filter_input(INPUT_GET, 'province_code', FILTER_SANITIZE_STRING);
+            
+            if (empty($provinceCode)) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'message' => 'Province code is required']);
+                exit;
+            }
+            
             $citiesData = file_get_contents($jsonBasePath . 'refcitymun.json');
             if ($citiesData === false) {
                 throw new Exception('Failed to load cities data');
@@ -25,12 +52,10 @@ try {
                 throw new Exception('Invalid cities data format');
             }
             
-            $negrosOccidentalProvCode = '0645';
-            
             $cityList = [];
             foreach ($cities['RECORDS'] as $city) {
                 if (isset($city['citymunCode']) && isset($city['citymunDesc']) && isset($city['provCode'])) {
-                    if ($city['provCode'] === $negrosOccidentalProvCode) {
+                    if ($city['provCode'] === $provinceCode) {
                         $cityList[] = [
                             'code' => htmlspecialchars($city['citymunCode'], ENT_QUOTES, 'UTF-8'),
                             'name' => htmlspecialchars($city['citymunDesc'], ENT_QUOTES, 'UTF-8')

@@ -12,22 +12,35 @@ if (!$auth->isLoggedIn()) {
     exit;
 }
 
+$province = filter_input(INPUT_GET, 'province', FILTER_SANITIZE_FULL_SPECIAL_CHARS);
 $year = filter_input(INPUT_GET, 'year', FILTER_VALIDATE_INT);
 $approvedOnly = filter_input(INPUT_GET, 'approved_only', FILTER_VALIDATE_BOOLEAN);
 
 $db = Database::getInstance()->getConnection();
 
 try {
+    $provinceConditionBenef = '';
+    $provinceConditionProp = '';
     $yearConditionBenef = '';
     $yearConditionProp = '';
+    $yearConditionFieldwork = '';
     $statusConditionBenef = '';
     $statusConditionProp = '';
-    
-    if ($year) {
-        $yearConditionBenef = " AND YEAR(COALESCE(date_approved, created_at)) = " . (int)$year;
-        $yearConditionProp = " AND YEAR(COALESCE(date_approved, created_at)) = " . (int)$year;
+
+    if ($province) {
+        $provinceConditionBenef = " AND province = " . $db->quote($province);
+        $provinceConditionProp = " AND province = " . $db->quote($province);
     }
-    
+
+    if ($year) {
+        // Filter by year - check both date_approved and created_at
+        // Include records where either date_approved OR created_at matches the year
+        $yearConditionBenef = " AND (YEAR(date_approved) = " . (int)$year . " OR (date_approved IS NULL AND YEAR(created_at) = " . (int)$year . "))";
+        $yearConditionProp = " AND (YEAR(date_approved) = " . (int)$year . " OR (date_approved IS NULL AND YEAR(created_at) = " . (int)$year . "))";
+        // Fieldwork schedule uses start_date for year filtering
+        $yearConditionFieldwork = " AND YEAR(start_date) = " . (int)$year;
+    }
+
     if ($approvedOnly) {
         $statusConditionBenef = " AND status = 'approved'";
         $statusConditionProp = " AND status = 'approved'";
@@ -43,7 +56,7 @@ try {
         SUM(CASE WHEN gender = 'Male' THEN 1 ELSE 0 END) as male_count,
         SUM(CASE WHEN gender = 'Female' THEN 1 ELSE 0 END) as female_count,
         SUM(amount_worth) as total_amount
-    FROM beneficiaries WHERE 1=1" . $yearConditionBenef . $statusConditionBenef;
+    FROM beneficiaries WHERE 1=1" . $provinceConditionBenef . $yearConditionBenef . $statusConditionBenef;
     
     $benefStats = $db->query($benefSql)->fetch(PDO::FETCH_ASSOC);
     
@@ -61,10 +74,21 @@ try {
         SUM(male_beneficiaries) as total_male,
         SUM(female_beneficiaries) as total_female,
         SUM(amount) as total_amount
-    FROM proponents WHERE 1=1" . $yearConditionProp . $statusConditionProp;
+    FROM proponents WHERE 1=1" . $provinceConditionProp . $yearConditionProp . $statusConditionProp;
     
     $propStats = $db->query($propSql)->fetch(PDO::FETCH_ASSOC);
-    
+
+    // Fieldwork Schedule Statistics (filtered by year via start_date)
+    $fieldworkSql = "SELECT
+        COUNT(*) as total,
+        SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending,
+        SUM(CASE WHEN status = 'ongoing' THEN 1 ELSE 0 END) as ongoing,
+        SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed,
+        SUM(CASE WHEN status = 'missed' THEN 1 ELSE 0 END) as missed
+    FROM fieldwork_schedule WHERE 1=1" . $yearConditionFieldwork;
+
+    $fieldworkStats = $db->query($fieldworkSql)->fetch(PDO::FETCH_ASSOC);
+
     // Municipality Distribution (Beneficiaries)
     $munDistSql = "SELECT municipality, COUNT(*) as count 
         FROM beneficiaries 
@@ -138,12 +162,16 @@ try {
         ORDER BY month ASC";
     $monthlyProp = $db->query($monthlyPropSql)->fetchAll(PDO::FETCH_ASSOC);
     
+    // Check if filters resulted in zero data
+    $hasData = ($benefStats['total'] > 0) || ($propStats['total'] > 0);
+    
     echo json_encode([
         'success' => true,
         'filters' => [
             'year' => $year,
             'approved_only' => $approvedOnly
         ],
+        'hasData' => $hasData,
         'beneficiaryStats' => $benefStats,
         'proponentStats' => $propStats,
         'municipalityDistribution' => $munDist,
@@ -152,7 +180,8 @@ try {
         'fundingSourceBreakdown' => $fundingSource,
         'categoryDistribution' => $categoryDist,
         'monthlyBeneficiaryTrends' => $monthlyBenef,
-        'monthlyProponentTrends' => $monthlyProp
+        'monthlyProponentTrends' => $monthlyProp,
+        'fieldworkStats' => $fieldworkStats
     ]);
     
 } catch (PDOException $e) {

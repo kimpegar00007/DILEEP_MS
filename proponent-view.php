@@ -230,7 +230,7 @@ if (!$proponent) {
                                 <p><?php echo $proponent['date_copies_received'] ? date('F d, Y', strtotime($proponent['date_copies_received'])) . ' (' . $proponent['number_of_copies'] . ' copies)' : 'Not set'; ?></p>
                             </div>
                             <div class="timeline-item <?php echo $proponent['date_forwarded_to_ro6'] ? 'completed' : 'pending'; ?>">
-                                <strong>Date Forwarded to RO6 for RPMT</strong>
+                                <strong>Date Forwarded to NIR for RPMT</strong>
                                 <p><?php echo $proponent['date_forwarded_to_ro6'] ? date('F d, Y', strtotime($proponent['date_forwarded_to_ro6'])) : 'Not set'; ?></p>
                             </div>
                             <div class="timeline-item <?php echo $proponent['date_complied_by_proponent'] ? 'completed' : 'pending'; ?>">

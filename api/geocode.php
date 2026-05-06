@@ -4,11 +4,16 @@ header('Access-Control-Allow-Origin: *');
 
 $barangay = filter_input(INPUT_GET, 'barangay', FILTER_SANITIZE_FULL_SPECIAL_CHARS);
 $municipality = filter_input(INPUT_GET, 'municipality', FILTER_SANITIZE_FULL_SPECIAL_CHARS);
+$province = filter_input(INPUT_GET, 'province', FILTER_SANITIZE_FULL_SPECIAL_CHARS);
 
 if (empty($municipality)) {
     http_response_code(400);
     echo json_encode(['success' => false, 'message' => 'Municipality is required']);
     exit;
+}
+
+if (empty($province)) {
+    $province = 'Negros Occidental';
 }
 
 $context = stream_context_create([
@@ -42,20 +47,20 @@ $searchQueries = [];
 // Build search queries with multiple fallback options
 if (!empty($barangay)) {
     // Try with barangay first
-    $searchQueries[] = $barangay . ', ' . $municipality . ', Negros Occidental, Philippines';
-    $searchQueries[] = 'Barangay ' . $barangay . ', ' . $municipality . ', Negros Occidental, Philippines';
+    $searchQueries[] = $barangay . ', ' . $municipality . ', ' . $province . ', Philippines';
+    $searchQueries[] = 'Barangay ' . $barangay . ', ' . $municipality . ', ' . $province . ', Philippines';
 }
 
 // Try municipality/city variations
-$searchQueries[] = $municipality . ', Negros Occidental, Philippines';
+$searchQueries[] = $municipality . ', ' . $province . ', Philippines';
 
 // Special handling for cities (like Bacolod City)
 if (stripos($municipality, 'City') !== false) {
     $searchQueries[] = $municipality . ', Philippines';
     // Also try without "City" suffix
     $cityName = trim(str_ireplace('City', '', $municipality));
-    $searchQueries[] = $cityName . ' City, Negros Occidental, Philippines';
-    $searchQueries[] = $cityName . ', Negros Occidental, Philippines';
+    $searchQueries[] = $cityName . ' City, ' . $province . ', Philippines';
+    $searchQueries[] = $cityName . ', ' . $province . ', Philippines';
 }
 
 $result = null;

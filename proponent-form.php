@@ -32,6 +32,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'number_of_copies' => intval($_POST['number_of_copies'] ?? 0),
         'date_copies_received' => $_POST['date_copies_received'] ?: null,
         'district' => trim($_POST['district'] ?? ''),
+        'province' => trim($_POST['province'] ?? ''),
         'proponent_name' => trim($_POST['proponent_name'] ?? ''),
         'project_title' => trim($_POST['project_title'] ?? ''),
         'amount' => floatval($_POST['amount'] ?? 0),
@@ -68,8 +69,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
     if (empty($data['proponent_type'])) {
         $errors[] = 'Proponent type is required';
-    } elseif (!in_array($data['proponent_type'], ['LGU-associated', 'Non-LGU-associated'])) {
-        $errors[] = 'Invalid proponent type. Must be either LGU-associated or Non-LGU-associated';
+    } elseif (!in_array($data['proponent_type'], ['LGU-associated', 'Non-LGU-associated', 'By Administration', 'Others'])) {
+        $errors[] = 'Invalid proponent type';
     }
     if (empty($data['proponent_name'])) $errors[] = 'Proponent name is required';
     if (empty($data['project_title'])) $errors[] = 'Project title is required';
@@ -81,11 +82,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors[] = 'Male + Female beneficiaries cannot exceed total beneficiaries';
     }
     
-    if ($data['latitude'] !== null && ($data['latitude'] < 9.0 || $data['latitude'] > 12.0)) {
-        $errors[] = 'Latitude must be between 9.0 and 12.0 for Negros Occidental';
+    $provinceRanges = [
+        'Negros Occidental' => ['lat' => [9.0, 12.0], 'lng' => [122.0, 124.0]],
+        'Negros Oriental' => ['lat' => [9.0, 10.5], 'lng' => [122.5, 123.5]],
+        'Siquijor' => ['lat' => [9.0, 9.5], 'lng' => [123.0, 123.8]]
+    ];
+    
+    if ($data['latitude'] !== null && !empty($data['province']) && isset($provinceRanges[$data['province']])) {
+        $range = $provinceRanges[$data['province']];
+        if ($data['latitude'] < $range['lat'][0] || $data['latitude'] > $range['lat'][1]) {
+            $errors[] = "Latitude must be between {$range['lat'][0]} and {$range['lat'][1]} for {$data['province']}";
+        }
     }
-    if ($data['longitude'] !== null && ($data['longitude'] < 122.0 || $data['longitude'] > 124.0)) {
-        $errors[] = 'Longitude must be between 122.0 and 124.0 for Negros Occidental';
+    if ($data['longitude'] !== null && !empty($data['province']) && isset($provinceRanges[$data['province']])) {
+        $range = $provinceRanges[$data['province']];
+        if ($data['longitude'] < $range['lng'][0] || $data['longitude'] > $range['lng'][1]) {
+            $errors[] = "Longitude must be between {$range['lng'][0]} and {$range['lng'][1]} for {$data['province']}";
+        }
     }
     if (($data['latitude'] !== null && $data['longitude'] === null) || ($data['latitude'] === null && $data['longitude'] !== null)) {
         $errors[] = 'Both latitude and longitude must be provided together';
@@ -150,7 +163,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <main class="col-md-10 ms-sm-auto px-md-4 py-4" id="mainContent" role="main">
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <h2><i class="bi bi-people"></i> <?php echo $isEdit ? 'Edit' : 'Add New'; ?> Proponent</h2>
-                    <a href="proponents.php" class="btn btn-secondary">
+                    <a href="unified-beneficiaries-proponents.php" class="btn btn-secondary">
                         <i class="bi bi-arrow-left"></i> Back to List
                     </a>
                 </div>
@@ -186,6 +199,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                             <option value="">Select Type</option>
                                             <option value="LGU-associated" <?php echo ($proponent['proponent_type'] ?? '') === 'LGU-associated' ? 'selected' : ''; ?>>LGU-associated</option>
                                             <option value="Non-LGU-associated" <?php echo ($proponent['proponent_type'] ?? '') === 'Non-LGU-associated' ? 'selected' : ''; ?>>Non-LGU-associated</option>
+                                            <option value="By Administration" <?php echo ($proponent['proponent_type'] ?? '') === 'By Administration' ? 'selected' : ''; ?>>By Administration</option>
+                                            <option value="Others" <?php echo ($proponent['proponent_type'] ?? '') === 'Others' ? 'selected' : ''; ?>>Others</option>
                                         </select>
                                         <small class="text-muted">LGU: 10 days liquidation | Non-LGU: 60 days</small>
                                     </div>
@@ -201,12 +216,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     </div>
                                 </div>
                                 <div class="row">
-                                    <div class="col-md-4 mb-3">
+                                    <div class="col-md-4 mb-3" style="display: none;">
                                         <label class="form-label">Number of Proposal Copies</label>
                                         <input type="number" name="number_of_copies" class="form-control" min="0"
                                                value="<?php echo $proponent['number_of_copies'] ?? ''; ?>">
                                     </div>
-                                    <div class="col-md-4 mb-3">
+                                    <div class="col-md-4 mb-3" style="display: none;">
                                         <label class="form-label">Date Copies Received</label>
                                         <input type="date" name="date_copies_received" class="form-control"
                                                value="<?php echo $proponent['date_copies_received'] ?? ''; ?>">
@@ -510,19 +525,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <div class="form-section">
                                 <h5><i class="bi bi-geo-alt"></i> Location (For Map Visualization)</h5>
                                 <div class="row">
-                                    <div class="col-md-4 mb-3">
+                                    <div class="col-md-3 mb-3">
+                                        <label class="form-label">Province</label>
+                                        <select name="province" id="geo_province" class="form-select">
+                                            <option value="">Select Province</option>
+                                        </select>
+                                        <input type="hidden" id="province_value" value="<?php echo htmlspecialchars($proponent['province'] ?? ''); ?>">
+                                    </div>
+                                    <div class="col-md-3 mb-3">
                                         <label class="form-label">Municipality/City</label>
-                                        <select id="geo_municipality" class="form-select">
-                                            <option value="">Select to auto-fill coordinates</option>
+                                        <select id="geo_municipality" class="form-select" disabled>
+                                            <option value="">Select Province first</option>
                                         </select>
                                     </div>
-                                    <div class="col-md-4 mb-3">
+                                    <div class="col-md-3 mb-3">
                                         <label class="form-label">Barangay</label>
                                         <select id="geo_barangay" class="form-select" disabled>
                                             <option value="">Select Municipality first</option>
                                         </select>
                                     </div>
-                                    <div class="col-md-4 mb-3 d-flex align-items-end">
+                                    <div class="col-md-3 mb-3 d-flex align-items-end">
                                         <button type="button" id="btn-geocode" class="btn btn-outline-primary w-100" onclick="fetchGeocode()">
                                             <i class="bi bi-geo-alt-fill"></i> Auto-fill Coordinates
                                         </button>
@@ -727,17 +749,55 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         // Geocoding functionality
         document.addEventListener('DOMContentLoaded', function() {
-            loadGeoMunicipalities();
+            loadGeoProvinces();
         });
         
-        async function loadGeoMunicipalities() {
+        async function loadGeoProvinces() {
             try {
-                const response = await fetch('api/get-locations.php?action=cities');
+                const response = await fetch('api/get-locations.php?action=provinces');
+                const result = await response.json();
+                
+                if (result.success) {
+                    const provinceSelect = document.getElementById('geo_province');
+                    const savedProvince = document.getElementById('province_value').value;
+                    
+                    provinceSelect.innerHTML = '<option value="">Select Province</option>';
+                    
+                    result.data.forEach(province => {
+                        const option = document.createElement('option');
+                        option.value = province.name;
+                        option.textContent = province.name;
+                        option.dataset.code = province.code;
+                        
+                        if (savedProvince && province.name === savedProvince) {
+                            option.selected = true;
+                        }
+                        
+                        provinceSelect.appendChild(option);
+                    });
+                    
+                    if (savedProvince) {
+                        const selectedOption = provinceSelect.querySelector(`option[value="${savedProvince}"]`);
+                        if (selectedOption) {
+                            const provinceCode = selectedOption.dataset.code;
+                            await loadGeoMunicipalities(provinceCode);
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading provinces:', error);
+            }
+        }
+        
+        async function loadGeoMunicipalities(provinceCode) {
+            try {
+                const response = await fetch(`api/get-locations.php?action=cities&province_code=${provinceCode}`);
                 const result = await response.json();
                 
                 if (result.success) {
                     const select = document.getElementById('geo_municipality');
-                    select.innerHTML = '<option value="">Select to auto-fill coordinates</option>';
+                    select.innerHTML = '<option value="">Select Municipality/City</option>';
+                    select.disabled = false;
                     
                     result.data.forEach(city => {
                         const option = document.createElement('option');
@@ -751,6 +811,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 console.error('Error loading municipalities:', error);
             }
         }
+        
+        document.getElementById('geo_province').addEventListener('change', async function() {
+            const selectedOption = this.options[this.selectedIndex];
+            const provinceCode = selectedOption.dataset.code;
+            const municipalitySelect = document.getElementById('geo_municipality');
+            const barangaySelect = document.getElementById('geo_barangay');
+            
+            municipalitySelect.innerHTML = '<option value="">Select Municipality/City</option>';
+            municipalitySelect.disabled = true;
+            barangaySelect.innerHTML = '<option value="">Select Municipality first</option>';
+            barangaySelect.disabled = true;
+            
+            if (provinceCode) {
+                await loadGeoMunicipalities(provinceCode);
+            }
+        });
         
         document.getElementById('geo_municipality').addEventListener('change', async function() {
             const selectedOption = this.options[this.selectedIndex];
@@ -794,6 +870,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         });
         
         async function autoGeocode() {
+            const province = document.getElementById('geo_province').value;
             const municipality = document.getElementById('geo_municipality').value;
             const barangay = document.getElementById('geo_barangay').value;
             const latInput = document.getElementById('latitude');
@@ -808,6 +885,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             try {
                 const params = new URLSearchParams({ municipality });
+                if (province) params.append('province', province);
                 if (barangay) params.append('barangay', barangay);
                 
                 const response = await fetch(`api/geocode.php?${params}`);
