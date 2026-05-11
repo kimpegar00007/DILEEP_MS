@@ -1,11 +1,11 @@
 -- phpMyAdmin SQL Dump
--- version 5.2.2
+-- version 5.2.1
 -- https://www.phpmyadmin.net/
 --
--- Host: localhost:3306
--- Generation Time: May 05, 2026 at 11:28 PM
--- Server version: 11.4.10-MariaDB-cll-lve
--- PHP Version: 8.3.30
+-- Host: localhost
+-- Generation Time: May 07, 2026 at 09:22 AM
+-- Server version: 10.4.28-MariaDB
+-- PHP Version: 8.2.4
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -18,7 +18,7 @@ SET time_zone = "+00:00";
 /*!40101 SET NAMES utf8mb4 */;
 
 --
--- Database: `dilemvwz_dilp_monitoring`
+-- Database: `dilp_monitoring`
 --
 
 -- --------------------------------------------------------
@@ -442,7 +442,9 @@ INSERT INTO `activity_logs` (`id`, `user_id`, `action`, `table_name`, `record_id
 (401, 1, 'logout', 'users', 1, 'User logged out', '131.226.110.145', '2026-05-04 14:02:55'),
 (402, 6, 'login', 'users', 6, 'User logged in', '131.226.110.145', '2026-05-04 14:03:11'),
 (403, 6, 'logout', 'users', 6, 'User logged out', '131.226.110.145', '2026-05-04 14:03:16'),
-(404, 6, 'login', 'users', 6, 'User logged in', '131.226.110.145', '2026-05-04 14:03:24');
+(404, 6, 'login', 'users', 6, 'User logged in', '131.226.110.145', '2026-05-04 14:03:24'),
+(405, 1, 'login', 'users', 1, 'User logged in', '::1', '2026-05-06 03:39:19'),
+(406, 1, 'login', 'users', 1, 'User logged in', '::1', '2026-05-07 07:16:07');
 
 -- --------------------------------------------------------
 
@@ -613,7 +615,7 @@ INSERT INTO `fieldwork_schedule` (`id`, `title`, `description`, `location`, `ass
 (12, 'Meet with DOST and TESDA', 'Visit the TESDA and DOST located at Talisay and Bacolod City, respectively, for possible livelihood collaboration.', '', 6, '2026-04-07', '2026-04-07', 'completed', 6, '2026-04-07 13:35:18', '2026-04-07 13:35:33'),
 (13, 'LGU-LA CASTELANA (NOMINEE/S FOR KABUHAYAN AWARD INDIVIDUAL PROJECT CATEGORY)', 'CONDUCT LGU-LA CASTELLANA AS ONE OF THE NOMINEE/S FOR KABUHAYAN AWARD INDIVIDUAL PROJECT CATEGORY)', 'LA CASTELLANA', 6, '2026-04-14', '2026-04-14', 'missed', 3, '2026-04-13 05:56:48', '2026-04-15 08:41:45'),
 (14, 'CARIDAD 1 (NOMINEE/S FOR KABUHAYAN AWARD GROUP PROJECT CATEGORY)', 'CONDUCT WITH CARIDAD 1 AS ONE OF THE NOMINEE/S FOR KABUHAYAN AWARD GROUP PROJECT CATEGORY', 'BRGY. LUNA, CADIZ CITY', 6, '2026-04-15', '2026-04-15', 'missed', 3, '2026-04-13 06:00:30', '2026-04-16 02:45:18'),
-(15, 'Conduct of Orientation on the DOLE Integrated Livelihood Program (DILP) Cum Accreditation of CO-Partners (ACP)', 'Discussion on the purpose and objective, as well as the requirements of ACP; conduct a livelihood proposal workshop on prospective Co-partners.', '', 6, '2026-05-05', '2026-05-05', 'pending', 6, '2026-04-15 08:46:25', '2026-04-15 08:46:25'),
+(15, 'Conduct of Orientation on the DOLE Integrated Livelihood Program (DILP) Cum Accreditation of CO-Partners (ACP)', 'Discussion on the purpose and objective, as well as the requirements of ACP; conduct a livelihood proposal workshop on prospective Co-partners.', '', 6, '2026-05-05', '2026-05-05', 'missed', 6, '2026-04-15 08:46:25', '2026-05-06 05:48:03'),
 (17, 'Mancom Meeting', '', 'Siquijor', 6, '2026-05-14', '2026-05-15', 'pending', 6, '2026-04-17 05:50:26', '2026-04-17 05:50:26');
 
 -- --------------------------------------------------------
@@ -887,7 +889,7 @@ ALTER TABLE `users`
 -- AUTO_INCREMENT for table `activity_logs`
 --
 ALTER TABLE `activity_logs`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=405;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=407;
 
 --
 -- AUTO_INCREMENT for table `beneficiaries`

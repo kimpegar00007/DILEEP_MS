@@ -13,6 +13,28 @@ $errors = [];
 $success = '';
 $proponent = null;
 $isEdit = false;
+$beneficiaryTypeOptions = ['Farmers', 'Fisherfolk', 'PDL', 'Vendor', 'Displaced Worker', 'Tricycle Driver', 'Senior Citizen', 'PCL', 'PWD', 'Women'];
+$workerTypeOptions = ['Vendors', 'Farmers', 'Fisher Folk', 'Driver', 'Laborer'];
+
+function proponentNormalizeOptions($allowedOptions, $values) {
+    if (!is_array($values)) {
+        $values = $values === '' ? [] : explode(',', $values);
+    }
+
+    $values = array_map('trim', $values);
+    return array_values(array_intersect($allowedOptions, $values));
+}
+
+function normalizeBeneficiaryNames($values) {
+    if (!is_array($values)) {
+        $values = $values === '' ? [] : [$values];
+    }
+
+    $values = array_map('trim', $values);
+    return array_values(array_filter($values, function ($name) {
+        return $name !== '';
+    }));
+}
 
 if (isset($_GET['id'])) {
     $isEdit = true;
@@ -24,6 +46,10 @@ if (isset($_GET['id'])) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $selectedBeneficiaryTypes = proponentNormalizeOptions($beneficiaryTypeOptions, $_POST['type_of_beneficiaries'] ?? []);
+    $selectedWorkerTypes = proponentNormalizeOptions($workerTypeOptions, $_POST['type_of_workers'] ?? []);
+    $beneficiaryNames = normalizeBeneficiaryNames($_POST['beneficiary_full_names'] ?? $_POST['beneficiary_full_name'] ?? []);
+
     $data = [
         'proponent_type' => $_POST['proponent_type'] ?? '',
         'date_received' => $_POST['date_received'] ?: null,
@@ -40,9 +66,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'association_names' => $_POST['association_names'] ?? [],
         'association_addresses' => $_POST['association_addresses'] ?? [],
         'total_beneficiaries' => intval($_POST['total_beneficiaries'] ?? 0),
+        'beneficiary_full_name' => implode(', ', $beneficiaryNames),
         'male_beneficiaries' => intval($_POST['male_beneficiaries'] ?? 0),
         'female_beneficiaries' => intval($_POST['female_beneficiaries'] ?? 0),
-        'type_of_beneficiaries' => trim($_POST['type_of_beneficiaries'] ?? ''),
+        'type_of_beneficiaries' => implode(', ', $selectedBeneficiaryTypes),
+        'type_of_workers' => implode(', ', $selectedWorkerTypes),
         'category' => $_POST['category'] ?? '',
         'recipient_barangays' => trim($_POST['recipient_barangays'] ?? ''),
         'letter_of_intent_date' => $_POST['letter_of_intent_date'] ?: null,
@@ -80,6 +108,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
     if ($data['male_beneficiaries'] + $data['female_beneficiaries'] > $data['total_beneficiaries']) {
         $errors[] = 'Male + Female beneficiaries cannot exceed total beneficiaries';
+    }
+    
+    if ($data['total_beneficiaries'] > 0 && count($beneficiaryNames) !== $data['total_beneficiaries']) {
+        $errors[] = 'Please provide a full name for each beneficiary or adjust the total beneficiaries.';
     }
     
     $provinceRanges = [
@@ -131,6 +163,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             error_log("Proponent save exception: " . $e->getMessage() . " in " . $e->getFile() . ":" . $e->getLine());
         }
     }
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $formBeneficiaryTypes = proponentNormalizeOptions($beneficiaryTypeOptions, $_POST['type_of_beneficiaries'] ?? []);
+    $formWorkerTypes = proponentNormalizeOptions($workerTypeOptions, $_POST['type_of_workers'] ?? []);
+    $formBeneficiaryNames = normalizeBeneficiaryNames($_POST['beneficiary_full_names'] ?? $_POST['beneficiary_full_name'] ?? []);
+} else {
+    $formBeneficiaryTypes = proponentNormalizeOptions($beneficiaryTypeOptions, $proponent['type_of_beneficiaries'] ?? '');
+    $formWorkerTypes = proponentNormalizeOptions($workerTypeOptions, $proponent['type_of_workers'] ?? '');
+    $formBeneficiaryNames = normalizeBeneficiaryNames($proponent['beneficiary_full_name'] ?? '');
 }
 ?>
 <!DOCTYPE html>
@@ -320,15 +362,52 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 </div>
                                 <div class="row">
                                     <div class="col-md-6 mb-3">
-                                        <label class="form-label">Type of Beneficiaries</label>
-                                        <input type="text" name="type_of_beneficiaries" class="form-control"
-                                               placeholder="e.g., Farmers, Fisherfolk, Women"
-                                               value="<?php echo htmlspecialchars($proponent['type_of_beneficiaries'] ?? ''); ?>">
+                                        <label class="form-label">Full Name(s) of Beneficiaries</label>
+                                        <div id="beneficiary_name_fields"></div>
+                                        <small class="text-muted">Fields are generated automatically based on the Total Beneficiaries value.</small>
                                     </div>
                                     <div class="col-md-6 mb-3">
                                         <label class="form-label">Recipient Barangays/ACPs</label>
                                         <input type="text" name="recipient_barangays" class="form-control"
                                                value="<?php echo htmlspecialchars($proponent['recipient_barangays'] ?? ''); ?>">
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Type of Beneficiaries</label>
+                                        <div class="row g-2">
+                                            <?php foreach ($beneficiaryTypeOptions as $index => $option): ?>
+                                            <div class="col-sm-6 col-lg-4">
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" name="type_of_beneficiaries[]"
+                                                           id="beneficiary_type_<?php echo $index; ?>"
+                                                           value="<?php echo htmlspecialchars($option); ?>"
+                                                           <?php echo in_array($option, $formBeneficiaryTypes, true) ? 'checked' : ''; ?>>
+                                                    <label class="form-check-label" for="beneficiary_type_<?php echo $index; ?>">
+                                                        <?php echo htmlspecialchars($option); ?>
+                                                    </label>
+                                                </div>
+                                            </div>
+                                            <?php endforeach; ?>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Type of Workers</label>
+                                        <div class="row g-2">
+                                            <?php foreach ($workerTypeOptions as $index => $option): ?>
+                                            <div class="col-sm-6 col-lg-4">
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" name="type_of_workers[]"
+                                                           id="worker_type_<?php echo $index; ?>"
+                                                           value="<?php echo htmlspecialchars($option); ?>"
+                                                           <?php echo in_array($option, $formWorkerTypes, true) ? 'checked' : ''; ?>>
+                                                    <label class="form-check-label" for="worker_type_<?php echo $index; ?>">
+                                                        <?php echo htmlspecialchars($option); ?>
+                                                    </label>
+                                                </div>
+                                            </div>
+                                            <?php endforeach; ?>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -545,7 +624,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                         </select>
                                     </div>
                                     <div class="col-md-3 mb-3 d-flex align-items-end">
-                                        <button type="button" id="btn-geocode" class="btn btn-outline-primary w-100" onclick="fetchGeocode()">
+                                        <button type="button" id="btn-geocode" class="btn btn-outline-primary w-100">
                                             <i class="bi bi-geo-alt-fill"></i> Auto-fill Coordinates
                                         </button>
                                     </div>
@@ -605,10 +684,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <?php include 'includes/notification-script.php'; ?>
+    <script src="assets/js/location-autofill.js"></script>
     <script>
+        const existingBeneficiaryNames = <?php echo json_encode($formBeneficiaryNames); ?>;
+
         document.getElementById('male_beneficiaries').addEventListener('input', validateBeneficiaries);
         document.getElementById('female_beneficiaries').addEventListener('input', validateBeneficiaries);
         document.getElementById('total_beneficiaries').addEventListener('input', validateBeneficiaries);
+        document.getElementById('total_beneficiaries').addEventListener('input', renderBeneficiaryNameFields);
         
         function validateBeneficiaries() {
             const total = parseInt(document.getElementById('total_beneficiaries').value) || 0;
@@ -621,6 +704,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } else {
                 document.getElementById('male_beneficiaries').setCustomValidity('');
                 document.getElementById('female_beneficiaries').setCustomValidity('');
+            }
+        }
+
+        function getCurrentBeneficiaryValues() {
+            const fields = document.querySelectorAll('input[name="beneficiary_full_names[]"]');
+            return Array.from(fields).map(function(field) {
+                return field.value.trim();
+            });
+        }
+
+        function renderBeneficiaryNameFields() {
+            const countValue = parseInt(document.getElementById('total_beneficiaries').value, 10);
+            const currentValues = getCurrentBeneficiaryValues();
+            const fieldCount = Math.max(1, Number.isInteger(countValue) && countValue > 0 ? countValue : Math.max(existingBeneficiaryNames.length, currentValues.length, 1));
+            const container = document.getElementById('beneficiary_name_fields');
+
+            container.innerHTML = '';
+
+            for (let i = 0; i < fieldCount; i++) {
+                const value = typeof currentValues[i] !== 'undefined' && currentValues[i] !== ''
+                    ? currentValues[i]
+                    : (existingBeneficiaryNames[i] || '');
+
+                const fieldWrapper = document.createElement('div');
+                fieldWrapper.className = 'mb-2';
+
+                const label = document.createElement('label');
+                label.className = 'form-label';
+                label.textContent = 'Beneficiary Full Name #' + (i + 1);
+
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.name = 'beneficiary_full_names[]';
+                input.className = 'form-control';
+                input.value = value;
+                input.placeholder = 'Enter beneficiary full name';
+
+                fieldWrapper.appendChild(label);
+                fieldWrapper.appendChild(input);
+                container.appendChild(fieldWrapper);
             }
         }
         
@@ -696,6 +819,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         // Run on page load for edit mode
+        renderBeneficiaryNameFields();
         updateLiquidationAndMonitoringPreview();
         
         const numAssociationsInput = document.getElementById('number_of_associations');
@@ -746,191 +870,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 associationsContainer.appendChild(row);
             }
         }
-        
-        // Geocoding functionality
-        document.addEventListener('DOMContentLoaded', function() {
-            loadGeoProvinces();
+
+        DILPLocation.initLocationAutoFill({
+            provinceSelect: '#geo_province',
+            municipalitySelect: '#geo_municipality',
+            barangaySelect: '#geo_barangay',
+            latitudeInput: '#latitude',
+            longitudeInput: '#longitude',
+            geocodeButton: '#btn-geocode',
+            provinceValueInput: '#province_value'
         });
-        
-        async function loadGeoProvinces() {
-            try {
-                const response = await fetch('api/get-locations.php?action=provinces');
-                const result = await response.json();
-                
-                if (result.success) {
-                    const provinceSelect = document.getElementById('geo_province');
-                    const savedProvince = document.getElementById('province_value').value;
-                    
-                    provinceSelect.innerHTML = '<option value="">Select Province</option>';
-                    
-                    result.data.forEach(province => {
-                        const option = document.createElement('option');
-                        option.value = province.name;
-                        option.textContent = province.name;
-                        option.dataset.code = province.code;
-                        
-                        if (savedProvince && province.name === savedProvince) {
-                            option.selected = true;
-                        }
-                        
-                        provinceSelect.appendChild(option);
-                    });
-                    
-                    if (savedProvince) {
-                        const selectedOption = provinceSelect.querySelector(`option[value="${savedProvince}"]`);
-                        if (selectedOption) {
-                            const provinceCode = selectedOption.dataset.code;
-                            await loadGeoMunicipalities(provinceCode);
-                        }
-                    }
-                }
-            } catch (error) {
-                console.error('Error loading provinces:', error);
-            }
-        }
-        
-        async function loadGeoMunicipalities(provinceCode) {
-            try {
-                const response = await fetch(`api/get-locations.php?action=cities&province_code=${provinceCode}`);
-                const result = await response.json();
-                
-                if (result.success) {
-                    const select = document.getElementById('geo_municipality');
-                    select.innerHTML = '<option value="">Select Municipality/City</option>';
-                    select.disabled = false;
-                    
-                    result.data.forEach(city => {
-                        const option = document.createElement('option');
-                        option.value = city.name;
-                        option.textContent = city.name;
-                        option.dataset.code = city.code;
-                        select.appendChild(option);
-                    });
-                }
-            } catch (error) {
-                console.error('Error loading municipalities:', error);
-            }
-        }
-        
-        document.getElementById('geo_province').addEventListener('change', async function() {
-            const selectedOption = this.options[this.selectedIndex];
-            const provinceCode = selectedOption.dataset.code;
-            const municipalitySelect = document.getElementById('geo_municipality');
-            const barangaySelect = document.getElementById('geo_barangay');
-            
-            municipalitySelect.innerHTML = '<option value="">Select Municipality/City</option>';
-            municipalitySelect.disabled = true;
-            barangaySelect.innerHTML = '<option value="">Select Municipality first</option>';
-            barangaySelect.disabled = true;
-            
-            if (provinceCode) {
-                await loadGeoMunicipalities(provinceCode);
-            }
-        });
-        
-        document.getElementById('geo_municipality').addEventListener('change', async function() {
-            const selectedOption = this.options[this.selectedIndex];
-            const cityCode = selectedOption.dataset.code;
-            const barangaySelect = document.getElementById('geo_barangay');
-            
-            if (cityCode) {
-                barangaySelect.disabled = true;
-                barangaySelect.innerHTML = '<option value="">Loading...</option>';
-                
-                try {
-                    const response = await fetch(`api/get-locations.php?action=barangays&city_code=${cityCode}`);
-                    const result = await response.json();
-                    
-                    if (result.success) {
-                        barangaySelect.innerHTML = '<option value="">Select Barangay (optional)</option>';
-                        result.data.forEach(brgy => {
-                            const option = document.createElement('option');
-                            option.value = brgy.name;
-                            option.textContent = brgy.name;
-                            barangaySelect.appendChild(option);
-                        });
-                        barangaySelect.disabled = false;
-                    }
-                } catch (error) {
-                    console.error('Error loading barangays:', error);
-                    barangaySelect.innerHTML = '<option value="">Error loading</option>';
-                }
-                
-                // Auto-geocode when municipality changes
-                autoGeocode();
-            } else {
-                barangaySelect.disabled = true;
-                barangaySelect.innerHTML = '<option value="">Select Municipality first</option>';
-            }
-        });
-        
-        // Auto-geocode when barangay changes
-        document.getElementById('geo_barangay').addEventListener('change', function() {
-            autoGeocode();
-        });
-        
-        async function autoGeocode() {
-            const province = document.getElementById('geo_province').value;
-            const municipality = document.getElementById('geo_municipality').value;
-            const barangay = document.getElementById('geo_barangay').value;
-            const latInput = document.getElementById('latitude');
-            const lngInput = document.getElementById('longitude');
-            const btn = document.getElementById('btn-geocode');
-            
-            if (!municipality) return;
-            
-            // Show loading state on button
-            btn.disabled = true;
-            btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Fetching...';
-            
-            try {
-                const params = new URLSearchParams({ municipality });
-                if (province) params.append('province', province);
-                if (barangay) params.append('barangay', barangay);
-                
-                const response = await fetch(`api/geocode.php?${params}`);
-                const result = await response.json();
-                
-                if (result.success) {
-                    latInput.value = result.latitude.toFixed(8);
-                    lngInput.value = result.longitude.toFixed(8);
-                    btn.innerHTML = '<i class="bi bi-check-circle"></i> Coordinates Filled';
-                    btn.classList.remove('btn-outline-primary');
-                    btn.classList.add('btn-success');
-                    setTimeout(() => {
-                        btn.innerHTML = '<i class="bi bi-geo-alt-fill"></i> Auto-fill Coordinates';
-                        btn.classList.remove('btn-success');
-                        btn.classList.add('btn-outline-primary');
-                    }, 2000);
-                } else {
-                    btn.innerHTML = '<i class="bi bi-exclamation-triangle"></i> Not Found';
-                    btn.classList.remove('btn-outline-primary');
-                    btn.classList.add('btn-warning');
-                    setTimeout(() => {
-                        btn.innerHTML = '<i class="bi bi-geo-alt-fill"></i> Auto-fill Coordinates';
-                        btn.classList.remove('btn-warning');
-                        btn.classList.add('btn-outline-primary');
-                    }, 3000);
-                }
-            } catch (error) {
-                console.error('Geocoding error:', error);
-                btn.innerHTML = '<i class="bi bi-x-circle"></i> Error';
-                setTimeout(() => {
-                    btn.innerHTML = '<i class="bi bi-geo-alt-fill"></i> Auto-fill Coordinates';
-                }, 2000);
-            }
-            
-            btn.disabled = false;
-        }
-        
-        function fetchGeocode() {
-            const municipality = document.getElementById('geo_municipality').value;
-            if (!municipality) {
-                alert('Please select a municipality first.');
-                return;
-            }
-            autoGeocode();
-        }
         
         // Application Return History Functions
         async function addReturn() {

@@ -24,13 +24,33 @@ $context = stream_context_create([
     ]
 ]);
 
-function tryGeocode($query, $context) {
-    $url = 'https://nominatim.openstreetmap.org/search?' . http_build_query([
+function getProvinceViewbox($province) {
+    $bounds = [
+        'Negros Occidental' => ['left' => 122.0, 'bottom' => 9.0, 'right' => 124.0, 'top' => 12.0],
+        'Negros Oriental' => ['left' => 122.5, 'bottom' => 9.0, 'right' => 123.5, 'top' => 10.5],
+        'Siquijor' => ['left' => 123.0, 'bottom' => 9.0, 'right' => 123.8, 'top' => 9.5]
+    ];
+
+    return $bounds[$province] ?? null;
+}
+
+function tryGeocode($query, $province, $context) {
+    $params = [
         'q' => $query,
         'format' => 'json',
         'limit' => 1,
-        'addressdetails' => 1
-    ]);
+        'addressdetails' => 1,
+        'countrycodes' => 'ph',
+        'accept-language' => 'en'
+    ];
+
+    $viewbox = getProvinceViewbox($province);
+    if ($viewbox) {
+        $params['viewbox'] = implode(',', [$viewbox['left'], $viewbox['bottom'], $viewbox['right'], $viewbox['top']]);
+        $params['bounded'] = 1;
+    }
+
+    $url = 'https://nominatim.openstreetmap.org/search?' . http_build_query($params);
     
     $response = @file_get_contents($url, false, $context);
     if ($response === false) return null;
@@ -46,7 +66,6 @@ $searchQueries = [];
 
 // Build search queries with multiple fallback options
 if (!empty($barangay)) {
-    // Try with barangay first
     $searchQueries[] = $barangay . ', ' . $municipality . ', ' . $province . ', Philippines';
     $searchQueries[] = 'Barangay ' . $barangay . ', ' . $municipality . ', ' . $province . ', Philippines';
 }
@@ -57,10 +76,11 @@ $searchQueries[] = $municipality . ', ' . $province . ', Philippines';
 // Special handling for cities (like Bacolod City)
 if (stripos($municipality, 'City') !== false) {
     $searchQueries[] = $municipality . ', Philippines';
-    // Also try without "City" suffix
     $cityName = trim(str_ireplace('City', '', $municipality));
-    $searchQueries[] = $cityName . ' City, ' . $province . ', Philippines';
-    $searchQueries[] = $cityName . ', ' . $province . ', Philippines';
+    if ($cityName !== '') {
+        $searchQueries[] = $cityName . ' City, ' . $province . ', Philippines';
+        $searchQueries[] = $cityName . ', ' . $province . ', Philippines';
+    }
 }
 
 $result = null;
@@ -69,7 +89,7 @@ $searchedQuery = '';
 try {
     foreach ($searchQueries as $query) {
         $searchedQuery = $query;
-        $result = tryGeocode($query, $context);
+        $result = tryGeocode($query, $province, $context);
         if ($result) break;
         usleep(100000); // 100ms delay between requests to respect rate limits
     }
