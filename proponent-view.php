@@ -205,12 +205,22 @@ if (!$proponent) {
                             </div>
                             <div class="view-row">
                                 <div class="view-item">
+                                    <label>Full Name of Beneficiary</label>
+                                    <p><?php echo htmlspecialchars(($proponent['beneficiary_full_name'] ?? '') ?: 'Not specified'); ?></p>
+                                </div>
+                                <div class="view-item">
                                     <label>Number of Associations</label>
                                     <p><?php echo $proponent['number_of_associations'] ?: 'Not specified'; ?></p>
                                 </div>
                                 <div class="view-item">
                                     <label>Type of Beneficiaries</label>
                                     <p><?php echo htmlspecialchars($proponent['type_of_beneficiaries'] ?: 'Not specified'); ?></p>
+                                </div>
+                            </div>
+                            <div class="view-row">
+                                <div class="view-item">
+                                    <label>Type of Workers</label>
+                                    <p><?php echo htmlspecialchars(($proponent['type_of_workers'] ?? '') ?: 'Not specified'); ?></p>
                                 </div>
                                 <div class="view-item">
                                     <label>Recipient Barangays/ACPs</label>

@@ -49,6 +49,11 @@
                     <i class="bi bi-gear" aria-hidden="true"></i> <span>Settings</span>
                 </a>
             </li>
+            <li class="nav-item">
+                <a class="nav-link <?php echo ($currentPage ?? '') === 'reset-records' ? 'active' : ''; ?>" href="reset-records.php" aria-current="<?php echo ($currentPage ?? '') === 'reset-records' ? 'page' : 'false'; ?>">
+                    <i class="bi bi-exclamation-octagon" aria-hidden="true"></i> <span>Reset Records</span>
+                </a>
+            </li>
             <?php endif; ?>
         </ul>
         <div class="sidebar-accent" aria-hidden="true"></div>
