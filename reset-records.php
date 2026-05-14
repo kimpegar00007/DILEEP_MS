@@ -5,7 +5,7 @@ require_once 'includes/Auth.php';
 
 $auth = new Auth();
 $auth->requireLogin();
-$auth->requireRole('admin');
+$auth->requireRole('super_admin'); // Restricted to super_admin only
 
 $db = Database::getInstance()->getConnection();
 $errors = [];

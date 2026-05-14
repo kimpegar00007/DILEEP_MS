@@ -2,8 +2,10 @@
 -- DOLE DILP Monitoring System - Namecheap Migration
 -- =====================================================
 -- Database: dilp_monitoring
--- Version: 1.0.0
--- Date: March 2026
+-- Version: 2.0.0
+-- Date: May 2026
+-- Changes: Multi-province support (Negros Occidental,
+--          Negros Oriental, Siquijor); super_admin role
 -- 
 -- INSTRUCTIONS:
 -- 1. Create database in Namecheap cPanel > MySQL Databases
@@ -47,7 +49,9 @@ CREATE TABLE `users` (
   `username` varchar(100) NOT NULL,
   `email` varchar(100) NOT NULL,
   `password` varchar(255) NOT NULL,
-  `role` enum('admin','encoder','user') DEFAULT 'user',
+  `role` enum('admin','encoder','user','super_admin') NOT NULL DEFAULT 'user',
+  -- province NULL = super_admin (cross-province access); otherwise scoped to assigned province
+  `province` enum('Negros Occidental','Negros Oriental','Siquijor') DEFAULT NULL,
   `full_name` varchar(255) NOT NULL,
   `is_active` tinyint(1) DEFAULT 1,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
@@ -70,6 +74,7 @@ CREATE TABLE `beneficiaries` (
   `gender` enum('Male','Female') NOT NULL,
   `barangay` varchar(100) NOT NULL,
   `municipality` varchar(100) NOT NULL,
+  `province` enum('Negros Occidental','Negros Oriental','Siquijor') DEFAULT NULL,
   `contact_number` varchar(20) DEFAULT NULL,
   `project_name` varchar(255) NOT NULL,
   `type_of_worker` varchar(100) DEFAULT NULL,
@@ -113,6 +118,7 @@ CREATE TABLE `proponents` (
   `number_of_copies` int(11) DEFAULT NULL,
   `date_copies_received` date DEFAULT NULL,
   `district` varchar(100) DEFAULT NULL,
+  `province` enum('Negros Occidental','Negros Oriental','Siquijor') DEFAULT NULL,
   `proponent_name` varchar(255) NOT NULL,
   `project_title` varchar(255) NOT NULL,
   `amount` decimal(15,2) NOT NULL,
@@ -206,6 +212,7 @@ CREATE TABLE `fieldwork_schedule` (
   `title` varchar(255) NOT NULL,
   `description` text DEFAULT NULL,
   `location` varchar(500) DEFAULT NULL,
+  `province` enum('Negros Occidental','Negros Oriental','Siquijor') DEFAULT NULL,
   `assigned_user_id` int(11) NOT NULL,
   `start_date` date NOT NULL,
   `end_date` date DEFAULT NULL,
@@ -282,16 +289,26 @@ END$$
 DELIMITER ;
 
 -- =====================================================
--- DEFAULT DATA: Admin User
+-- PROVINCE INDEXES
 -- =====================================================
--- Default admin credentials:
+
+ALTER TABLE `users`            ADD KEY `idx_users_province`         (`province`);
+ALTER TABLE `beneficiaries`    ADD KEY `idx_beneficiaries_province`  (`province`);
+ALTER TABLE `proponents`       ADD KEY `idx_proponents_province`     (`province`);
+ALTER TABLE `fieldwork_schedule` ADD KEY `idx_fieldwork_province`    (`province`);
+
+-- =====================================================
+-- DEFAULT DATA: Super Admin User
+-- =====================================================
+-- Default credentials:
 -- Username: admin
 -- Password: admin123
+-- province = NULL grants cross-province (super_admin) access
 -- IMPORTANT: Change this password immediately after first login!
 -- =====================================================
 
-INSERT INTO `users` (`id`, `username`, `email`, `password`, `role`, `full_name`, `is_active`, `created_at`, `updated_at`) VALUES
-(1, 'admin', 'admin@dilp.gov.ph', '$2y$10$a6B7wXCzG83VKX.lX/h/seGi7H40EqquOlKeKgU3ytp/W.fpuOTkm', 'admin', 'System Administrator', 1, current_timestamp(), current_timestamp());
+INSERT INTO `users` (`id`, `username`, `email`, `password`, `role`, `province`, `full_name`, `is_active`, `created_at`, `updated_at`) VALUES
+(1, 'admin', 'admin@dilp.gov.ph', '$2y$10$a6B7wXCzG83VKX.lX/h/seGi7H40EqquOlKeKgU3ytp/W.fpuOTkm', 'super_admin', NULL, 'System Administrator', 1, current_timestamp(), current_timestamp());
 
 -- =====================================================
 -- MIGRATION TRACKING
@@ -303,7 +320,8 @@ INSERT INTO `migrations` (`migration_name`, `applied_at`) VALUES
 ('create_fieldwork_schedule', current_timestamp()),
 ('create_indexes', current_timestamp()),
 ('create_triggers', current_timestamp()),
-('insert_default_data', current_timestamp());
+('insert_default_data', current_timestamp()),
+('add_province_multi_tenant_v2', current_timestamp());
 
 -- =====================================================
 -- AUTO INCREMENT VALUES

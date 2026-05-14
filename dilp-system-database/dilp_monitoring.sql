@@ -1,11 +1,11 @@
 -- phpMyAdmin SQL Dump
--- version 5.2.1
+-- version 5.2.2
 -- https://www.phpmyadmin.net/
 --
--- Host: localhost
--- Generation Time: May 07, 2026 at 09:22 AM
--- Server version: 10.4.28-MariaDB
--- PHP Version: 8.2.4
+-- Host: localhost:3306
+-- Generation Time: May 12, 2026 at 04:14 AM
+-- Server version: 11.4.10-MariaDB-cll-lve
+-- PHP Version: 8.3.30
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -18,7 +18,7 @@ SET time_zone = "+00:00";
 /*!40101 SET NAMES utf8mb4 */;
 
 --
--- Database: `dilp_monitoring`
+-- Database: `dilemvwz_dilp_monitoring`
 --
 
 -- --------------------------------------------------------
@@ -443,8 +443,178 @@ INSERT INTO `activity_logs` (`id`, `user_id`, `action`, `table_name`, `record_id
 (402, 6, 'login', 'users', 6, 'User logged in', '131.226.110.145', '2026-05-04 14:03:11'),
 (403, 6, 'logout', 'users', 6, 'User logged out', '131.226.110.145', '2026-05-04 14:03:16'),
 (404, 6, 'login', 'users', 6, 'User logged in', '131.226.110.145', '2026-05-04 14:03:24'),
-(405, 1, 'login', 'users', 1, 'User logged in', '::1', '2026-05-06 03:39:19'),
-(406, 1, 'login', 'users', 1, 'User logged in', '::1', '2026-05-07 07:16:07');
+(405, 1, 'login', 'users', 1, 'User logged in', '119.92.137.254', '2026-05-06 03:34:32'),
+(406, 1, 'login', 'users', 1, 'User logged in', '119.92.137.254', '2026-05-06 06:02:53'),
+(407, 1, 'login', 'users', 1, 'User logged in', '119.92.137.254', '2026-05-07 05:00:58'),
+(408, 1, 'update', 'proponents', 48, 'Updated proponent', '119.92.137.254', '2026-05-07 05:16:00'),
+(409, 1, 'login', 'users', 1, 'User logged in', '119.92.137.254', '2026-05-07 09:08:22'),
+(410, 1, 'reset', 'system', 0, 'Erased proponent and beneficiary records. Proponents: 2, Beneficiaries: 91.', '119.92.137.254', '2026-05-07 09:10:29'),
+(411, 1, 'update', 'users', 3, 'Updated user ID: 3', '119.92.137.254', '2026-05-07 09:11:02'),
+(412, 1, 'logout', 'users', 1, 'User logged out', '119.92.137.254', '2026-05-07 09:11:07'),
+(413, 3, 'login', 'users', 3, 'User logged in', '119.92.137.254', '2026-05-07 09:11:13'),
+(414, 3, 'logout', 'users', 3, 'User logged out', '119.92.137.254', '2026-05-07 09:11:16'),
+(415, 1, 'login', 'users', 1, 'User logged in', '119.92.137.254', '2026-05-07 09:11:19'),
+(416, 1, 'logout', 'users', 1, 'User logged out', '119.92.137.254', '2026-05-07 09:13:29'),
+(417, 3, 'login', 'users', 3, 'User logged in', '119.92.137.254', '2026-05-07 09:13:57'),
+(418, 3, 'logout', 'users', 3, 'User logged out', '119.92.137.254', '2026-05-07 09:15:46'),
+(419, 3, 'login', 'users', 3, 'User logged in', '119.92.137.254', '2026-05-07 09:15:50'),
+(420, 3, 'login', 'users', 3, 'User logged in', '119.92.137.254', '2026-05-07 09:18:12'),
+(421, 3, 'create', 'proponents', 1, 'Created new proponent', '119.92.137.254', '2026-05-07 09:31:24'),
+(422, 3, 'logout', 'users', 3, 'User logged out', '119.92.137.254', '2026-05-07 09:46:29'),
+(423, 3, 'create', 'beneficiaries', 1, 'Created new beneficiary', '119.92.137.254', '2026-05-07 09:54:34'),
+(424, 3, 'update', 'beneficiaries', 1, 'Updated beneficiary', '119.92.137.254', '2026-05-07 09:57:19'),
+(425, 3, 'update', 'beneficiaries', 1, 'Updated beneficiary', '119.92.137.254', '2026-05-07 10:00:40'),
+(426, 3, 'update', 'beneficiaries', 1, 'Updated beneficiary', '119.92.137.254', '2026-05-07 10:01:57'),
+(427, 3, 'create', 'beneficiaries', 2, 'Created new beneficiary', '119.92.137.254', '2026-05-07 10:06:40'),
+(428, 3, 'create', 'beneficiaries', 3, 'Created new beneficiary', '119.92.137.254', '2026-05-07 10:09:01'),
+(429, 3, 'create', 'beneficiaries', 4, 'Created new beneficiary', '119.92.137.254', '2026-05-07 10:11:15'),
+(430, 3, 'create', 'beneficiaries', 5, 'Created new beneficiary', '119.92.137.254', '2026-05-07 10:14:05'),
+(431, 3, 'create', 'beneficiaries', 6, 'Created new beneficiary', '119.92.137.254', '2026-05-07 10:16:11'),
+(432, 3, 'create', 'beneficiaries', 7, 'Created new beneficiary', '119.92.137.254', '2026-05-07 10:18:10'),
+(433, 3, 'create', 'beneficiaries', 8, 'Created new beneficiary', '119.92.137.254', '2026-05-07 10:20:09'),
+(434, 3, 'create', 'beneficiaries', 9, 'Created new beneficiary', '119.92.137.254', '2026-05-07 10:23:19'),
+(435, 3, 'create', 'beneficiaries', 10, 'Created new beneficiary', '119.92.137.254', '2026-05-07 10:26:25'),
+(436, 6, 'login', 'users', 6, 'User logged in', '103.252.32.206', '2026-05-10 09:36:13'),
+(437, 6, 'create', 'beneficiaries', 11, 'Created new beneficiary', '103.252.32.206', '2026-05-10 09:56:51'),
+(438, 6, 'update', 'beneficiaries', 11, 'Updated beneficiary', '103.252.32.206', '2026-05-10 10:02:40'),
+(439, 6, 'update', 'beneficiaries', 11, 'Updated beneficiary', '103.252.32.206', '2026-05-10 10:06:44'),
+(440, 6, 'update', 'beneficiaries', 11, 'Updated beneficiary', '103.252.32.206', '2026-05-10 10:08:42'),
+(441, 6, 'update', 'fieldwork_schedule', 15, 'Updated fieldwork schedule: Conduct of Orientation on the DOLE Integrated Livelihood Program (DILP) Cum Accreditation of CO-Partners (ACP)', '103.252.32.206', '2026-05-10 10:33:06'),
+(442, 6, 'update', 'fieldwork_schedule', 15, 'Updated fieldwork schedule: Courtesy Call to LCE of LGU La Castillana, Moises Padilla, Ilog and Cong. Dino Yulo', '103.252.32.206', '2026-05-10 10:35:40'),
+(443, 6, 'update', 'fieldwork_schedule', 15, 'Updated fieldwork schedule: Courtesy Call to LCE of LGU La Castillana, Moises Padilla, Ilog and Cong. Dino Yulo', '103.252.32.206', '2026-05-10 10:35:50'),
+(444, 6, 'create', 'fieldwork_schedule', 18, 'Created fieldwork schedule: Courtesy Call to LCE of LGU La Castellana, Moises Padilla, Ilog and Cong. Dino Yulo', '103.252.32.206', '2026-05-10 10:37:07'),
+(445, 6, 'update', 'fieldwork_schedule', 18, 'Updated fieldwork schedule: Courtesy Call to LCE of LGU La Castellana, Moises Padilla, Ilog and Cong. Dino Yulo', '103.252.32.206', '2026-05-10 10:37:18'),
+(446, 6, 'update', 'fieldwork_schedule', 15, 'Updated fieldwork schedule: Stakeholders\'Forum on Livelihood Recovery for Typhoon Tino by Philippine Red Cross', '103.252.32.206', '2026-05-10 10:38:16'),
+(447, 6, 'create', 'fieldwork_schedule', 19, 'Created fieldwork schedule: Labor Day', '103.252.32.206', '2026-05-10 10:38:47'),
+(448, 6, 'update', 'fieldwork_schedule', 19, 'Updated fieldwork schedule: Labor Day', '103.252.32.206', '2026-05-10 10:39:29'),
+(449, 6, 'delete', 'fieldwork_schedule', 19, 'Deleted fieldwork schedule: Labor Day', '103.252.32.206', '2026-05-10 10:39:51'),
+(450, 3, 'login', 'users', 3, 'User logged in', '119.92.137.254', '2026-05-11 01:09:04'),
+(451, 3, 'login', 'users', 3, 'User logged in', '119.92.137.254', '2026-05-11 01:11:24'),
+(452, 3, 'create', 'beneficiaries', 12, 'Created new beneficiary', '119.92.137.254', '2026-05-11 01:14:26'),
+(453, 3, 'create', 'beneficiaries', 13, 'Created new beneficiary', '119.92.137.254', '2026-05-11 01:19:02'),
+(454, 3, 'login', 'users', 3, 'User logged in', '119.92.137.254', '2026-05-11 01:20:45'),
+(455, 3, 'create', 'beneficiaries', 14, 'Created new beneficiary', '119.92.137.254', '2026-05-11 01:22:59'),
+(456, 3, 'return', 'proponents', 1, 'Application returned: beneficiaries', '119.92.137.254', '2026-05-11 01:25:28'),
+(457, 3, 'update', 'fieldwork_schedule', 13, 'Updated fieldwork schedule: LGU-LA CASTELANA (NOMINEE/S FOR KABUHAYAN AWARD INDIVIDUAL PROJECT CATEGORY)', '119.92.137.254', '2026-05-11 01:30:53'),
+(458, 3, 'update', 'fieldwork_schedule', 14, 'Updated fieldwork schedule: CARIDAD 1 (NOMINEE/S FOR KABUHAYAN AWARD GROUP PROJECT CATEGORY)', '119.92.137.254', '2026-05-11 01:31:12'),
+(459, 3, 'create', 'beneficiaries', 15, 'Created new beneficiary', '119.92.137.254', '2026-05-11 01:42:00'),
+(460, 3, 'create', 'beneficiaries', 16, 'Created new beneficiary', '119.92.137.254', '2026-05-11 01:45:05'),
+(461, 3, 'create', 'beneficiaries', 17, 'Created new beneficiary', '119.92.137.254', '2026-05-11 01:47:55'),
+(462, 3, 'create', 'beneficiaries', 18, 'Created new beneficiary', '119.92.137.254', '2026-05-11 01:50:43'),
+(463, 3, 'create', 'beneficiaries', 19, 'Created new beneficiary', '119.92.137.254', '2026-05-11 01:52:49'),
+(464, 3, 'create', 'beneficiaries', 20, 'Created new beneficiary', '119.92.137.254', '2026-05-11 02:11:28'),
+(465, 3, 'create', 'beneficiaries', 21, 'Created new beneficiary', '119.92.137.254', '2026-05-11 02:14:55'),
+(466, 3, 'create', 'beneficiaries', 22, 'Created new beneficiary', '119.92.137.254', '2026-05-11 02:17:17'),
+(467, 3, 'create', 'beneficiaries', 23, 'Created new beneficiary', '119.92.137.254', '2026-05-11 02:19:18'),
+(468, 3, 'create', 'beneficiaries', 24, 'Created new beneficiary', '119.92.137.254', '2026-05-11 02:21:46'),
+(469, 3, 'update', 'proponents', 1, 'Updated proponent', '119.92.137.254', '2026-05-11 02:23:54'),
+(470, 3, 'create', 'beneficiaries', 25, 'Created new beneficiary', '119.92.137.254', '2026-05-11 02:24:06'),
+(471, 3, 'create', 'proponents', 2, 'Created new proponent', '119.92.137.254', '2026-05-11 02:25:21'),
+(472, 3, 'create', 'beneficiaries', 26, 'Created new beneficiary', '119.92.137.254', '2026-05-11 02:28:54'),
+(473, 3, 'create', 'beneficiaries', 27, 'Created new beneficiary', '119.92.137.254', '2026-05-11 02:31:45'),
+(474, 3, 'create', 'beneficiaries', 28, 'Created new beneficiary', '119.92.137.254', '2026-05-11 02:38:02'),
+(475, 3, 'create', 'beneficiaries', 29, 'Created new beneficiary', '119.92.137.254', '2026-05-11 02:40:55'),
+(476, 3, 'create', 'beneficiaries', 30, 'Created new beneficiary', '119.92.137.254', '2026-05-11 02:42:58'),
+(477, 3, 'create', 'beneficiaries', 31, 'Created new beneficiary', '119.92.137.254', '2026-05-11 02:45:42'),
+(478, 3, 'create', 'beneficiaries', 32, 'Created new beneficiary', '119.92.137.254', '2026-05-11 02:48:07'),
+(479, 3, 'create', 'beneficiaries', 33, 'Created new beneficiary', '119.92.137.254', '2026-05-11 02:50:26'),
+(480, 3, 'create', 'beneficiaries', 34, 'Created new beneficiary', '119.92.137.254', '2026-05-11 02:53:50'),
+(481, 3, 'create', 'beneficiaries', 35, 'Created new beneficiary', '119.92.137.254', '2026-05-11 02:59:28'),
+(482, 3, 'create', 'beneficiaries', 36, 'Created new beneficiary', '119.92.137.254', '2026-05-11 03:02:14'),
+(483, 3, 'create', 'beneficiaries', 37, 'Created new beneficiary', '119.92.137.254', '2026-05-11 03:04:32'),
+(484, 3, 'create', 'beneficiaries', 38, 'Created new beneficiary', '119.92.137.254', '2026-05-11 03:07:21'),
+(485, 3, 'create', 'beneficiaries', 39, 'Created new beneficiary', '119.92.137.254', '2026-05-11 03:09:23'),
+(486, 3, 'create', 'beneficiaries', 40, 'Created new beneficiary', '119.92.137.254', '2026-05-11 03:12:30'),
+(487, 3, 'create', 'beneficiaries', 41, 'Created new beneficiary', '119.92.137.254', '2026-05-11 03:15:14'),
+(488, 3, 'create', 'beneficiaries', 42, 'Created new beneficiary', '119.92.137.254', '2026-05-11 03:17:45'),
+(489, 3, 'create', 'beneficiaries', 43, 'Created new beneficiary', '119.92.137.254', '2026-05-11 03:20:40'),
+(490, 3, 'create', 'beneficiaries', 44, 'Created new beneficiary', '119.92.137.254', '2026-05-11 03:23:01'),
+(491, 3, 'create', 'beneficiaries', 45, 'Created new beneficiary', '119.92.137.254', '2026-05-11 03:26:34'),
+(492, 3, 'create', 'beneficiaries', 46, 'Created new beneficiary', '119.92.137.254', '2026-05-11 03:30:36'),
+(493, 3, 'create', 'beneficiaries', 47, 'Created new beneficiary', '119.92.137.254', '2026-05-11 03:33:24'),
+(494, 3, 'create', 'beneficiaries', 48, 'Created new beneficiary', '119.92.137.254', '2026-05-11 03:35:39'),
+(495, 3, 'create', 'beneficiaries', 49, 'Created new beneficiary', '119.92.137.254', '2026-05-11 03:38:27'),
+(496, 3, 'create', 'beneficiaries', 50, 'Created new beneficiary', '119.92.137.254', '2026-05-11 03:41:24');
+INSERT INTO `activity_logs` (`id`, `user_id`, `action`, `table_name`, `record_id`, `description`, `ip_address`, `created_at`) VALUES
+(497, 3, 'create', 'beneficiaries', 51, 'Created new beneficiary', '119.92.137.254', '2026-05-11 03:43:40'),
+(498, 3, 'create', 'beneficiaries', 52, 'Created new beneficiary', '119.92.137.254', '2026-05-11 03:46:12'),
+(499, 3, 'create', 'beneficiaries', 53, 'Created new beneficiary', '119.92.137.254', '2026-05-11 03:48:34'),
+(500, 3, 'logout', 'users', 3, 'User logged out', '119.92.137.254', '2026-05-11 04:30:41'),
+(501, 3, 'login', 'users', 3, 'User logged in', '119.92.137.254', '2026-05-11 05:21:04'),
+(502, 3, 'update', 'beneficiaries', 2, 'Updated beneficiary', '119.92.137.254', '2026-05-11 05:22:30'),
+(503, 3, 'create', 'fieldwork_schedule', 20, 'Created fieldwork schedule: LIQUIDATION COACHING', '119.92.137.254', '2026-05-11 05:33:28'),
+(504, 3, 'create', 'fieldwork_schedule', 21, 'Created fieldwork schedule: LGU-Bago City', '119.92.137.254', '2026-05-11 05:39:07'),
+(505, 3, 'create', 'fieldwork_schedule', 22, 'Created fieldwork schedule: DILP ORIENTATION', '119.92.137.254', '2026-05-11 05:47:31'),
+(506, 3, 'update', 'fieldwork_schedule', 21, 'Updated fieldwork schedule: DILP ORIENTATION', '119.92.137.254', '2026-05-11 05:47:56'),
+(507, 6, 'login', 'users', 6, 'User logged in', '103.252.32.206', '2026-05-11 06:23:06'),
+(508, 6, 'create', 'fieldwork_schedule', 23, 'Created fieldwork schedule: TESDA appointment', '103.252.32.206', '2026-05-11 06:28:44'),
+(509, 6, 'update', 'fieldwork_schedule', 23, 'Updated fieldwork schedule: TESDA appointment 10:00am', '103.252.32.206', '2026-05-11 06:29:05'),
+(510, 3, 'login', 'users', 3, 'User logged in', '119.92.137.254', '2026-05-11 06:56:36'),
+(511, 3, 'login', 'users', 3, 'User logged in', '119.92.137.254', '2026-05-11 07:12:23'),
+(512, 3, 'update', 'proponents', 1, 'Updated proponent', '119.92.137.254', '2026-05-11 07:47:21'),
+(513, 3, 'create', 'beneficiaries', 54, 'Created new beneficiary', '119.92.137.254', '2026-05-11 07:56:02'),
+(514, 1, 'login', 'users', 1, 'User logged in', '119.92.137.254', '2026-05-11 07:56:50'),
+(515, 3, 'create', 'beneficiaries', 55, 'Created new beneficiary', '119.92.137.254', '2026-05-11 07:58:09'),
+(516, 3, 'create', 'beneficiaries', 56, 'Created new beneficiary', '119.92.137.254', '2026-05-11 07:59:59'),
+(517, 3, 'create', 'beneficiaries', 57, 'Created new beneficiary', '119.92.137.254', '2026-05-11 08:02:53'),
+(518, 3, 'update', 'beneficiaries', 57, 'Updated beneficiary', '119.92.137.254', '2026-05-11 08:03:07'),
+(519, 3, 'update', 'beneficiaries', 56, 'Updated beneficiary', '119.92.137.254', '2026-05-11 08:03:32'),
+(520, 3, 'update', 'beneficiaries', 55, 'Updated beneficiary', '119.92.137.254', '2026-05-11 08:03:52'),
+(521, 3, 'update', 'beneficiaries', 54, 'Updated beneficiary', '119.92.137.254', '2026-05-11 08:04:22'),
+(522, 3, 'create', 'beneficiaries', 58, 'Created new beneficiary', '119.92.137.254', '2026-05-11 08:06:22'),
+(523, 3, 'create', 'beneficiaries', 59, 'Created new beneficiary', '119.92.137.254', '2026-05-11 08:08:38'),
+(524, 3, 'update', 'beneficiaries', 54, 'Updated beneficiary', '119.92.137.254', '2026-05-11 08:09:11'),
+(525, 3, 'update', 'beneficiaries', 55, 'Updated beneficiary', '119.92.137.254', '2026-05-11 08:09:40'),
+(526, 3, 'update', 'beneficiaries', 56, 'Updated beneficiary', '119.92.137.254', '2026-05-11 08:10:19'),
+(527, 3, 'update', 'beneficiaries', 57, 'Updated beneficiary', '119.92.137.254', '2026-05-11 08:11:04'),
+(528, 3, 'update', 'beneficiaries', 58, 'Updated beneficiary', '119.92.137.254', '2026-05-11 08:11:32'),
+(529, 3, 'update', 'proponents', 2, 'Updated proponent', '119.92.137.254', '2026-05-11 08:13:39'),
+(530, 3, 'create', 'beneficiaries', 60, 'Created new beneficiary', '119.92.137.254', '2026-05-11 08:16:39'),
+(531, 3, 'update', 'beneficiaries', 60, 'Updated beneficiary', '119.92.137.254', '2026-05-11 08:16:49'),
+(532, 3, 'create', 'beneficiaries', 61, 'Created new beneficiary', '119.92.137.254', '2026-05-11 08:20:37'),
+(533, 3, 'create', 'beneficiaries', 62, 'Created new beneficiary', '119.92.137.254', '2026-05-11 08:24:51'),
+(534, 3, 'create', 'beneficiaries', 63, 'Created new beneficiary', '119.92.137.254', '2026-05-11 08:27:09'),
+(535, 3, 'create', 'beneficiaries', 64, 'Created new beneficiary', '119.92.137.254', '2026-05-11 08:29:08'),
+(536, 3, 'create', 'beneficiaries', 65, 'Created new beneficiary', '119.92.137.254', '2026-05-11 08:30:57'),
+(537, 3, 'create', 'beneficiaries', 66, 'Created new beneficiary', '119.92.137.254', '2026-05-11 08:33:07'),
+(538, 3, 'create', 'beneficiaries', 67, 'Created new beneficiary', '119.92.137.254', '2026-05-11 08:35:00'),
+(539, 3, 'create', 'beneficiaries', 68, 'Created new beneficiary', '119.92.137.254', '2026-05-11 08:37:31'),
+(540, 3, 'create', 'beneficiaries', 69, 'Created new beneficiary', '119.92.137.254', '2026-05-11 08:52:19'),
+(541, 3, 'create', 'beneficiaries', 70, 'Created new beneficiary', '119.92.137.254', '2026-05-11 08:54:29'),
+(542, 3, 'create', 'beneficiaries', 71, 'Created new beneficiary', '119.92.137.254', '2026-05-11 08:58:03'),
+(543, 3, 'update', 'beneficiaries', 62, 'Updated beneficiary', '119.92.137.254', '2026-05-11 08:58:39'),
+(544, 3, 'logout', 'users', 3, 'User logged out', '119.92.137.254', '2026-05-11 08:59:45'),
+(545, 3, 'update', 'beneficiaries', 13, 'Updated beneficiary', '119.92.137.254', '2026-05-11 09:08:36'),
+(546, 3, 'update', 'beneficiaries', 64, 'Updated beneficiary', '119.92.137.254', '2026-05-11 09:16:22'),
+(547, 3, 'update', 'beneficiaries', 60, 'Updated beneficiary', '119.92.137.254', '2026-05-11 09:19:52'),
+(548, 3, 'update', 'beneficiaries', 59, 'Updated beneficiary', '119.92.137.254', '2026-05-11 09:21:04'),
+(549, 3, 'update', 'beneficiaries', 19, 'Updated beneficiary', '119.92.137.254', '2026-05-11 09:36:48'),
+(550, 3, 'update', 'beneficiaries', 18, 'Updated beneficiary', '119.92.137.254', '2026-05-11 09:39:03'),
+(551, 3, 'update', 'beneficiaries', 5, 'Updated beneficiary', '119.92.137.254', '2026-05-11 09:43:25'),
+(552, 3, 'update', 'beneficiaries', 6, 'Updated beneficiary', '119.92.137.254', '2026-05-11 09:45:23'),
+(553, 3, 'update', 'beneficiaries', 7, 'Updated beneficiary', '119.92.137.254', '2026-05-11 09:47:58'),
+(554, 3, 'update', 'beneficiaries', 8, 'Updated beneficiary', '119.92.137.254', '2026-05-11 09:49:49'),
+(555, 3, 'update', 'beneficiaries', 8, 'Updated beneficiary', '119.92.137.254', '2026-05-11 09:50:05'),
+(556, 3, 'update', 'beneficiaries', 12, 'Updated beneficiary', '119.92.137.254', '2026-05-11 10:01:13'),
+(557, 3, 'update', 'beneficiaries', 11, 'Updated beneficiary', '119.92.137.254', '2026-05-11 10:10:47'),
+(558, 3, 'create', 'beneficiaries', 72, 'Created new beneficiary', '119.92.137.254', '2026-05-11 10:14:04'),
+(559, 3, 'create', 'beneficiaries', 73, 'Created new beneficiary', '119.92.137.254', '2026-05-11 10:15:48'),
+(560, 3, 'create', 'beneficiaries', 74, 'Created new beneficiary', '119.92.137.254', '2026-05-11 10:17:43'),
+(561, 3, 'update', 'beneficiaries', 73, 'Updated beneficiary', '119.92.137.254', '2026-05-11 10:18:13'),
+(562, 1, 'login', 'users', 1, 'User logged in', '131.226.109.197', '2026-05-11 13:25:04'),
+(563, 6, 'login', 'users', 6, 'User logged in', '103.252.32.206', '2026-05-11 23:15:19'),
+(564, 3, 'login', 'users', 3, 'User logged in', '119.92.137.254', '2026-05-12 00:18:26'),
+(565, 6, 'login', 'users', 6, 'User logged in', '143.44.170.108', '2026-05-12 00:53:59'),
+(566, 6, 'logout', 'users', 6, 'User logged out', '143.44.170.108', '2026-05-12 00:54:05'),
+(567, 3, 'login', 'users', 3, 'User logged in', '119.92.137.254', '2026-05-12 01:45:33'),
+(568, 6, 'login', 'users', 6, 'User logged in', '143.44.170.108', '2026-05-12 02:24:35'),
+(569, 6, 'login', 'users', 6, 'User logged in', '143.44.170.108', '2026-05-12 03:13:45'),
+(570, 6, 'login', 'users', 6, 'User logged in', '143.44.170.108', '2026-05-12 04:46:40'),
+(571, 1, 'login', 'users', 1, 'User logged in', '119.92.137.254', '2026-05-12 05:35:58'),
+(572, 6, 'login', 'users', 6, 'User logged in', '143.44.170.108', '2026-05-12 07:09:25'),
+(573, 1, 'login', 'users', 1, 'User logged in', '119.92.137.254', '2026-05-12 07:54:02'),
+(574, 1, 'logout', 'users', 1, 'User logged out', '119.92.137.254', '2026-05-12 07:54:17'),
+(575, 6, 'login', 'users', 6, 'User logged in', '143.44.170.108', '2026-05-12 08:10:00');
 
 -- --------------------------------------------------------
 
@@ -488,97 +658,80 @@ CREATE TABLE `beneficiaries` (
 --
 
 INSERT INTO `beneficiaries` (`id`, `last_name`, `first_name`, `middle_name`, `suffix`, `gender`, `barangay`, `municipality`, `province`, `contact_number`, `project_name`, `type_of_worker`, `amount_worth`, `noted_findings`, `date_complied_by_proponent`, `date_forwarded_to_ro6`, `rpmt_findings`, `date_approved`, `date_forwarded_to_nofo`, `date_turnover`, `date_monitoring`, `latitude`, `longitude`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`) VALUES
-(8, 'ACHIVAR', 'MAE', 'DAMIREZ', NULL, 'Female', 'Taloc', 'BAGO CITY', NULL, '09619032537', 'RICE RETAILING PROJECT', 'PERSON DEPRIVED OF LIBERTY (PDL)', 30000.00, NULL, '2025-01-28', '2025-03-18', NULL, '2025-05-13', '2025-05-13', '2025-06-10', NULL, 10.57851102, 122.90991158, 'implemented', 1, 1, '2026-02-23 09:41:26', '2026-02-23 09:41:26'),
-(9, 'ALBANCES', 'CRIS ANGELIE', 'DAYAGANON', NULL, 'Female', 'Mansilingan', 'BACOLOD CITY (Capital)', NULL, '09706393683', 'RICE RETAILING PROJECT', 'DISPLACED WORKER', 30000.00, NULL, '2025-01-23', '2025-03-18', NULL, '2025-05-13', '2025-05-13', '2025-06-10', NULL, 10.63280269, 122.97510468, 'implemented', 1, 1, '2026-02-23 09:41:26', '2026-02-23 09:41:26'),
-(10, 'ATONDUCAN', 'PABLITO', 'PANES', NULL, 'Male', 'Hacienda Fe', 'CITY OF ESCALANTE', NULL, '09667356865', 'RICE RETAILING PROJECT', 'PERSON DEPRIVED OF LIBERTY (PDL)', 30000.00, NULL, '2024-11-11', '2025-03-18', NULL, '2025-05-13', '2025-05-13', '2025-06-10', NULL, 10.86196258, 123.48608601, 'implemented', 1, 1, '2026-02-23 09:41:26', '2026-02-23 09:41:26'),
-(11, 'BREGIAS', 'RODRIGO', 'SUICO', NULL, 'Male', 'Old Poblacion', 'CITY OF ESCALANTE', NULL, '09260143419', 'RICE RETAILING PROJECT', 'PERSON DEPRIVED OF LIBERTY (PDL)', 30000.00, NULL, '2024-12-26', '2025-03-18', NULL, '2025-05-13', '2025-05-13', '2025-06-10', NULL, 10.82896419, 123.54839415, 'implemented', 1, 1, '2026-02-23 09:41:26', '2026-02-23 09:41:26'),
-(12, 'CANILLO', 'MICHAEL LORENZ', 'CONAG', NULL, 'Male', 'Japitan', 'CITY OF ESCALANTE', NULL, '09920264451', 'RICE RETAILING PROJECT', 'PERSON DEPRIVED OF LIBERTY (PDL)', 30000.00, NULL, '2024-12-27', '2025-03-18', NULL, '2025-05-13', '2025-05-13', '2025-06-10', NULL, 10.76591973, 123.54216127, 'implemented', 1, 1, '2026-02-23 09:41:26', '2026-02-23 09:41:26'),
-(13, 'DELA CRUZ', 'REYMARK', 'TAYTING', NULL, 'Male', 'Barangay II (Pob.)', 'LA CARLOTA CITY', NULL, '09307522855', 'RICE RETAILING PROJECT', 'PERSON DEPRIVED OF LIBERTY (PDL)', 30000.00, NULL, '2024-11-21', '2025-03-18', NULL, '2025-05-13', '2025-05-13', '2025-06-10', NULL, 10.43137523, 122.92207651, 'implemented', 1, 1, '2026-02-23 09:41:26', '2026-02-23 09:41:26'),
-(14, 'DELILING', 'SCOTT JAY', 'MONDOY', NULL, 'Male', 'Miranda', 'PONTEVEDRA', NULL, '09102883535', 'RICE RETAILING PROJECT', 'PERSON DEPRIVED OF LIBERTY (PDL)', 30000.00, NULL, '2024-11-21', '2025-03-18', NULL, '2025-05-13', '2025-05-13', '2025-06-10', NULL, 10.33781734, 122.86148145, 'implemented', 1, 1, '2026-02-23 09:41:26', '2026-02-23 09:41:26'),
-(15, 'DINANOY', 'CARMELITO', 'OSANO', NULL, 'Male', 'Atipuluan', 'BAGO CITY', NULL, '09261726605', 'RICE RETAILING PROJECT', 'PERSON DEPRIVED OF LIBERTY (PDL)', 30000.00, NULL, '2025-01-28', '2025-03-18', NULL, '2025-05-13', '2025-05-13', '2025-06-10', NULL, 10.50979328, 122.94948086, 'implemented', 1, 1, '2026-02-23 09:41:26', '2026-02-23 09:41:26'),
-(16, 'DIOSO', 'JIMMY', 'INFANTE', 'JR.', 'Male', 'Poblacion', 'BAGO CITY', NULL, '09065182680', 'RICE RETAILING PROJECT', 'PERSON DEPRIVED OF LIBERTY (PDL)', 30000.00, NULL, '2025-01-28', '2025-03-18', NULL, '2025-05-13', '2025-05-13', '2025-06-10', NULL, 10.53914493, 122.83650400, 'implemented', 1, 1, '2026-02-23 09:41:26', '2026-02-23 09:41:26'),
-(17, 'FLORES', 'REYNALDO', 'BALCECAS', NULL, 'Male', 'Barangay 16 (Pob.)', 'BACOLOD CITY (Capital)', NULL, '09633200476', 'RICE RETAILING PROJECT', 'PERSON DEPRIVED OF LIBERTY (PDL)', 30000.00, NULL, '2024-11-20', '2025-03-18', NULL, '2025-05-13', '2025-05-13', '2025-06-10', NULL, 10.66580845, 122.93896270, 'implemented', 1, 1, '2026-02-23 09:41:26', '2026-02-23 09:41:26'),
-(18, 'GANOY', 'JOHN NICHOL', 'VILLACERAN', NULL, 'Male', 'Barangay VII (Pob.)', 'CITY OF VICTORIAS', NULL, '09205377005', 'T-SHIRT PRINTING AND OTHER PRINTING JOBS PROJECT', 'REPATRIATED MT SOUNION CREW MEMBER', 30000.00, NULL, '2024-11-14', '2025-03-18', NULL, '2025-05-13', '2025-05-13', '2025-06-10', NULL, 10.89949480, 123.07582906, 'implemented', 1, 1, '2026-02-23 09:41:26', '2026-02-23 09:41:26'),
-(19, 'GOLVIO', 'HECTOR', 'SINGUELAS', 'SR.', 'Male', 'Balingasag', 'BAGO CITY', NULL, '09859736599', 'RICE RETAILING PROJECT', 'PERSON DEPRIVED OF LIBERTY (PDL)', 30000.00, NULL, '2025-01-28', '2025-03-18', NULL, '2025-05-13', '2025-05-13', '2025-06-10', NULL, 10.52959178, 122.84348781, 'implemented', 1, 1, '2026-02-23 09:41:26', '2026-02-23 09:41:26'),
-(20, 'GUMBAN', 'REGIE', 'RAMIREZ', NULL, 'Male', 'Barangay 2 Pob. (Zone 2)', 'CADIZ CITY', NULL, '09076247619', 'RICE RETAILING PROJECT', 'PERSON DEPRIVED OF LIBERTY (PDL)', 30000.00, NULL, '2024-11-22', '2025-03-18', NULL, '2025-05-13', '2025-05-13', '2025-06-10', NULL, 10.95949895, 123.30634636, 'implemented', 1, 1, '2026-02-23 09:41:26', '2026-02-23 09:41:26'),
-(21, 'LICANIEL', 'JESSIE', 'HILADO', NULL, 'Male', 'Balingasag', 'BAGO CITY', NULL, '09383980540', 'RICE RETAILING PROJECT', 'PERSON DEPRIVED OF LIBERTY (PDL)', 30000.00, NULL, '2025-01-28', '2025-03-18', NULL, '2025-05-13', '2025-05-13', '2025-06-10', NULL, 10.52947152, 122.84441641, 'implemented', 1, 1, '2026-02-23 09:41:26', '2026-02-23 09:41:26'),
-(22, 'ORBIGOSO', 'MILAGROS', 'PENAFIEL', NULL, 'Female', 'Canturay', 'CITY OF SIPALAY', NULL, '09169756426', 'RICE RETAILING PROJECT', 'PERSON DEPRIVED OF LIBERTY (PDL)', 30000.00, NULL, '2024-11-20', '2025-03-18', NULL, '2025-05-13', '2025-05-13', '2025-06-10', NULL, 9.80681384, 122.42341137, 'implemented', 1, 1, '2026-02-23 09:41:26', '2026-02-23 09:41:26'),
-(23, 'PANHILASON', 'ROGIE', 'BARRANCO', NULL, 'Male', 'Barangay XIX-A', 'CITY OF VICTORIAS', NULL, '09162104229', 'RICE RETAILING PROJECT', 'PERSON DEPRIVED OF LIBERTY (PDL)', 30000.00, NULL, '2024-11-04', '2025-03-18', NULL, '2025-05-13', '2025-05-13', '2025-06-30', NULL, 10.87472701, 123.06054541, 'implemented', 1, 1, '2026-02-23 09:41:26', '2026-02-23 09:41:26'),
-(24, 'SALMORIN', 'PAULO', 'BULLOR', NULL, 'Male', 'Poblacion', 'BAGO CITY', NULL, '09072262837', 'RICE RETAILING PROJECT', 'PERSON DEPRIVED OF LIBERTY (PDL)', 30000.00, NULL, '2025-01-28', '2025-03-18', NULL, '2025-05-13', '2025-05-13', '2025-07-16', NULL, 10.53598586, 122.83399013, 'implemented', 1, 1, '2026-02-23 09:41:26', '2026-02-23 09:41:26'),
-(25, 'SEMILLANO', 'RODEL', 'LANUTAN', NULL, 'Male', 'Lag-Asan', 'BAGO CITY', NULL, '09995503044', 'RICE RETAILING PROJECT', 'PERSON DEPRIVED OF LIBERTY (PDL)', 30000.00, NULL, '2025-02-06', '2025-03-18', NULL, '2025-05-13', '2025-05-13', '2025-06-10', NULL, 10.51984693, 122.84543119, 'implemented', 1, 1, '2026-02-23 09:41:26', '2026-02-23 09:41:26'),
-(26, 'SOLINO', 'JOVEN', 'VILLANUEVA', NULL, 'Male', 'Zone 10 (Pob.)', 'CITY OF TALISAY', NULL, '09187425989', 'RICE RETAILING PROJECT', 'PERSON DEPRIVED OF LIBERTY (PDL)', 30000.00, NULL, '2025-03-12', '2025-03-18', NULL, '2025-05-13', '2025-05-13', '2025-06-10', NULL, 10.72978165, 122.97567168, 'implemented', 1, 1, '2026-02-23 09:41:26', '2026-02-23 09:41:26'),
-(27, 'VOLUNTATE', 'JAINOR', 'TATON', 'JR.', 'Male', 'Salong', 'CITY OF KABANKALAN', NULL, '09483190399', 'RICE RETAILING PROJECT', 'PERSON DEPRIVED OF LIBERTY (PDL)', 30000.00, NULL, '2024-11-21', '2025-03-18', NULL, '2025-05-13', '2025-05-13', '2025-06-10', NULL, 9.92797374, 122.77009644, 'implemented', 1, 1, '2026-02-23 09:41:26', '2026-02-23 09:41:26'),
-(28, 'ARAÑEZ', 'CRISTINA', 'SUMPAY', NULL, 'Female', 'Barangay VI Pob. (Hawaiian)', 'SILAY CITY', NULL, '09056665636', 'RICE RETAILING PROJECT', 'VENDOR', 29994.00, NULL, '2024-07-16', '2024-11-04', NULL, '2024-11-25', '2024-11-25', '2025-01-30', NULL, 10.83059897, 123.00020980, 'implemented', 1, 1, '2026-02-23 09:41:26', '2026-02-23 09:41:26'),
-(29, 'BAYONETA', 'RANDY', 'SUMAGAYSAY', NULL, 'Male', 'Guinhalaran', 'SILAY CITY', NULL, '09662308339', 'RICE RETAILING PROJECT', 'DISPLACED WORKER', 29994.00, NULL, '2024-09-12', '2024-11-04', NULL, '2024-11-25', '2024-11-25', '2025-01-30', NULL, 10.77224414, 122.97896563, 'implemented', 1, 1, '2026-02-23 09:41:26', '2026-02-23 09:41:26'),
-(30, 'CANDAR', 'JOVILLE', 'ESTRELLANES', NULL, 'Male', 'Handumanan', 'BACOLOD CITY (Capital)', NULL, '09382262987', 'RICE RETAILING PROJECT', 'VENDOR', 29994.00, NULL, '2024-06-03', '2024-11-04', NULL, '2024-11-25', '2024-11-25', '2025-01-30', NULL, 10.60659340, 122.96552981, 'implemented', 1, 1, '2026-02-23 09:41:26', '2026-02-23 09:41:26'),
-(31, 'ESTIMADORA', 'EDUARDO', 'DECENA', 'JR.', 'Male', 'Guinhalaran', 'SILAY CITY', NULL, '09558694990', 'RICE RETAILING PROJECT', 'DISPLACED WORKER', 29994.00, NULL, '2024-09-12', '2024-11-04', NULL, '2024-11-25', '2024-11-25', '2025-01-30', NULL, 10.77221776, 122.97850893, 'implemented', 1, 1, '2026-02-23 09:41:26', '2026-02-23 09:41:26'),
-(32, 'GOLEZ', 'EMELY', 'RACO', NULL, 'Female', 'Tuguis', 'HINIGARAN', NULL, '09382867852', 'RICE RETAILING PROJECT', 'VENDOR', 29994.00, NULL, '2024-06-28', '2024-11-04', NULL, '2024-11-25', '2024-11-25', '2025-01-30', NULL, 10.29476075, 122.89751735, 'implemented', 1, 1, '2026-02-23 09:41:26', '2026-02-23 09:41:26'),
-(33, 'ISUGA', 'JAMESON', 'ROA', NULL, 'Male', 'Mansilingan', 'BACOLOD CITY (Capital)', NULL, '09389559820', 'RICE RETAILING PROJECT', 'PERSON DEPRIVED OF LIBERTY (PDL)', 29994.00, NULL, '2024-09-30', '2024-11-04', NULL, '2024-11-25', '2024-11-25', '2025-01-30', NULL, 10.63273986, 122.97517088, 'implemented', 1, 1, '2026-02-23 09:41:26', '2026-02-23 09:41:26'),
-(34, 'MONTALVO', 'KENNETH', 'HACHUELA', NULL, 'Male', 'Bubog', 'CITY OF TALISAY', NULL, '09187359609', 'RICE RETAILING PROJECT', 'PERSON DEPRIVED OF LIBERTY (PDL)', 29994.00, NULL, '2024-07-03', '2024-11-04', NULL, '2024-11-25', '2024-11-25', '2025-01-30', NULL, 10.76967781, 122.96322585, 'implemented', 1, 1, '2026-02-23 09:41:26', '2026-02-23 09:41:26'),
-(35, 'MUYCO', 'ARLENE', 'DOLOROSA', NULL, 'Female', 'Daga', 'CADIZ CITY', NULL, '09854967147', 'RICE RETAILING PROJECT', 'DISPLACED WORKER', 29994.00, NULL, '2024-08-06', '2024-11-04', NULL, '2024-11-25', '2024-11-25', '2025-01-30', NULL, 10.95066719, 123.27532601, 'implemented', 1, 1, '2026-02-23 09:41:26', '2026-02-23 09:41:26'),
-(36, 'NEMENZO', 'NATHANIEL', 'CANIETE', NULL, 'Male', 'Zone 16 (Pob.)', 'CITY OF TALISAY', NULL, '09630100943', 'RICE RETAILING PROJECT', 'PERSON DEPRIVED OF LIBERTY (PDL)', 29994.00, NULL, '2024-07-09', '2024-11-04', NULL, '2024-11-25', '2024-11-25', '2025-01-30', NULL, 10.75460279, 122.98072997, 'implemented', 1, 1, '2026-02-23 09:41:26', '2026-02-23 09:41:26'),
-(37, 'REYES', 'GEMALYN', 'VARGAS', NULL, 'Male', 'Mambulac', 'SILAY CITY', NULL, '09319934358', 'RICE RETAILING PROJECT', 'VENDOR', 29994.00, NULL, '2024-08-12', '2024-11-04', NULL, '2024-11-25', '2024-11-25', '2025-01-30', NULL, 10.79754251, 122.96773967, 'implemented', 1, 1, '2026-02-23 09:41:26', '2026-02-23 09:41:26'),
-(38, 'TOLMO', 'ROGER', 'TUAZON', 'JR.', 'Male', 'Barangay 29 (Pob.)', 'BACOLOD CITY (Capital)', NULL, '09773161932', 'RICE RETAILING PROJECT', 'PERSON DEPRIVED OF LIBERTY (PDL)', 29994.00, NULL, '2024-07-29', '2024-11-04', NULL, '2024-11-25', '2024-11-25', '2025-01-30', NULL, 10.66505829, 122.95041535, 'implemented', 1, 1, '2026-02-23 09:41:26', '2026-02-23 09:41:26'),
-(39, 'VALIAO', 'LUZVIMINDA', 'BELOS', NULL, 'Female', 'Camalanda-an', 'CAUAYAN', NULL, '09750349783', 'RICE RETAILING PROJECT', 'VENDOR', 29994.00, NULL, '2024-06-28', '2024-11-04', NULL, '2024-11-25', '2024-11-25', '2025-01-30', NULL, 9.86007154, 122.49670518, 'implemented', 1, 1, '2026-02-23 09:41:26', '2026-02-23 09:41:26'),
-(40, 'ALVARICO', 'ROGER', 'VALENZUELA', 'JR.', 'Male', 'Ma-ao Barrio', 'BAGO CITY', NULL, '09534173827', 'RICE RETAILING PROJECT', 'PERSON DEPRIVED OF LIBERTY (PDL)', 29994.00, NULL, '2024-09-09', '2024-11-04', NULL, NULL, NULL, '2025-01-30', NULL, 10.48757247, 122.99224934, 'implemented', 1, 1, '2026-02-23 09:41:26', '2026-02-23 09:41:26'),
-(41, 'ATILLAGA', 'FERDINAND', 'DELA CRUZ', NULL, 'Male', 'Poblacion', 'BAGO CITY', NULL, '09056662042', 'RICE RETAILING PROJECT', 'PERSON DEPRIVED OF LIBERTY (PDL)', 29994.00, NULL, '2024-09-10', '2024-11-04', NULL, NULL, NULL, '2025-01-30', NULL, 10.53587700, 122.83404702, 'implemented', 1, 1, '2026-02-23 09:41:26', '2026-02-23 09:41:26'),
-(42, 'BAYDID', 'MARK ANTHONY', 'GUEVARRA', NULL, 'Male', 'Poblacion', 'BAGO CITY', NULL, '09495805728', 'RICE RETAILING PROJECT', 'PERSON DEPRIVED OF LIBERTY (PDL)', 29994.00, NULL, '2024-09-09', '2024-11-04', NULL, NULL, NULL, '2025-01-30', NULL, 10.53593667, 122.83380425, 'implemented', 1, 1, '2026-02-23 09:41:26', '2026-02-23 09:41:26'),
-(43, 'BLANCO', 'GLEN', 'POL', NULL, 'Male', 'Poblacion', 'BAGO CITY', NULL, '09512465156', 'RICE RETAILING PROJECT', 'PERSON DEPRIVED OF LIBERTY (PDL)', 29994.00, NULL, '2024-09-09', '2024-11-04', NULL, NULL, NULL, '2025-01-30', NULL, 10.53590683, 122.83419875, 'implemented', 1, 1, '2026-02-23 09:41:26', '2026-02-23 09:41:26'),
-(44, 'GAMEZ', 'JOHN ELIEZER', 'PAGTAUGAN', NULL, 'Male', 'Binubuhan', 'BAGO CITY', NULL, '09942668352', 'RICE RETAILING PROJECT', 'PERSON DEPRIVED OF LIBERTY (PDL)', 29994.00, NULL, '2024-09-09', '2024-11-04', NULL, NULL, NULL, '2025-01-30', NULL, 10.45550355, 123.02291042, 'implemented', 1, 1, '2026-02-23 09:41:26', '2026-02-23 09:41:26'),
-(45, 'GOMEZ', 'ARMEL', 'MANALO-AN', NULL, 'Male', 'Poblacion', 'BAGO CITY', NULL, '09157142681', 'RICE RETAILING PROJECT', 'PERSON DEPRIVED OF LIBERTY (PDL)', 29994.00, NULL, '2024-09-11', '2024-11-04', NULL, NULL, NULL, '2025-01-30', NULL, 10.53934206, 122.83668158, 'implemented', 1, 1, '2026-02-23 09:41:26', '2026-02-23 09:41:26'),
-(46, 'GUILARAN', 'JOHNNY', 'DE LA CRUZ', NULL, 'Male', 'Poblacion', 'BAGO CITY', NULL, '09535990976', 'RICE RETAILING PROJECT', 'PERSON DEPRIVED OF LIBERTY (PDL)', 29994.00, NULL, '2024-09-09', '2024-11-04', NULL, NULL, NULL, '2025-01-30', NULL, 10.53937028, 122.83654123, 'implemented', 1, 1, '2026-02-23 09:41:26', '2026-02-23 09:41:26'),
-(47, 'KNITZ', 'MA. RONELIA', 'TIPAWAN', NULL, 'Female', 'Poblacion', 'BAGO CITY', NULL, '09196895922', 'RICE RETAILING PROJECT', 'PERSON DEPRIVED OF LIBERTY (PDL)', 29994.00, NULL, '2024-09-09', '2024-11-04', NULL, NULL, NULL, '2025-01-30', NULL, 10.53935460, 122.83644873, 'implemented', 1, 1, '2026-02-23 09:41:26', '2026-02-23 09:41:26'),
-(48, 'LAMELA', 'JOSE NARAMBULO', 'FERNANDEZ', NULL, 'Male', 'Poblacion', 'BAGO CITY', NULL, '09959603288', 'RICE RETAILING PROJECT', 'PERSON DEPRIVED OF LIBERTY (PDL)', 29994.00, NULL, '2024-09-09', '2024-11-04', NULL, NULL, NULL, '2025-01-30', NULL, 10.53934206, 122.83650615, 'implemented', 1, 1, '2026-02-23 09:41:26', '2026-02-23 09:41:26'),
-(49, 'MAGHARI', 'AMALIA', 'BEDONIA', NULL, 'Female', 'Lag-Asan', 'BAGO CITY', NULL, '09659820581', 'RICE RETAILING PROJECT', 'PERSON DEPRIVED OF LIBERTY (PDL)', 29994.00, NULL, '2024-09-09', '2024-11-04', NULL, NULL, NULL, '2025-01-30', NULL, 10.53045142, 122.83867827, 'implemented', 1, 1, '2026-02-23 09:41:26', '2026-02-23 09:41:26'),
-(50, 'MANZANO', 'DAR JOHNREY', 'GALVE', NULL, 'Male', 'Busay', 'BAGO CITY', NULL, '09104373482', 'RICE RETAILING PROJECT', 'PERSON DEPRIVED OF LIBERTY (PDL)', 29994.00, NULL, '2024-09-09', '2024-11-04', NULL, NULL, NULL, '2025-01-30', NULL, 10.54045304, 122.86825039, 'implemented', 1, 1, '2026-02-23 09:41:26', '2026-02-23 09:41:26'),
-(51, 'MARTINEZ', 'RUBEN', 'BILLIONES', NULL, 'Male', 'Poblacion', 'BAGO CITY', NULL, '09307911060', 'RICE RETAILING PROJECT', 'PERSON DEPRIVED OF LIBERTY (PDL)', 29994.00, NULL, '2024-09-09', '2024-11-04', NULL, NULL, NULL, '2025-01-30', NULL, 10.53933757, 122.83666627, 'implemented', 1, 1, '2026-02-23 09:41:26', '2026-02-23 09:41:26'),
-(52, 'PRADO', 'PEBRIL', 'LOBRIDO', NULL, 'Male', 'Taloc', 'BAGO CITY', NULL, '09661631316', 'RICE RETAILING PROJECT', 'PERSON DEPRIVED OF LIBERTY (PDL)', 29994.00, NULL, '2024-09-09', '2024-11-04', NULL, NULL, NULL, '2025-01-30', NULL, 10.57849710, 122.91018685, 'implemented', 1, 1, '2026-02-23 09:41:26', '2026-02-23 09:41:26'),
-(53, 'REPORAS', 'ANTONIO', 'ORNELIO', NULL, 'Male', 'Sagua Banua', 'VALLADOLID', NULL, '09515845335', 'RICE RETAILING PROJECT', 'PERSON DEPRIVED OF LIBERTY (PDL)', 29994.00, NULL, '2024-09-19', '2024-11-04', NULL, NULL, NULL, '2025-01-30', NULL, 10.45457418, 122.82981732, 'implemented', 1, 1, '2026-02-23 09:41:26', '2026-02-23 09:41:26'),
-(54, 'SUSPENE', 'MARJON', 'GINTELE', NULL, 'Male', 'Poblacion', 'BAGO CITY', NULL, '09122818074', 'RICE RETAILING PROJECT', 'PERSON DEPRIVED OF LIBERTY (PDL)', 29994.00, NULL, '2024-09-09', '2024-11-04', NULL, NULL, NULL, '2025-01-30', NULL, 10.53938115, 122.83649958, 'implemented', 1, 1, '2026-02-23 09:41:26', '2026-02-23 09:41:26'),
-(55, 'TUGAFF', 'DAFFNY JOY', 'LAGUNDAY', NULL, 'Female', 'Ma-ao Barrio', 'BAGO CITY', NULL, '09158764787', 'RICE RETAILING PROJECT', 'PERSON DEPRIVED OF LIBERTY (PDL)', 29994.00, NULL, '2024-09-09', '2024-11-04', NULL, NULL, NULL, '2025-01-30', NULL, 10.48774908, 122.99207277, 'implemented', 1, 1, '2026-02-23 09:41:26', '2026-02-23 09:41:26'),
-(56, 'VALIENDE', 'JOHN DOMINIC', 'VEGA', NULL, 'Male', 'Balingasag', 'BAGO CITY', NULL, '09122990760', 'RICE RETAILING PROJECT', 'PERSON DEPRIVED OF LIBERTY (PDL)', 29994.00, NULL, '2024-09-20', '2024-11-04', NULL, NULL, NULL, '2025-11-30', NULL, 10.52856023, 122.84298844, 'implemented', 1, 1, '2026-02-23 09:41:26', '2026-02-23 09:41:26'),
-(57, 'YULO', 'RENE', 'POBLADOR', NULL, 'Male', 'Poblacion', 'BAGO CITY', NULL, '09535990976', 'RICE RETAILING PROJECT', 'PERSON DEPRIVED OF LIBERTY (PDL)', 29994.00, NULL, '2024-09-09', '2024-11-04', NULL, NULL, NULL, '2025-01-30', NULL, 10.53934571, 122.83654725, 'implemented', 1, 1, '2026-02-23 09:41:26', '2026-02-23 09:41:26'),
-(58, 'DALIDA', 'MICHAEL', 'TAMESIS', NULL, 'Male', 'Poblacion', 'BAGO CITY', NULL, '09948458910', 'RICE RETAILING PROJECT', 'PERSON DEPRIVED OF LIBERTY (PDL)', 29994.00, NULL, '2024-09-10', '2024-11-05', NULL, '2024-11-25', '2024-11-25', '2025-01-30', NULL, 10.54218269, 122.84101012, 'implemented', 1, 1, '2026-03-09 08:10:58', '2026-03-09 08:10:58'),
-(59, 'ENRIQUEZ', 'MARY GRACE', 'TIPAWAN', NULL, 'Female', 'Poblacion', 'BAGO CITY', NULL, '09959603228', 'RICE RETAILING PROJECT', 'PERSON DEPRIVED OF LIBERTY (PDL)', 29994.00, NULL, '2024-09-09', '2024-11-05', NULL, '2024-11-25', '2024-11-25', '2025-01-30', NULL, 10.54218269, 122.84101012, 'implemented', 1, 1, '2026-03-09 08:10:58', '2026-03-09 08:10:58'),
-(60, 'GELISANGA', 'MICHELLE', 'ENRIQUEZ', NULL, 'Female', 'Lag-Asan', 'BAGO CITY', NULL, '09810558490', 'RICE RETAILING PROJECT', 'PERSON DEPRIVED OF LIBERTY (PDL)', 29994.00, NULL, '0224-09-09', '2024-11-05', NULL, '2024-11-25', '2024-11-25', '2025-01-30', NULL, 10.53018653, 122.83890915, 'implemented', 1, 1, '2026-03-09 08:10:58', '2026-03-09 08:10:58'),
-(61, 'GUARRA', 'ARTURO', 'NATIVIDAD', NULL, 'Male', 'Malingin', 'BAGO CITY', NULL, '09319791870', 'RICE RETAILING PROJECT', 'PERSON DEPRIVED OF LIBERTY (PDL)', 29994.00, NULL, '2024-09-09', '2024-11-05', NULL, '2024-11-25', '2024-11-25', '2025-01-30', NULL, 10.49393963, 122.91866488, 'implemented', 1, 1, '2026-03-09 08:10:58', '2026-03-09 08:10:58'),
-(62, 'GUARRA', 'ROLLY', 'TITO', NULL, 'Male', 'Sampinit', 'BAGO CITY', NULL, '09917501453', 'RICE RETAILING PROJECT', 'PERSON DEPRIVED OF LIBERTY (PDL)', 299400.00, NULL, '2024-09-09', '2024-11-05', NULL, '2024-11-25', '2024-11-25', '2025-01-30', NULL, 10.53811764, 122.85602478, 'implemented', 1, 1, '2026-03-09 08:10:58', '2026-03-09 08:10:58'),
-(63, 'GUILARAN', 'EDWIN', 'DALUMPPINES', NULL, 'Male', 'Poblacion', 'BAGO CITY', NULL, '09956490884', 'RICE RETAILING PROJECT', 'PERSON WITH DEPRIVED LIBERTY (PDL)', 29994.00, NULL, '2024-09-09', '2024-11-05', NULL, '2024-11-25', '2024-11-25', '2025-01-30', NULL, 10.53156611, 122.83579071, 'implemented', 1, 1, '2026-03-09 08:10:58', '2026-03-09 08:10:58'),
-(64, 'ISUBOL', 'GIOVANNE', 'ORCAJADA', NULL, 'Male', 'Caridad', 'BAGO CITY', NULL, '09648142783', 'RICE RETAILING PROJECT', 'PERSON WITH DEPRIVED LIBERTY (PDL)', 29994.00, NULL, '2024-09-10', '2024-11-05', NULL, '2024-11-25', '2024-11-25', '2025-01-30', NULL, 10.48426122, 122.89598691, 'implemented', 1, 1, '2026-03-09 08:10:58', '2026-03-09 08:10:58'),
-(65, 'JAMELANO', 'ROMEO', 'BAGATELA', 'JR', 'Male', 'Calumangan', 'BAGO CITY', NULL, '09454692488', 'RICE RETAILING PROJECT', 'PERSON WITH DEPRIVED LIBERTY (PDL)', 29994.00, NULL, '2024-09-09', '2024-11-05', NULL, '2024-11-24', '2024-11-25', '2025-01-30', NULL, 10.55849027, 122.88167194, 'implemented', 1, 1, '2026-03-09 08:10:58', '2026-03-09 08:10:58'),
-(66, 'MAGBANUA', 'CRISTINA', 'BAYLON', NULL, 'Female', 'Poblacion', 'BAGO CITY', NULL, '09858223029', 'RICE RETAILING PROJECT', 'PERSON WITH DEPRIVED LIBERTY (PDL)', 29994.00, NULL, '2024-09-09', '2024-11-05', NULL, '2024-11-25', '2024-11-25', '2025-01-30', NULL, 10.55284053, 122.89229802, 'implemented', 1, 1, '2026-03-09 08:10:58', '2026-03-09 08:10:58'),
-(67, 'MARTIR', 'ANTONIO', 'FERNANDEZ', 'JR', 'Male', 'Poblacion', 'BAGO CITY', NULL, '09127780762', 'RICE RETAILING PROJECT', 'PERSON WITH DEPRIVED LIBERTY (PDL)', 29994.00, NULL, '0204-09-10', '2024-11-05', NULL, '2024-11-25', '2024-11-25', '2025-01-30', NULL, 10.48548563, 122.88207475, 'implemented', 1, 1, '2026-03-09 08:10:58', '2026-03-09 08:10:58'),
-(68, 'NEGARE', 'EMMANUEL', 'MARTIR', NULL, 'Male', 'Poblacion', 'BAGO CITY', NULL, '094651437880', 'RICE RETAILING PROJECT', 'PERSON WITH DEPRIVED LIBERTY (PDL)', 29994.00, NULL, '2024-09-09', '2024-11-05', NULL, '2024-11-25', '2024-11-25', '2025-01-30', NULL, 10.54139550, 122.83828628, 'implemented', 1, 1, '2026-03-09 08:10:58', '2026-03-09 08:10:58'),
-(69, 'ROMO', 'ROGELIO', 'PERUELO', NULL, 'Male', 'Poblacion', 'BAGO CITY', NULL, '09460495263', 'RICE RETAILING PROJECT', 'PERSON WITH DEPRIVED LIBERTY (PDL)', 29994.00, NULL, '2024-09-10', '2024-11-05', NULL, '2024-11-25', '2024-11-25', '2025-01-30', NULL, 10.54546659, 122.83713942, 'implemented', 1, 1, '2026-03-09 08:10:58', '2026-03-09 08:10:58'),
-(70, 'SASAKI', 'MAICA', 'GELISANGA', NULL, 'Female', 'Lag-Asan', 'BAGO CITY', NULL, '09512465156', 'RICE RETAILING PROJECT', 'PERSON WITH DEPRIVED LIBERTY (PDL)', 29994.00, NULL, '2024-09-09', '2024-11-05', NULL, '2024-11-25', '2024-11-25', '2025-01-30', NULL, 10.53017544, 122.83860377, 'implemented', 1, 1, '2026-03-09 08:10:58', '2026-03-09 08:10:58'),
-(71, 'ALAYON', 'EDGAR', 'GUMBAN', NULL, 'Male', 'San Isidro', 'ENRIQUE B. MAGALONA (SARAVIA)', NULL, '09302020284', 'RICE RETAILING PROJECT', 'PERSON DEPRIVED OF LIBERTY (PDL)', 30000.00, NULL, '2025-07-28', '2025-08-15', NULL, NULL, NULL, '2025-12-10', NULL, 10.79508190, 123.14072715, 'implemented', 1, 1, '2026-03-09 08:10:58', '2026-03-09 08:10:58'),
-(72, 'SAYO', 'ARMANDO', 'ARAGON', NULL, 'Male', 'Napoles', 'BAGO CITY', NULL, '09104264443', 'RICE RETAILING PROJECT', 'PERSON WITH DEPRIVED LIBERTY (PDL)', 29994.00, NULL, '2024-09-09', '2024-11-05', NULL, '2024-11-25', '2024-11-25', '2025-01-30', NULL, 10.53945792, 122.83675636, 'implemented', 1, 1, '2026-03-09 08:10:58', '2026-03-09 08:10:58'),
-(73, 'SAYSON', 'ANTONIO', 'MONTINOLA', 'JR', 'Male', 'Napoles', 'BAGO CITY', NULL, '09056143328', 'RICE RETAILING PROJECT', 'PERSON WITH DEPRIVED LIBERTY (PDL)', 29994.00, NULL, '2024-09-09', '2024-11-05', NULL, '2024-11-25', '2024-11-25', '2025-01-30', NULL, 10.51272373, 122.89788469, 'implemented', 1, 1, '2026-03-09 08:10:58', '2026-03-09 08:10:58'),
-(74, 'SERVA', 'NIEL', 'MORATA', NULL, 'Male', 'Pacol', 'BAGO CITY', NULL, '09407675616', 'RICE RETAILING PROJECT', 'PERSON WITH DEPRIVED LIBERTY (PDL)', 29994.00, NULL, '2024-09-09', '2024-11-05', NULL, '2024-11-25', '2024-11-25', '2025-01-30', NULL, 10.50115967, 122.85935552, 'implemented', 1, 1, '2026-03-09 08:10:58', '2026-03-09 08:10:58'),
-(75, 'ALBA', 'ROMEO', 'PURILLO', NULL, 'Male', 'Salvacion', 'MURCIA', NULL, '09566111193', 'RICE RETAILING PROJECT', 'PERSON DEPRIVED OF LIBERTY (PDL)', 30000.00, NULL, '2025-08-06', '2025-08-15', NULL, NULL, NULL, '2025-12-10', NULL, 10.53586775, 123.08814319, 'implemented', 1, 1, '2026-03-09 08:10:58', '2026-03-09 08:10:58'),
-(76, 'SUMAGGA', 'RICHARD', 'JARDINICO', NULL, 'Male', 'Poblacion', 'BAGO CITY', NULL, 'N/A', 'RICE RETAILING PROJECT', 'PERSON WITH DEPRIVED LIBERTY (PDL)', 29994.00, NULL, '2024-09-09', '2024-11-05', NULL, '2024-11-25', '2025-11-25', '2025-01-30', NULL, 10.53948280, 122.83663911, 'implemented', 1, 1, '2026-03-09 08:10:58', '2026-03-09 08:10:58'),
-(77, 'TAGOBADER', 'RONEL', 'MAHILUM', NULL, 'Male', 'Ma-ao Barrio', 'BAGO CITY', NULL, '09632180213', 'RICE RETAILING PROJECT', 'PERSON WITH DEPRIVED LIBERTY (PDL)', 29994.00, NULL, '2024-09-09', '2024-11-05', NULL, '2024-11-25', '2024-11-25', '2025-01-30', NULL, 10.48769482, 122.99223094, 'implemented', 1, 1, '2026-03-09 08:10:58', '2026-03-09 08:10:58'),
-(78, 'ANDOJAR', 'ANGELITO', 'OLVIDENCA', NULL, 'Male', 'Salvacion', 'MURCIA', NULL, '09488931569', 'RICE RETAILING PROJECT', 'PERSON DEPRIVED OF LIBERTY (PDL)', 30000.00, NULL, '2025-08-06', '2025-08-15', NULL, NULL, NULL, '2025-12-10', NULL, 10.60853398, 123.05383424, 'implemented', 1, 1, '2026-03-09 08:10:58', '2026-03-09 08:10:58'),
-(79, 'AQUINO', 'VIRGILIO', 'ESPAÑOLA', NULL, 'Male', 'Cabagnaan', 'LA CASTELLANA', NULL, '09859873138', 'RICE RETAILING PROJECT', 'PERSON DEPRIVED OF LIBERTY (PDL)', 30000.00, NULL, '2025-08-06', '2025-08-15', NULL, NULL, NULL, '2025-12-10', NULL, 10.36379295, 123.11902218, 'implemented', 1, 1, '2026-03-09 08:10:58', '2026-03-09 08:10:58'),
-(80, 'ANTONARES', 'ELEANOR', 'ESCARION', NULL, 'Female', 'Zone 3 (Pob.)', 'CITY OF TALISAY', NULL, '09637614112', 'RICE RETAILING PROJECT', 'PERSON WITH DEPRIVED LIBERTY (PDL)', 30000.00, NULL, '2025-03-17', '2025-08-11', NULL, '2025-08-11', '2025-08-11', '2025-12-10', NULL, 10.74381840, 122.96331337, 'implemented', 1, 1, '2026-03-09 08:10:58', '2026-03-09 08:10:58'),
-(81, 'BARNIZO', 'RODELO', 'GALAGATE', NULL, 'Male', 'Pahanocoy', 'BACOLOD CITY (Capital)', NULL, '09092073743', 'RICE RETAILING PROJECT', 'PERSON DEPRIVED OF LIBERTY (PDL)', 30000.00, NULL, '2025-07-14', '2025-08-15', NULL, NULL, NULL, '2025-12-10', NULL, 10.61039851, 122.93239293, 'implemented', 1, 1, '2026-03-09 08:10:58', '2026-03-09 08:10:58'),
-(82, 'GANE', 'SILVENO', 'BAGAFORO', 'JR', 'Male', 'Nato', 'LA CASTELLANA', NULL, '09934826042', 'RICE RETAILING PROJECT', 'PERSON DEPRIVED OF LIBERTY (PDL)', 30000.00, NULL, '2025-08-04', '2025-08-15', NULL, NULL, NULL, '2025-12-10', NULL, 10.31972752, 123.01981312, 'implemented', 1, 1, '2026-03-09 08:10:58', '2026-03-09 08:10:58'),
-(83, 'CRUZ', 'RONALD', 'CATUGURAN', NULL, 'Male', 'Zone 12 (Pob.)', 'CITY OF TALISAY', NULL, '09638674564', 'RICE RETAILING PROJECT', 'PERSON WITH DEPRIVED LIBERTY (PDL)', 30000.00, NULL, '2025-03-17', '2025-08-11', NULL, '2025-08-11', '2025-08-11', '2025-12-11', NULL, 10.73806184, 122.96981892, 'implemented', 1, 1, '2026-03-09 08:10:58', '2026-03-09 08:10:58'),
-(84, 'GESULGON', 'CHRISTINE', 'DEPRA', NULL, 'Female', 'Barangay II (Pob.)', 'HINIGARAN', NULL, '09704763259', 'RICE RETAILING PROJECT', 'PERSON DEPRIVED OF LIBERTY (PDL)', 30000.00, NULL, '2025-07-24', '2025-08-15', NULL, NULL, NULL, '2025-12-10', NULL, 10.27284040, 122.84723817, 'implemented', 1, 1, '2026-03-09 08:10:58', '2026-03-09 08:10:58'),
-(85, 'ELECCIONES', 'STEVE', 'GERNALIN', NULL, 'Male', 'Zone 2 (Pob.)', 'CITY OF TALISAY', NULL, '09306208740', 'RICE RETAILING PROJECT', 'PERSON WITH DEPRIVED LIBERTY (PDL)', 30000.00, NULL, '2025-03-17', '2025-08-11', NULL, '2025-08-11', '2025-08-11', '2025-12-11', NULL, 10.74455264, 122.96898167, 'implemented', 1, 1, '2026-03-09 08:10:58', '2026-03-09 08:10:58'),
-(86, 'POLITICO', 'RAMON', 'ROSAL', 'II', 'Male', 'Barangay II (Pob.)', 'LA CARLOTA CITY', NULL, '09947366998', 'RICE RETAILING PROJECT', 'PERSON DEPRIVED OF LIBERTY (PDL)', 30000.00, NULL, '2025-08-06', '2025-08-15', NULL, NULL, NULL, '2025-12-18', NULL, 10.42727768, 122.91723231, 'implemented', 1, 1, '2026-03-09 08:10:58', '2026-03-09 08:10:58'),
-(87, 'SAMPONG', 'ROMEO', 'GONZALES', NULL, 'Male', 'Iglau-an', 'MURCIA', NULL, '09610967734', 'RICE RETAILING PROJECT', 'PERSON DEPRIVED OF LIBERTY (PDL)', 30000.00, NULL, '2025-08-06', '2025-08-15', NULL, NULL, NULL, '2025-12-10', NULL, 10.56788380, 123.06000976, 'implemented', 1, 1, '2026-03-09 08:10:58', '2026-03-09 08:10:58'),
-(88, 'ESTANOL', 'JEFF BRYAN', 'N/A', NULL, 'Male', 'Dos Hermanas', 'CITY OF TALISAY', NULL, '09648937475', 'RICE RETAILING PROJECT', 'PERSON WITH DEPRIVED LIBERTY (PDL)', 30000.00, NULL, '2025-03-17', '2025-08-11', NULL, '2025-08-11', '2025-08-11', '2025-12-10', NULL, 10.74291365, 123.03673217, 'implemented', 1, 1, '2026-03-09 08:10:58', '2026-03-09 08:10:58'),
-(89, 'TOLENTINO', 'ALBERTO', 'RAMOS', NULL, 'Male', 'San Isidro', 'ENRIQUE B. MAGALONA (SARAVIA)', NULL, '09302020284', 'RICE RETAILING PROJECT', 'PERSON DEPRIVED OF LIBERTY (PDL)', 30000.00, NULL, '2025-07-28', '2025-08-15', NULL, NULL, NULL, '2025-12-10', NULL, 10.77972272, 123.16825865, 'implemented', 1, 1, '2026-03-09 08:10:58', '2026-03-09 08:10:58'),
-(90, 'TOLENTINO', 'JOE ALLAN', 'RAMOS', NULL, 'Male', 'San Isidro', 'ENRIQUE B. MAGALONA (SARAVIA)', NULL, '09082270707', 'RICE RETAILING PROJECT', 'PERSON DEPRIVED OF LIBERTY (PDL)', 30000.00, NULL, '2025-08-04', '2025-08-15', NULL, NULL, NULL, '2025-12-10', NULL, 10.77972272, 123.16825865, 'implemented', 1, 1, '2026-03-09 08:10:58', '2026-03-09 08:10:58'),
-(91, 'JACILDO', 'JAY', 'TOMA-AN', NULL, 'Male', 'Bubog', 'CITY OF TALISAY', NULL, '09949908936', 'RICE RETAILING PROJECT', 'PERSON WITH DEPRIVED LIBERTY (PDL)', 30000.00, NULL, '2025-03-17', '2025-08-11', NULL, '2025-08-11', '2025-08-11', '2025-12-10', NULL, 10.77293139, 122.96287786, 'implemented', 1, 1, '2026-03-09 08:10:58', '2026-03-09 08:10:58'),
-(92, 'JUGADO', 'RONA', 'LAMAYO', NULL, 'Female', 'Zone 4-A (Pob.)', 'CITY OF TALISAY', NULL, '09509944300', 'RICE RETAILING PROJECT', 'PERSON DEPRIVED OF LIBERTY (PDL)', 30000.00, NULL, '2025-03-17', '2025-08-11', NULL, NULL, NULL, '2025-12-10', NULL, 10.73994203, 122.96602093, 'implemented', 1, 1, '2026-03-09 08:10:58', '2026-03-09 08:10:58'),
-(93, 'LABAYEN', 'PAUL VINCENT', 'MALUNES', NULL, 'Male', 'Zone 12 (Pob.)', 'CITY OF TALISAY', NULL, '09771290081', 'RICE RETAILING PROJECT', 'PERSON DEPRIVED OF LIBERTY (PDL)', 30000.00, NULL, '2025-03-17', '2025-08-11', NULL, NULL, NULL, '2025-12-10', NULL, 10.71931886, 123.01426642, 'implemented', 1, 1, '2026-03-09 08:10:58', '2026-03-09 08:10:58'),
-(94, 'LAMBOSON', 'JOEMARIE', 'JIMENEZ', 'JR', 'Male', 'Zone 12-A (Pob.)', 'CITY OF TALISAY', NULL, '09543194667', 'RICE RETAILING PROJECT', 'PERSON DEPRIVED OF LIBERTY (PDL)', 30000.00, NULL, '2025-03-17', '2025-08-11', NULL, NULL, NULL, '2025-12-10', NULL, 10.73519564, 122.97484977, 'implemented', 1, 1, '2026-03-09 08:10:58', '2026-03-09 08:10:58'),
-(95, 'MALCO', 'JOSHUA', 'ESCOTOTO', NULL, 'Male', 'Zone 12-A (Pob.)', 'CITY OF TALISAY', NULL, '09167688969', 'RICE RETAILING PROJECT', 'PERSON DEPRIVED OF LIBERTY (PDL)', 30000.00, NULL, '2025-03-17', '2025-08-11', NULL, NULL, NULL, '2025-12-10', NULL, 10.74003050, 122.97544028, 'implemented', 1, 1, '2026-03-09 08:10:58', '2026-03-09 08:10:58'),
-(96, 'OÑAS', 'LERO JANICE', 'DELLERA', NULL, 'Female', 'Zone 12-A (Pob.)', 'CITY OF TALISAY', NULL, '09638079377', 'RICE RETAILING PROJECT', 'PERSON DEPRIVED OF LIBERTY (PDL)', 30000.00, NULL, '2025-03-17', '2025-08-11', NULL, NULL, NULL, '2025-12-10', NULL, 10.73996725, 122.97537591, 'implemented', 1, 1, '2026-03-09 08:10:58', '2026-03-09 08:10:58'),
-(97, 'SERAPIO', 'GARRY', 'BUENAFLOR', NULL, 'Male', 'Katilingban', 'CITY OF TALISAY', NULL, '09093932603', 'RICE RETAILING PROJECT', 'PERSON DEPRIVED OF LIBERTY (PDL)', 30000.00, NULL, '2025-03-17', '2025-08-11', NULL, NULL, NULL, '2025-12-10', NULL, 10.71768747, 123.09519883, 'implemented', 1, 1, '2026-03-09 08:10:58', '2026-03-09 08:10:58'),
-(98, 'SUANQUE', 'GREYLAN CURT', 'LOMILLO', NULL, 'Male', 'Zone 4 (Pob.)', 'CITY OF TALISAY', NULL, '09460317809', 'RICE RETAILING PROJECT', 'PERSON DEPRIVED OF LIBERTY (PDL)', 30000.00, NULL, '2025-03-17', '2025-08-11', NULL, NULL, NULL, '2025-12-10', NULL, 10.73860886, 122.97111259, 'implemented', 1, 1, '2026-03-09 08:10:58', '2026-03-09 08:10:58');
+(1, 'TINGAL', 'RODELIO', 'JOVEN', '', 'Male', 'Buenavista', 'CITY OF ESCALANTE', 'Negros Occidental', '09569154990', 'INTEGRATED FISHING AND RICE RETAILING PROJECT', 'FORMER PDL', 50000.00, '', '2026-03-18', '2026-03-26', '', '2026-03-26', NULL, NULL, NULL, 10.80034590, 123.55377300, 'approved', 3, 3, '2026-05-07 09:54:34', '2026-05-07 10:00:40'),
+(2, 'FUNDADOR', 'ALFREDO', 'SANOY', '', 'Male', 'Tabu', 'ILOG', 'Negros Occidental', '09383458405', 'COMMODITY STORE', 'FORMER PDL', 50000.00, '', '2026-03-18', '2026-03-26', '', '2026-03-26', NULL, NULL, NULL, 9.89268280, 122.70999190, 'approved', 3, 3, '2026-05-07 10:06:40', '2026-05-11 05:22:30'),
+(3, 'MORANDARTE', 'NESTOR', 'LECEÑA', '', 'Male', 'Tigbon', 'CALATRAVA', 'Negros Occidental', '09222731174', 'COMMODITIES STORE', 'FORMER PDL', 50000.00, '', '2026-03-18', '2026-03-26', '', '2026-03-26', NULL, NULL, NULL, 10.61244970, 123.44550320, 'approved', 3, 3, '2026-05-07 10:09:01', '2026-05-07 10:09:01'),
+(4, 'PELINGON', 'RODOLFO', 'FUERTES', 'JR', 'Male', 'Barangay VIII (Pob.)', 'CITY OF VICTORIAS', 'Negros Occidental', '09462656968', 'COMMODITY STORE', 'FORMER PDL', 50000.00, '', '2026-03-18', '2026-03-26', '', '2026-03-26', NULL, NULL, NULL, 10.90134120, 123.07149430, 'approved', 3, 3, '2026-05-07 10:11:15', '2026-05-07 10:11:15'),
+(5, 'CONDES', 'DIOSDADO', 'SAMPIT', '', 'Male', 'Granada', 'BACOLOD CITY (Capital)', 'Negros Occidental', '09816385325', 'RICE RETAILING', 'FORMER PDL', 50000.00, '', '2026-03-18', '2026-03-26', '', '2026-03-26', NULL, NULL, NULL, 10.66600000, 123.03450000, 'approved', 3, 3, '2026-05-07 10:14:05', '2026-05-11 09:43:25'),
+(6, 'BEGASA', 'NAPOLEON', 'JAPITAN', 'III', 'Male', 'Estefania', 'BACOLOD CITY (Capital)', 'Negros Occidental', '09289351404', 'RICE RETAILING', 'FORMER PDL', 50000.00, '', '2026-03-18', '2026-03-26', '', '2026-03-26', NULL, NULL, NULL, 10.66980000, 122.98740000, 'approved', 3, 3, '2026-05-07 10:16:11', '2026-05-11 09:45:23'),
+(7, 'CARMONA', 'EDEN', 'OLMO', '', 'Male', 'Barangay 12 (Pob.)', 'BACOLOD CITY (Capital)', 'Negros Occidental', '09701072482', 'RICE RETAILING', 'FORMER PDL', 50000.00, '', '2026-03-18', '2026-03-26', '', '2026-03-26', NULL, NULL, NULL, 10.68340000, 122.95060000, 'approved', 3, 3, '2026-05-07 10:18:10', '2026-05-11 09:47:58'),
+(8, 'CACERES', 'LAZARITO', 'PAMINTU-AN', 'JR', 'Male', 'Barangay 16 (Pob.)', 'BACOLOD CITY (Capital)', 'Negros Occidental', '09090419503', 'RICE RETAILING', 'FORMER PDL', 50000.00, '', '2026-03-18', '2026-03-26', '', '2026-03-26', NULL, NULL, NULL, 10.66600000, 122.93920000, 'approved', 3, 3, '2026-05-07 10:20:09', '2026-05-11 09:50:05'),
+(9, 'CAUSING', 'REZ', 'DOLOROSA', '', 'Male', 'Barangay XIX-A', 'CITY OF VICTORIAS', 'Negros Occidental', '09457964237', 'RICE RETAILING', 'FORMER PDL', 50000.00, '', '2026-03-18', '2026-03-26', '', '2026-03-26', NULL, NULL, NULL, 10.90134120, 123.07149430, 'approved', 3, 3, '2026-05-07 10:23:19', '2026-05-07 10:23:19'),
+(10, 'CHAVEZ', 'ERICKSON', 'SANGRENES', '', 'Male', 'Daga', 'CADIZ CITY', 'Negros Occidental', '09543198432', 'RICE RETAILING', 'FORMER PDL', 50000.00, '', '2026-03-18', '2026-03-26', '', '2026-03-26', NULL, NULL, NULL, 10.94812490, 123.28467940, 'approved', 3, 3, '2026-05-07 10:26:25', '2026-05-07 10:26:25'),
+(11, 'ESTOLANO', 'JONATHAN', 'LOGRONIO', '', 'Male', 'Barangay 2 (Pob.)', 'BACOLOD CITY (Capital)', 'Negros Occidental', '09338611441', 'COMMODITY STORE', 'FORMER PDL', 50000.00, '', '2026-03-18', '2026-03-26', '', '2026-03-26', '2026-05-08', '2026-05-08', NULL, 10.68340000, 122.95060000, 'approved', 6, 3, '2026-05-10 09:56:51', '2026-05-11 10:10:47'),
+(12, 'CONDES', 'SAMSON', 'SAMPIT', '', 'Male', 'Granada', 'BACOLOD CITY (Capital)', 'Negros Occidental', '09164361106', 'COMMODITIES STORE', 'FORMER PDL', 50000.00, '', '2026-03-25', '2026-03-26', '', '2026-03-26', NULL, NULL, NULL, 10.66600000, 123.03450000, 'approved', 3, 3, '2026-05-11 01:14:26', '2026-05-11 10:01:13'),
+(13, 'SERUELO', 'LENNY', 'LIBO-ON', '', 'Female', 'Handumanan', 'BACOLOD CITY (Capital)', 'Negros Occidental', '09462656968', 'COMMODITY STORE', 'DISPLACED WORKER', 50000.00, '', '2026-03-25', '2026-03-26', '', '2026-03-26', NULL, NULL, NULL, 10.60660000, 122.96580000, 'approved', 3, 3, '2026-05-11 01:19:02', '2026-05-11 09:08:36'),
+(14, 'ABAJA', 'FRANKLIN', 'MATULA', '', 'Male', 'Binicuil', 'CITY OF KABANKALAN', 'Negros Occidental', '09954869883', 'RICE RETAILING', 'FORMER PDL', 50000.00, '', '2026-03-25', '2026-03-26', '', '2026-03-26', NULL, NULL, NULL, 10.02160700, 122.82199380, 'approved', 3, 3, '2026-05-11 01:22:59', '2026-05-11 01:22:59'),
+(15, 'ARZAGA', 'DELMER', 'PADASAS', '', 'Male', 'Bagroy', 'BINALBAGAN', 'Negros Occidental', '09678166446', 'RICE RETAILING', 'FORMER PDL', 50000.00, '', '2026-03-25', '2026-03-26', '', '2026-03-26', NULL, NULL, NULL, 10.20550500, 122.94481810, 'approved', 3, 3, '2026-05-11 01:42:00', '2026-05-11 01:42:00'),
+(16, 'CAÑETE', 'RANDY', 'LUMOGDANG', '', 'Male', 'Sag-Ang', 'LA CASTELLANA', 'Negros Occidental', '09922990564', 'RICE RETAILING', 'FORMER PDL', 50000.00, '', '2026-03-25', '2026-03-26', '', '2026-03-26', NULL, NULL, NULL, 10.37020240, 123.08286820, 'approved', 3, 3, '2026-05-11 01:45:05', '2026-05-11 01:45:05'),
+(17, 'CARAY', 'JOHN KENNETH', 'OTILLA', '', 'Male', 'Nato', 'LA CASTELLANA', 'Negros Occidental', '09090419503', 'RICE RETAILING', 'FORMER PDL', 50000.00, '', '2026-03-25', '2026-03-26', '', '2026-03-26', NULL, NULL, NULL, 10.31436970, 122.98909300, 'approved', 3, 3, '2026-05-11 01:47:55', '2026-05-11 01:47:55'),
+(18, 'CONDE', 'JUDY', 'GALLEGO', '', 'Male', 'Banago', 'BACOLOD CITY (Capital)', 'Negros Occidental', '09457964237', 'RICE RETAILING', 'FORMER PDL', 50000.00, '', '2026-03-26', '2026-03-26', '', '2026-03-26', NULL, NULL, NULL, 10.70360000, 122.95010000, 'approved', 3, 3, '2026-05-11 01:50:43', '2026-05-11 09:39:03'),
+(19, 'CONDE', 'DARIUS', 'GALLEGO', '', 'Male', 'Banago', 'BACOLOD CITY (Capital)', 'Negros Occidental', '09946027885', 'RICE RETAILING', 'FORMER PDL', 50000.00, '', '2026-03-18', '2026-03-26', '', '2026-03-26', NULL, NULL, NULL, 10.70360000, 122.95010000, 'approved', 3, 3, '2026-05-11 01:52:49', '2026-05-11 09:36:48'),
+(20, 'CONTIGA', 'ROGELIO', 'MAHINAY', '', 'Male', 'Bacong-Montilla', 'BAGO CITY', 'Negros Occidental', '09771293405', 'RICE RETAILING', 'FORMER PDL', 50000.00, '', '2026-03-25', '2026-03-26', '', '2026-03-26', NULL, NULL, NULL, 10.51894560, 123.03455930, 'approved', 3, 3, '2026-05-11 02:11:28', '2026-05-11 02:11:28'),
+(21, 'DIAMANTE', 'ROBERTO', 'ESPARAGOSA', '', 'Male', 'Robles (Pob.)', 'LA CASTELLANA', 'Negros Occidental', '09307062521', 'RICE RETAILING', 'FORMER PDL', 50000.00, '', '2026-03-25', '2026-03-26', '', '2026-03-26', NULL, NULL, NULL, 10.32304980, 123.01874180, 'approved', 3, 3, '2026-05-11 02:14:55', '2026-05-11 02:14:55'),
+(22, 'DIANONGCO', 'JANILO', 'GABASAN', '', 'Male', 'Aguisan', 'CITY OF HIMAMAYLAN', 'Negros Occidental', '09629721752', 'RICE RETAILING', 'FORMER PDL', 50000.00, '', '2026-03-25', '2026-03-26', '', '2026-03-26', NULL, NULL, NULL, 10.12477920, 122.88793290, 'approved', 3, 3, '2026-05-11 02:17:17', '2026-05-11 02:17:17'),
+(23, 'DIAZ', 'JAMES', 'SABECO', '', 'Male', 'Aguisan', 'CITY OF HIMAMAYLAN', 'Negros Occidental', '09129819987', 'RICE RETAILING', 'FORMER PDL', 50000.00, '', '2026-03-25', '2026-03-26', '', '2026-03-26', NULL, NULL, NULL, 10.12477920, 122.88793290, 'approved', 3, 3, '2026-05-11 02:19:18', '2026-05-11 02:19:18'),
+(24, 'DUENA', 'JOEL', 'BIRONDO', '', 'Male', 'Zone 12 (Pob.)', 'CITY OF TALISAY', 'Negros Occidental', '09850803980', 'RICE RETAILING', 'FORMER PDL', 50000.00, '', '2026-03-25', '2026-03-26', '', '2026-03-26', NULL, NULL, NULL, 10.73726490, 122.96733250, 'approved', 3, 3, '2026-05-11 02:21:46', '2026-05-11 02:21:46'),
+(25, 'ESMAYAN', 'JOE-AN', 'PEBRIO', '', 'Male', 'Tagda', 'HINIGARAN', 'Negros Occidental', '09703885130', 'RICE RETAILING', 'FORMER PDL', 50000.00, '', '2026-03-25', '2026-03-26', '', '2026-03-26', NULL, NULL, NULL, 10.26558830, 122.84428370, 'approved', 3, 3, '2026-05-11 02:24:06', '2026-05-11 02:24:06'),
+(26, 'ESMAYAN', 'ROBERTO', 'MONDEJAR', '', 'Male', 'Tagda', 'HINIGARAN', 'Negros Occidental', '09703885130', 'RICE RETAILING', 'FORMER PDL', 50000.00, '', '2026-03-25', '2026-03-26', '', '2026-03-26', NULL, NULL, NULL, 10.26558830, 122.84428370, 'approved', 3, 3, '2026-05-11 02:28:54', '2026-05-11 02:28:54'),
+(27, 'GABUCAY', 'GARRY', 'ARSENAL', '', 'Male', 'Tapi', 'CITY OF KABANKALAN', 'Negros Occidental', '09682183445', 'RICE RETAILING', 'FORMER PDL', 50000.00, '', '2026-03-25', '2026-03-26', '', '2026-03-26', NULL, NULL, NULL, 9.82967430, 122.75483960, 'approved', 3, 3, '2026-05-11 02:31:45', '2026-05-11 02:31:45'),
+(28, 'GARCIA', 'RICHARD JOHN', 'ROSITE', '', 'Male', 'Daga', 'CADIZ CITY', 'Negros Occidental', '09277994854', 'RICE RETAILING', 'FORMER PDL', 50000.00, '', '2026-03-25', '2026-03-26', '', '2026-03-26', NULL, NULL, NULL, 10.96570670, 123.29100930, 'approved', 3, 3, '2026-05-11 02:38:02', '2026-05-11 02:38:02'),
+(29, 'GUANGCO', 'ALFIO', 'ORBEGUSO', '', 'Male', 'Tinongan', 'ISABELA', 'Negros Occidental', '09488011749', 'RICE RETAILING', 'FORMER PDL', 50000.00, '', '2026-03-25', '2026-03-26', '', '2026-03-26', NULL, NULL, NULL, 10.21414770, 123.03193050, 'approved', 3, 3, '2026-05-11 02:40:55', '2026-05-11 02:40:55'),
+(30, 'LARA', 'ROBERTO', 'MABANSAG', '', 'Male', 'Concepcion', 'CITY OF TALISAY', 'Negros Occidental', '09156296668', 'RICE RETAILING', 'FORMER PDL', 50000.00, '', '2026-03-25', '2026-03-26', '', '2026-03-26', NULL, NULL, NULL, 10.69218440, 123.05851050, 'approved', 3, 3, '2026-05-11 02:42:58', '2026-05-11 02:42:58'),
+(31, 'LOZADA', 'REYNALDO', 'SALOPESA', '', 'Male', 'Talacdan', 'CAUAYAN', 'Negros Occidental', '09107815795', 'RICE RETAILING', 'FORMER PDL', 50000.00, '', '2026-03-25', '2026-03-26', '', '2026-03-26', NULL, NULL, NULL, 9.86640210, 122.68526760, 'approved', 3, 3, '2026-05-11 02:45:42', '2026-05-11 02:45:42'),
+(32, 'MAG-ARO', 'JIMMY', 'GILLANG', '', 'Male', 'Cabacungan', 'LA CASTELLANA', 'Negros Occidental', '09071825872', 'RICE RETAILING', 'FORMER PDL', 50000.00, '', '2026-03-25', '2026-03-26', '', '2026-03-26', NULL, NULL, NULL, 10.32440310, 123.13285390, 'approved', 3, 3, '2026-05-11 02:48:07', '2026-05-11 02:48:07'),
+(33, 'MAGDATO', 'RENE', 'MANDOLADO', '', 'Male', 'Taloc', 'BAGO CITY', 'Negros Occidental', '09534153056', 'RICE RETAILING', 'FORMER PDL', 50000.00, '', '2026-03-25', '2026-03-26', '', '2026-03-26', NULL, NULL, NULL, 10.58682110, 122.89632340, 'approved', 3, 3, '2026-05-11 02:50:26', '2026-05-11 02:50:26'),
+(34, 'MAGDATO', 'REYNALDO', 'MANDOLADO', '', 'Male', 'Mabini', 'VALLADOLID', 'Negros Occidental', '0938384009', 'RICE RETAILING', 'FORMER PDL', 50000.00, '', '2026-03-25', '2026-03-26', '', '2026-03-26', NULL, NULL, NULL, 10.49329100, 122.83391770, 'approved', 3, 3, '2026-05-11 02:53:50', '2026-05-11 02:53:50'),
+(35, 'NAVIDA', 'MARIO', 'ESMAYAN', '', 'Male', 'Tagda', 'HINIGARAN', 'Negros Occidental', '09703885130', 'RICE RETAILING', 'FORMER PDL', 50000.00, '', '2026-03-25', '2026-03-26', '', '2026-03-26', NULL, NULL, NULL, 10.26558830, 122.84428370, 'approved', 3, 3, '2026-05-11 02:59:28', '2026-05-11 02:59:28'),
+(36, 'JUDILLA', 'LORENZ', 'JORDAN', '', 'Male', 'Barangay III (Pob.)', 'CITY OF HIMAMAYLAN', 'Negros Occidental', '09777163028', 'RICE RETAILING', 'FORMER PDL', 50000.00, '', '2026-03-25', '2026-03-26', '', '2026-03-26', NULL, NULL, NULL, 10.09928410, 122.87053900, 'approved', 3, 3, '2026-05-11 03:02:14', '2026-05-11 03:02:14'),
+(37, 'LACHICA', 'BERNIE', 'LACANARIA', '', 'Male', 'Zone 10 (Pob.)', 'CITY OF TALISAY', 'Negros Occidental', '09300689955', 'RICE RETAILING', 'FORMER PDL', 50000.00, '', '2026-03-25', '2026-03-26', '', '2026-03-26', NULL, NULL, NULL, 10.73726490, 122.96733250, 'approved', 3, 3, '2026-05-11 03:04:32', '2026-05-11 03:04:32'),
+(38, 'OLIVERIO', 'JESSIE', 'ANTONIO', '', 'Male', 'Cabacungan', 'LA CASTELLANA', 'Negros Occidental', '09859741740', 'RICE RETAILING', 'FORMER PDL', 50000.00, '', '2026-03-25', '2026-03-26', '', '2026-03-26', NULL, NULL, NULL, 10.32440310, 123.13285390, 'approved', 3, 3, '2026-05-11 03:07:21', '2026-05-11 03:07:21'),
+(39, 'PACUNLA', 'PRUDENCIO', 'DINOLAN', '', 'Male', 'Tiling', 'CAUAYAN', 'Negros Occidental', '09194101347', 'RICE RETAILING', 'FORMER PDL', 50000.00, '', '2026-03-25', '2026-03-26', '', '2026-03-26', NULL, NULL, NULL, 9.97466990, 122.65359860, 'approved', 3, 3, '2026-05-11 03:09:23', '2026-05-11 03:09:23'),
+(40, 'PADILLA', 'EDWIN', 'SALES', '', 'Male', 'Binicuil', 'CITY OF KABANKALAN', 'Negros Occidental', '09776624255', 'RICE RETAILING', 'FORMER PDL', 50000.00, '', '2026-03-25', '2026-03-26', '', '2026-03-26', NULL, NULL, NULL, 10.02160700, 122.82199380, 'approved', 3, 3, '2026-05-11 03:12:30', '2026-05-11 03:12:30'),
+(41, 'PALMA', 'RENATO', 'DELA CRUZ', '', 'Male', 'Luna', 'CADIZ CITY', 'Negros Occidental', '09383741370', 'RICE RETAILING', 'FORMER PDL', 50000.00, '', '2026-03-25', '2026-03-26', '', '2026-03-26', NULL, NULL, NULL, 10.95816020, 123.24000810, 'approved', 3, 3, '2026-05-11 03:15:14', '2026-05-11 03:15:14'),
+(42, 'PIDOY', 'LEONILO', 'LANGRIO', '', 'Male', 'Barangay II (Pob.)', 'CITY OF VICTORIAS', 'Negros Occidental', '09169545228', 'RICE RETAILING', 'FORMER PDL', 50000.00, '', '2026-03-25', '2026-03-26', '', '2026-03-26', NULL, NULL, NULL, 10.90134120, 123.07149430, 'approved', 3, 3, '2026-05-11 03:17:45', '2026-05-11 03:17:45'),
+(43, 'QUINDO', 'DELBERT', 'PLACENCIA', '', 'Male', 'Antipolo', 'PONTEVEDRA', 'Negros Occidental', '09675231296', 'RICE RETAILING', 'FORMER PDL', 50000.00, '', '2026-03-25', '2026-03-26', '', '2026-03-26', NULL, NULL, NULL, 10.35695060, 122.96388600, 'approved', 3, 3, '2026-05-11 03:20:40', '2026-05-11 03:20:40'),
+(44, 'SADIASA', 'CRISPIN', 'HERVAS', '', 'Male', 'Sag-Ang', 'LA CASTELLANA', 'Negros Occidental', '0954377420', 'RICE RETAILING', 'FORMER PDL', 50000.00, '', '2026-03-25', '2026-03-26', '', '2026-03-26', NULL, NULL, NULL, 10.37020240, 123.08286820, 'approved', 3, 3, '2026-05-11 03:23:01', '2026-05-11 03:23:01'),
+(45, 'SEPE', 'FELISA', 'MONARES', '', 'Female', 'Alijis', 'VALLADOLID', 'Negros Occidental', '09953495224', 'RICE RETAILING', 'KIA', 50000.00, '', '2026-03-25', '2026-03-26', '', '2026-03-26', NULL, NULL, NULL, 10.44844840, 122.84868260, 'approved', 3, 3, '2026-05-11 03:26:34', '2026-05-11 03:26:34'),
+(46, 'SERMONIA', 'ARIEL', 'ESPOSO', '', 'Male', 'Aguisan', 'CITY OF HIMAMAYLAN', 'Negros Occidental', '09097230806', 'RICE RETAILING', 'FORMER PDL', 50000.00, '', '2026-03-25', '2026-03-26', '', '2026-03-26', NULL, NULL, NULL, 10.16019050, 122.86280560, 'approved', 3, 3, '2026-05-11 03:30:36', '2026-05-11 03:30:36'),
+(47, 'SIMON', 'WILLY', 'TRAVEÑA', '', 'Male', 'Barangay 9 (Pob.)', 'CITY OF KABANKALAN', 'Negros Occidental', '09287425709', 'RICE RETAILING', 'FORMER PDL', 50000.00, '', '2026-03-25', '2026-03-26', '', '2026-03-26', NULL, NULL, NULL, 9.98891530, 122.81348020, 'approved', 3, 3, '2026-05-11 03:33:24', '2026-05-11 03:33:24'),
+(48, 'SINGABOR', 'CHRISTIAN', 'ALARCON', '', 'Male', 'Cabadiangan', 'CITY OF HIMAMAYLAN', 'Negros Occidental', '09483748949', 'RICE RETAILING', 'FORMER PDL', 50000.00, '', '2026-03-25', '2026-03-26', '', '2026-03-26', NULL, NULL, NULL, 10.14042140, 122.94698950, 'approved', 3, 3, '2026-05-11 03:35:39', '2026-05-11 03:35:39'),
+(49, 'SODICTA', 'JOSE', 'SEBUGERO', '', 'Male', 'San Isidro', 'CALATRAVA', 'Negros Occidental', '09662367833', 'RICE RETAILING', 'FORMER PDL', 50000.00, '', '2026-03-25', '2026-03-26', '', '2026-03-26', NULL, NULL, NULL, 10.55454820, 123.46346550, 'approved', 3, 3, '2026-05-11 03:38:27', '2026-05-11 03:38:27'),
+(50, 'SUMAGAYSAY', 'NOEL', 'HILADO', '', 'Male', 'Inapoy', 'CITY OF KABANKALAN', 'Negros Occidental', '09638608968', 'RICE RETAILING', 'FORMER PDL', 50000.00, '', '2026-03-25', '2026-03-26', '', '2026-03-26', NULL, NULL, NULL, 9.80435540, 122.87500470, 'approved', 3, 3, '2026-05-11 03:41:24', '2026-05-11 03:41:24'),
+(51, 'TABUADA', 'MICHEAL', 'MALAYAS', '', 'Male', 'Barangay II (Pob.)', 'HINIGARAN', 'Negros Occidental', '09852102678', 'RICE RETAILING', 'FORMER PDL', 50000.00, '', '2026-03-25', '2026-03-26', '', '2026-03-26', NULL, NULL, NULL, 10.27138320, 122.85199090, 'approved', 3, 3, '2026-05-11 03:43:40', '2026-05-11 03:43:40'),
+(52, 'TOLENTINO', 'ADONIE', 'BERNABE', '', 'Male', 'San Isidro', 'ENRIQUE B. MAGALONA (SARAVIA)', 'Negros Occidental', '09082270707', 'RICE RETAILING', 'FORMER PDL', 50000.00, '', '2026-03-25', '2026-03-26', '', '2026-03-26', NULL, NULL, NULL, 10.79609900, 123.13888550, 'approved', 3, 3, '2026-05-11 03:46:12', '2026-05-11 03:46:12'),
+(53, 'YBIERNAS', 'JERRY LIPSIE', 'ZARAGA', '', 'Male', 'Banquerohan', 'CADIZ CITY', 'Negros Occidental', '09120757726', 'RICE RETAILING', 'FORMER PDL', 50000.00, '', '2026-03-25', '2026-03-26', '', '2026-03-26', NULL, NULL, NULL, 10.94959090, 123.33760840, 'approved', 3, 3, '2026-05-11 03:48:34', '2026-05-11 03:48:34'),
+(54, 'ZOLYAVAR', 'ALEXANDREI', 'MORALES', '', 'Male', 'Barangay 41 (Pob.)', 'BACOLOD CITY (Capital)', 'Negros Occidental', '09628118579', 'RICE RETAILING', 'FORMER PDL', 50000.00, '', '2026-03-18', '2026-03-26', '', '2026-03-26', NULL, NULL, NULL, 10.66350000, 122.96320000, 'approved', 3, 3, '2026-05-11 07:56:02', '2026-05-11 08:09:11'),
+(55, 'YULO', 'JOSE LOVETT', 'TAÑO', '', 'Male', 'Sum-ag', 'BACOLOD CITY (Capital)', 'Negros Occidental', '09103988261', 'RICE RETAILING', 'FORMER PDL', 50000.00, '', '2026-03-18', '2026-03-26', '', '2026-03-26', NULL, NULL, NULL, 10.60060000, 122.91910000, 'approved', 3, 3, '2026-05-11 07:58:09', '2026-05-11 08:09:40'),
+(56, 'VILLANUEVA', 'XERXES', 'TOMARONG', '', 'Male', 'Mansilingan', 'BACOLOD CITY (Capital)', 'Negros Occidental', '09208543020', 'RICE RETAILING', 'FORMER PDL', 50000.00, '', '2026-03-18', '2026-03-26', '', NULL, NULL, NULL, '2026-03-26', 10.63100000, 122.97610000, 'approved', 3, 3, '2026-05-11 07:59:59', '2026-05-11 08:10:19'),
+(57, 'VERDAD', 'RICKY', 'NAVARRO', '', 'Male', 'Barangay 16 (Pob.)', 'BACOLOD CITY (Capital)', 'Negros Occidental', '09196927818', 'RICE RETAILING', 'FORMER PDL', 50000.00, '', '2026-03-18', '2026-03-26', '', '2026-03-26', NULL, NULL, NULL, 10.66600000, 122.93920000, 'approved', 3, 3, '2026-05-11 08:02:53', '2026-05-11 08:11:04'),
+(58, 'TAPANG', 'PROCOPIO', 'BEATINGO', 'JR', 'Male', 'Felisa', 'BACOLOD CITY (Capital)', 'Negros Occidental', '09921601282', 'RICE RETAILING', 'FORMER PDL', 50000.00, '', '2026-03-18', '2026-03-26', '', '2026-03-26', NULL, NULL, NULL, 10.59050000, 122.97560000, 'approved', 3, 3, '2026-05-11 08:06:22', '2026-05-11 08:11:32'),
+(59, 'RULL', 'CRISTINA', 'COSINO', '', 'Female', 'Punta Taytay', 'BACOLOD CITY (Capital)', 'Negros Occidental', '09455290240', 'RICE RETAILING', 'UNEMPLOYED WOMEN', 50000.00, '', '2026-03-18', '2026-03-26', '', '2026-03-26', NULL, NULL, NULL, 10.60020000, 122.90540000, 'approved', 3, 3, '2026-05-11 08:08:38', '2026-05-11 09:21:04'),
+(60, 'REPUELA', 'RENANTE', 'DAVID', '', 'Male', 'Sum-ag', 'BACOLOD CITY (Capital)', 'Negros Occidental', '09624988993', 'RICE RETAILING', 'FORMER PDL', 50000.00, '', '2026-03-18', '2026-03-26', '', '2026-03-26', NULL, NULL, NULL, 10.60060000, 122.91910000, 'approved', 3, 3, '2026-05-11 08:16:39', '2026-05-11 09:19:52'),
+(61, 'PONTERO', 'EDPINLAN', 'HECHANOVA', '', 'Male', 'Barangay 16 (Pob.)', 'BACOLOD CITY (Capital)', 'Negros Occidental', '09123152069', 'RICE RETAILING', 'FORMER PDL', 50000.00, '', '2026-03-18', '2026-03-26', '', '2026-03-26', NULL, NULL, NULL, 10.66600000, 122.93920000, 'approved', 3, 3, '2026-05-11 08:20:37', '2026-05-11 08:20:37'),
+(62, 'PEÑOSO', 'ARTURO', 'BENITEZ', '', 'Male', 'Barangay 2 (Pob.)', 'BACOLOD CITY (Capital)', 'Negros Occidental', '09641680864', 'RICE RETAILING', 'FORMER PDL', 50000.00, '', '2026-03-18', '2026-03-26', '', '2026-03-26', NULL, NULL, NULL, 10.68340000, 122.95060000, 'approved', 3, 3, '2026-05-11 08:24:51', '2026-05-11 08:58:39'),
+(63, 'PAMA', 'LEMUEL', 'PIEZ', '', 'Male', 'Vista Alegre', 'BACOLOD CITY (Capital)', 'Negros Occidental', '09197211335', 'RICE RETAILING', 'FORMER PDL', 50000.00, '', '2026-03-18', '2026-03-26', '', '2026-03-26', NULL, NULL, NULL, 10.64220000, 123.00810000, 'approved', 3, 3, '2026-05-11 08:27:09', '2026-05-11 08:27:09'),
+(64, 'NOBLEZA', 'NERISSA', 'DOROMAL', '', 'Female', 'Punta Taytay', 'BACOLOD CITY (Capital)', 'Negros Occidental', '09167993343', 'RICE RETAILING', 'FORMER PDL', 50000.00, '', '2026-03-18', '2026-03-26', '', '2026-03-26', NULL, NULL, NULL, 10.60020000, 122.90540000, 'approved', 3, 3, '2026-05-11 08:29:08', '2026-05-11 09:16:22'),
+(65, 'LAM', 'JAIME', 'OÑATE', '', 'Male', 'Taculing', 'BACOLOD CITY (Capital)', 'Negros Occidental', '09216291177', 'RICE RETAILING', 'FORMER PDL', 50000.00, '', '2026-03-18', '2026-03-26', '', '2026-03-26', NULL, NULL, NULL, 10.64960000, 122.94750000, 'approved', 3, 3, '2026-05-11 08:30:57', '2026-05-11 08:30:57'),
+(66, 'JAVIER', 'JESSIE', 'BARILEA', '', 'Male', 'Bata', 'BACOLOD CITY (Capital)', 'Negros Occidental', '09504194633', 'RICE RETAILING', 'FORMER PDL', 50000.00, '', '2026-03-18', '2026-03-26', '', '2026-03-26', NULL, NULL, NULL, 10.67220000, 122.94430000, 'approved', 3, 3, '2026-05-11 08:33:07', '2026-05-11 08:33:07'),
+(67, 'LUTO', 'EMMA', 'LLASOS', '', 'Female', 'Mansilingan', 'BACOLOD CITY (Capital)', 'Negros Occidental', '09506554423', 'RICE RETAILING', 'VENDOR', 50000.00, '', '2026-03-18', '2026-03-26', '', '2026-03-26', NULL, NULL, NULL, 10.62480000, 122.97190000, 'approved', 3, 3, '2026-05-11 08:35:00', '2026-05-11 08:35:00'),
+(68, 'LLAVE', 'DONY NIÑO', 'NATALIO', '', 'Male', 'Banago', 'BACOLOD CITY (Capital)', 'Negros Occidental', '09100895751', 'RICE RETAILING', 'FORMER PDL', 50000.00, '', '2026-03-18', '2026-03-26', '', '2026-03-26', NULL, NULL, NULL, 10.70560000, 122.94940000, 'approved', 3, 3, '2026-05-11 08:37:31', '2026-05-11 08:37:31'),
+(69, 'FLORES', 'JOEMAR', 'TORIANO', '', 'Male', 'Granada', 'BACOLOD CITY (Capital)', 'Negros Occidental', '09264727616', 'RICE RETAILING', 'FORMER PDL', 50000.00, '', '2026-03-18', '2026-03-26', '', '2026-03-26', NULL, NULL, NULL, 10.66600000, 123.03450000, 'approved', 3, 3, '2026-05-11 08:52:19', '2026-05-11 08:52:19'),
+(70, 'CUADRA', 'RITCHEL', 'SAUSE', '', 'Male', 'Villamonte', 'BACOLOD CITY (Capital)', 'Negros Occidental', '09267716944', 'RICE RETAILING', 'FORMER PDL', 50000.00, '', '2026-03-18', '2026-03-26', '', '2026-03-26', NULL, NULL, NULL, 10.66850000, 122.96470000, 'approved', 3, 3, '2026-05-11 08:54:29', '2026-05-11 08:54:29'),
+(71, 'DERLA', 'REY', 'DELA PEÑA', '', 'Male', 'Barangay 8 (Pob.)', 'BACOLOD CITY (Capital)', 'Negros Occidental', '09936244157', 'RICE RETAILING', 'FORMER PDL', 50000.00, '', '2026-03-18', '2026-03-26', '', '2026-03-26', NULL, NULL, NULL, 10.68250000, 122.94460000, 'approved', 3, 3, '2026-05-11 08:58:03', '2026-05-11 08:58:03'),
+(72, 'ALCALDE', 'RICARDO', 'AMBONG', '', 'Male', 'Villamonte', 'BACOLOD CITY (Capital)', 'Negros Occidental', '09696127389', 'RICE RETAILING', 'FORMER PDL', 50000.00, '', '2026-03-18', '2026-03-26', '', '2026-03-26', NULL, NULL, NULL, 10.66850000, 122.96470000, 'approved', 3, 3, '2026-05-11 10:14:04', '2026-05-11 10:14:04'),
+(73, 'ANTIVOLA', 'ANDY', 'HALILI', '', 'Male', 'Sum-ag', 'BACOLOD CITY (Capital)', 'Negros Occidental', '09776626042', 'RICE RETAILING', 'FORMER PDL', 50000.00, '', '2026-03-18', '2026-03-26', '', '2026-03-26', NULL, NULL, NULL, 10.60060000, 122.91910000, 'approved', 3, 3, '2026-05-11 10:15:48', '2026-05-11 10:18:13'),
+(74, 'AGDANA', 'ARNOLD', 'RAFOLS', '', 'Male', 'Banago', 'BACOLOD CITY (Capital)', 'Negros Occidental', '0951748452', 'RICE RETAILING', 'FORMER PDL', 50000.00, '', '2026-03-18', '2026-03-26', '', '2026-03-26', NULL, NULL, NULL, 10.70360000, 122.95010000, 'approved', 3, 3, '2026-05-11 10:17:43', '2026-05-11 10:17:43');
 
 -- --------------------------------------------------------
 
@@ -613,10 +766,15 @@ INSERT INTO `fieldwork_schedule` (`id`, `title`, `description`, `location`, `ass
 (10, 'PROJECT PROPOSAL MAKING \"TRUFA\"', 'CONDUCT DILP ORIENTATION, PROJECT ID, PROPOSAL MAKING AND SITE VALIDATION WITH TAMPALON RAINFED FARMERS ASSOCIATION (TRUFA)', 'BRGY. TAMPALON, KABANKALAN CITY', 6, '2026-03-18', '2026-03-19', 'completed', 3, '2026-04-06 05:20:28', '2026-04-06 05:23:41'),
 (11, 'Releasing of Kabuhayan Check at DOLE Neg. Occ.', '1. Brgy. Gargato, Hinigaran, Neg. Occ.', 'BRGY. GARGATO, HINIGARAN, NEG. OCC.', 2, '2026-03-18', '2026-03-18', 'completed', 3, '2026-04-06 05:27:35', '2026-04-06 05:27:54'),
 (12, 'Meet with DOST and TESDA', 'Visit the TESDA and DOST located at Talisay and Bacolod City, respectively, for possible livelihood collaboration.', '', 6, '2026-04-07', '2026-04-07', 'completed', 6, '2026-04-07 13:35:18', '2026-04-07 13:35:33'),
-(13, 'LGU-LA CASTELANA (NOMINEE/S FOR KABUHAYAN AWARD INDIVIDUAL PROJECT CATEGORY)', 'CONDUCT LGU-LA CASTELLANA AS ONE OF THE NOMINEE/S FOR KABUHAYAN AWARD INDIVIDUAL PROJECT CATEGORY)', 'LA CASTELLANA', 6, '2026-04-14', '2026-04-14', 'missed', 3, '2026-04-13 05:56:48', '2026-04-15 08:41:45'),
-(14, 'CARIDAD 1 (NOMINEE/S FOR KABUHAYAN AWARD GROUP PROJECT CATEGORY)', 'CONDUCT WITH CARIDAD 1 AS ONE OF THE NOMINEE/S FOR KABUHAYAN AWARD GROUP PROJECT CATEGORY', 'BRGY. LUNA, CADIZ CITY', 6, '2026-04-15', '2026-04-15', 'missed', 3, '2026-04-13 06:00:30', '2026-04-16 02:45:18'),
-(15, 'Conduct of Orientation on the DOLE Integrated Livelihood Program (DILP) Cum Accreditation of CO-Partners (ACP)', 'Discussion on the purpose and objective, as well as the requirements of ACP; conduct a livelihood proposal workshop on prospective Co-partners.', '', 6, '2026-05-05', '2026-05-05', 'missed', 6, '2026-04-15 08:46:25', '2026-05-06 05:48:03'),
-(17, 'Mancom Meeting', '', 'Siquijor', 6, '2026-05-14', '2026-05-15', 'pending', 6, '2026-04-17 05:50:26', '2026-04-17 05:50:26');
+(13, 'LGU-LA CASTELANA (NOMINEE/S FOR KABUHAYAN AWARD INDIVIDUAL PROJECT CATEGORY)', 'CONDUCT LGU-LA CASTELLANA AS ONE OF THE NOMINEE/S FOR KABUHAYAN AWARD INDIVIDUAL PROJECT CATEGORY)', 'LA CASTELLANA', 6, '2026-04-14', '2026-04-14', 'completed', 3, '2026-04-13 05:56:48', '2026-05-11 01:30:53'),
+(14, 'CARIDAD 1 (NOMINEE/S FOR KABUHAYAN AWARD GROUP PROJECT CATEGORY)', 'CONDUCT WITH CARIDAD 1 AS ONE OF THE NOMINEE/S FOR KABUHAYAN AWARD GROUP PROJECT CATEGORY', 'BRGY. LUNA, CADIZ CITY', 6, '2026-04-15', '2026-04-15', 'completed', 3, '2026-04-13 06:00:30', '2026-05-11 01:31:12'),
+(15, 'Stakeholders\'Forum on Livelihood Recovery for Typhoon Tino by Philippine Red Cross', 'Discussion in relation to livelihood projects', 'Maze Garden, Bacolod City', 6, '2026-05-05', '2026-05-05', 'completed', 6, '2026-04-15 08:46:25', '2026-05-10 10:38:16'),
+(17, 'Mancom Meeting', '', 'Siquijor', 6, '2026-05-14', '2026-05-15', 'pending', 6, '2026-04-17 05:50:26', '2026-04-17 05:50:26'),
+(18, 'Courtesy Call to LCE of LGU La Castellana, Moises Padilla, Ilog and Cong. Dino Yulo', 'Discussion in relation to livelihood', 'Ilog', 6, '2026-05-06', '2026-05-06', 'completed', 6, '2026-05-10 10:37:07', '2026-05-10 10:37:18'),
+(20, 'LIQUIDATION COACHING', 'Meeting with PESO Manager and other members of LGU-Himamaylan City regarding the liquidation report under the Kabuhayan Program', 'LGU-HIMAMAYLAN CITY', 2, '2026-05-12', '2026-05-12', 'ongoing', 3, '2026-05-11 05:33:28', '2026-05-12 05:38:25'),
+(21, 'DILP ORIENTATION', 'CONDUCT OF ORIENTATION ON DILP, PROJECT ID  AND PROPOSAL MAKING FOR THE THREE ADDITIONAL ASSOCIATIONS OF LGU-BAGO CITY AND CHECKED THE KABUHAYAN DOCUMENTARY REQUIREMENTS OF 15 ASSOCIATIONS', 'LGU-BAGO CITY', 3, '2026-05-13', '2026-05-13', 'pending', 3, '2026-05-11 05:39:07', '2026-05-11 05:47:56'),
+(22, 'DILP ORIENTATION', 'CONDUCT DILP AND PREPARE THE DOCUMENTARY REQUIREMENTS FOR THE IDENTIFIED BENEFICIARIES OF THE LABOR INTERVENTION FINANCIAL ECONOMIC ASSISTANCE (LIFE) PROGRAM UNDER THE  KABUHAYAN ASSISTANCE', 'ESCALANTE CITY', 2, '2026-05-14', '2026-05-14', 'pending', 3, '2026-05-11 05:47:31', '2026-05-11 05:47:31'),
+(23, 'TESDA appointment 10:00am', 'Possible Collaboration with TESDA', 'Talisay City', 6, '2026-05-20', '2026-05-20', 'pending', 6, '2026-05-11 06:28:44', '2026-05-11 06:29:05');
 
 -- --------------------------------------------------------
 
@@ -639,9 +797,11 @@ CREATE TABLE `proponents` (
   `amount` decimal(15,2) NOT NULL,
   `number_of_associations` int(11) DEFAULT NULL,
   `total_beneficiaries` int(11) NOT NULL,
+  `beneficiary_full_name` varchar(255) DEFAULT NULL,
   `male_beneficiaries` int(11) DEFAULT 0,
   `female_beneficiaries` int(11) DEFAULT 0,
   `type_of_beneficiaries` varchar(255) DEFAULT NULL,
+  `type_of_workers` varchar(255) DEFAULT NULL,
   `category` enum('Formation','Enhancement','Restoration') NOT NULL,
   `recipient_barangays` text DEFAULT NULL,
   `letter_of_intent_date` date DEFAULT NULL,
@@ -675,9 +835,9 @@ CREATE TABLE `proponents` (
 -- Dumping data for table `proponents`
 --
 
-INSERT INTO `proponents` (`id`, `proponent_type`, `date_received`, `noted_findings`, `control_number`, `number_of_copies`, `date_copies_received`, `district`, `province`, `proponent_name`, `project_title`, `amount`, `number_of_associations`, `total_beneficiaries`, `male_beneficiaries`, `female_beneficiaries`, `type_of_beneficiaries`, `category`, `recipient_barangays`, `letter_of_intent_date`, `date_forwarded_to_ro6`, `rpmt_findings`, `date_complied_by_proponent`, `date_complied_by_proponent_nofo`, `date_forwarded_to_nofo`, `date_approved`, `date_check_release`, `check_number`, `check_date_issued`, `or_number`, `or_date_issued`, `date_turnover`, `date_implemented`, `date_liquidated`, `liquidation_deadline`, `date_monitoring`, `source_of_funds`, `latitude`, `longitude`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`) VALUES
-(47, 'Non-LGU-associated', '2026-03-12', '', NULL, 4, '2026-04-26', '4TH', NULL, 'AMIA VILLAGE ORGANIC FARMERS ASSOCIATION (AVOFA)', 'AGRI-VENTURE ON ORGANIC FERTILIZER AND RICE RETAILING ENTERPRISE', 2000000.00, 0, 52, 16, 36, 'FARMERS AND SENIOR CITIZEN', 'Formation', 'AMIA VILLAGE ORGANIC FARMERS ASSOCIATION (AVOFA)', '2026-03-12', '2026-03-26', '', '2026-03-26', NULL, NULL, '2026-03-31', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '', 10.32330000, 122.90040000, 'approved', 3, 6, '2026-04-06 03:06:12', '2026-04-08 09:10:54'),
-(48, 'Non-LGU-associated', '2026-03-18', '', NULL, 4, '2026-03-25', '6TH', '', 'TAMPALON RAINFED UPLAND FARMERS ASSOCIATION (TRUFA)', 'CONSOLIDATED PROJECT PROPOSAL', 5200000.00, 2, 129, 98, 31, 'FARMERS, SENIOR CITIZEN, VENDORS, DISPLACED WORKERS AND PDLs,', 'Enhancement', 'TAMPALON RAINFED UPLAND FARMERS ASSOCIATION (TRUFA)', '2026-03-18', '2026-03-26', '', NULL, NULL, NULL, '2026-03-31', NULL, NULL, NULL, NULL, NULL, '2026-01-14', NULL, NULL, '2026-03-15', '2026-07-13', '', 9.87290000, 122.79890000, 'approved', 3, 1, '2026-04-06 04:09:48', '2026-04-17 05:11:47');
+INSERT INTO `proponents` (`id`, `proponent_type`, `date_received`, `noted_findings`, `control_number`, `number_of_copies`, `date_copies_received`, `district`, `province`, `proponent_name`, `project_title`, `amount`, `number_of_associations`, `total_beneficiaries`, `beneficiary_full_name`, `male_beneficiaries`, `female_beneficiaries`, `type_of_beneficiaries`, `type_of_workers`, `category`, `recipient_barangays`, `letter_of_intent_date`, `date_forwarded_to_ro6`, `rpmt_findings`, `date_complied_by_proponent`, `date_complied_by_proponent_nofo`, `date_forwarded_to_nofo`, `date_approved`, `date_check_release`, `check_number`, `check_date_issued`, `or_number`, `or_date_issued`, `date_turnover`, `date_implemented`, `date_liquidated`, `liquidation_deadline`, `date_monitoring`, `source_of_funds`, `latitude`, `longitude`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`) VALUES
+(1, 'Non-LGU-associated', '2026-03-18', '', NULL, 0, NULL, '6TH', 'Negros Occidental', 'TAMPALON RAINFED UPLAND FARMERS ASSOCIATION (TRUFA)', 'CONSOLIDATED PROJECT PROPOSAL', 1500000.00, 1, 55, 'ROCKY BASILIO ANGELO, NELIA ANCERO BALDOMERO, FELIZARDO ROJO BALIGYAN, MERLINA DEGUIT BALIGYAN, ARGIE MOSCOSO CABRILLOS, RICHARD MOSCOSO CABRILLOS, NELFA BARDELOSA CALAMBA, GERPA GUZON CANTUTAY, EDWARD ARAGON CEBALLOS, JOSE ASUELA CORTEJO JR, SONNY GARNAN', 29, 26, 'Farmers', '', 'Enhancement', 'TAMPALON RAINFED UPLAND FARMERS ASSOCIATION (TRUFA)', '2026-03-18', '2026-03-26', '', NULL, NULL, NULL, '2026-03-26', '2026-05-01', NULL, '2026-03-31', '366', NULL, NULL, NULL, NULL, NULL, NULL, 'GAA', 9.87278650, 122.79865400, 'approved', 3, 3, '2026-05-07 09:31:24', '2026-05-11 07:47:21'),
+(2, 'Non-LGU-associated', '2026-03-12', '', NULL, 0, NULL, '4TH', 'Negros Occidental', 'AMIA VILLAGE ORGANIC FARMERS ASSOCIATIONS (AVOFA)', 'AGRI-VENTURE ON ORGANIC FERTILIZER AND RICE RETAILING ENTERPRISE', 2000000.00, 1, 52, 'Nena Acedera  Agravante, Charlie Torres Aguirre, Dinah Moguad Aguirre, Restituto Gevero Alojamiento, Leandra Cordova Barres, Estrella Mahusay Bayobay, Analisa Tanaleon Bernal, Estelita Laus Dimausay, Roger Jemino Ecullada, Susana Elbanbuena Ecullada, Deli', 16, 36, 'Farmers, Senior Citizen', '', 'Formation', '', '2026-03-12', '2026-03-26', '', NULL, NULL, NULL, '2026-03-26', '2026-05-01', NULL, '2026-03-31', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'GAA', 10.32208300, 122.90027150, 'approved', 3, 3, '2026-05-11 02:25:21', '2026-05-11 08:13:39');
 
 --
 -- Triggers `proponents`
@@ -731,8 +891,8 @@ CREATE TABLE `proponent_associations` (
 --
 
 INSERT INTO `proponent_associations` (`id`, `proponent_id`, `association_name`, `association_address`, `sort_order`, `created_at`) VALUES
-(48, 48, 'TAMPALON RAINFED UPLAND FARMERS ASSOCIATION (TRUFA)', 'BRGY. TAMPALON, KABANKALAN CITY', 0, '2026-04-17 05:11:47'),
-(49, 48, 'INDIVIDUAL BENEFICIARIES', 'NEGROS OCCIDENTAL', 1, '2026-04-17 05:11:47');
+(4, 1, 'TAMPALON RAINFED UPLAND FARMERS ASSOCIATION (TRUFA)', 'BRGY. TAMPALON, KABANKALAN CITY', 0, '2026-05-11 07:47:21'),
+(5, 2, 'AMIA VILLAGE ORGANIC FARMERS ASSOCIATIONS (AVOFA)', 'BRGY. SAN ISIDRO, PONTEVEDRA, NEGROS OCCIDENTAL', 0, '2026-05-11 08:13:39');
 
 -- --------------------------------------------------------
 
@@ -768,7 +928,7 @@ CREATE TABLE `system_settings` (
 --
 
 INSERT INTO `system_settings` (`id`, `setting_key`, `setting_value`, `created_at`, `updated_at`) VALUES
-(1, 'maintenance_mode', '1', '2026-03-11 05:50:02', '2026-05-04 14:02:48');
+(1, 'maintenance_mode', '1', '2026-03-11 05:50:02', '2026-05-11 13:25:35');
 
 -- --------------------------------------------------------
 
@@ -795,7 +955,7 @@ CREATE TABLE `users` (
 INSERT INTO `users` (`id`, `username`, `email`, `password`, `role`, `full_name`, `is_active`, `created_at`, `updated_at`) VALUES
 (1, 'admin', 'admin@dilp.gov.ph', '$2y$10$a6B7wXCzG83VKX.lX/h/seGi7H40EqquOlKeKgU3ytp/W.fpuOTkm', 'admin', 'Kim IT- Admin', 1, '2026-02-03 09:20:07', '2026-03-19 07:09:09'),
 (2, 'kayzel', 'kayzel@dilp.com', '$2y$10$BWQuVA4vDhm2MiFRTn1WXO7NyuNBBKa.AxBw3UFiYVbrCkm2l3qhm', 'encoder', 'Kayzel Araneta', 1, '2026-02-04 07:44:20', '2026-03-10 08:51:47'),
-(3, 'jona', 'jona@dilp.com', '$2y$10$cZIQmxS4jgtie9A5Iec4geSW1pYx859hf4j9oNlk2JIy9n0oyV/Na', 'encoder', 'Jona Cepriano', 1, '2026-02-04 07:46:59', '2026-03-10 08:51:39'),
+(3, 'jona', 'jona@dilp.com', '$2y$10$uGvNPAI0qvwJqAaBx0ViTOFPZ/JHV03JCQhgh4Srvrb5Wk73OJGe6', 'encoder', 'Jona Cepriano', 1, '2026-02-04 07:46:59', '2026-05-07 09:11:02'),
 (4, 'user', 'testuser@gmail.com', '$2y$10$PiaNVNl7pPhAPNeF8ri46ufDCHQi3kl9Bu9mIUk.RCxEj4WkwNFpe', 'user', 'test user', 1, '2026-02-04 07:47:46', '2026-02-04 07:47:46'),
 (5, 'gretchen.dileepsys', 'gretchen@dileep.gov.ph', '$2y$10$S7Nv7F0eFpCD7inYJvuM/uvWdXciW/1XCuTN/6u6C4UHq7o5l3Og.', 'user', 'Gretchen Pasiolan', 1, '2026-03-10 08:52:57', '2026-03-10 08:52:57'),
 (6, 'milson.admin', 'milson@dileep.gov.ph', '$2y$10$lVXUOHVkoPHj93vZToxhuurPo1dJh258P5WINhbtatIvyTPT.siiS', 'encoder', 'Milson Delos Reyes', 1, '2026-03-10 08:55:27', '2026-05-04 14:02:30');
@@ -889,37 +1049,37 @@ ALTER TABLE `users`
 -- AUTO_INCREMENT for table `activity_logs`
 --
 ALTER TABLE `activity_logs`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=407;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=576;
 
 --
 -- AUTO_INCREMENT for table `beneficiaries`
 --
 ALTER TABLE `beneficiaries`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=99;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=75;
 
 --
 -- AUTO_INCREMENT for table `fieldwork_schedule`
 --
 ALTER TABLE `fieldwork_schedule`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=18;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=24;
 
 --
 -- AUTO_INCREMENT for table `proponents`
 --
 ALTER TABLE `proponents`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=53;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `proponent_associations`
 --
 ALTER TABLE `proponent_associations`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=50;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- AUTO_INCREMENT for table `proponent_returns`
 --
 ALTER TABLE `proponent_returns`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `system_settings`

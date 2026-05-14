@@ -33,12 +33,11 @@
             </li>
             <?php if ($auth->hasRole('admin')): ?>
             <li class="sidebar-divider"></li>
+            <?php if ($auth->isRegionalDirector()): ?>
+            <li class="sidebar-section-label">Regional Director</li>
+            <?php else: ?>
             <li class="sidebar-section-label">Administration</li>
-            <li class="nav-item">
-                <a class="nav-link <?php echo ($currentPage ?? '') === 'users' ? 'active' : ''; ?>" href="users.php" aria-current="<?php echo ($currentPage ?? '') === 'users' ? 'page' : 'false'; ?>">
-                    <i class="bi bi-people-fill" aria-hidden="true"></i> <span>User Management</span>
-                </a>
-            </li>
+            <?php endif; ?>
             <li class="nav-item">
                 <a class="nav-link <?php echo ($currentPage ?? '') === 'activity-logs' ? 'active' : ''; ?>" href="activity-logs.php" aria-current="<?php echo ($currentPage ?? '') === 'activity-logs' ? 'page' : 'false'; ?>">
                     <i class="bi bi-clock-history" aria-hidden="true"></i> <span>Activity Logs</span>
@@ -49,9 +48,13 @@
                     <i class="bi bi-gear" aria-hidden="true"></i> <span>Settings</span>
                 </a>
             </li>
+            <?php endif; ?>
+            <?php if ($auth->isSuperAdmin()): ?>
+            <li class="sidebar-divider"></li>
+            <li class="sidebar-section-label">Super Admin</li>
             <li class="nav-item">
-                <a class="nav-link <?php echo ($currentPage ?? '') === 'reset-records' ? 'active' : ''; ?>" href="reset-records.php" aria-current="<?php echo ($currentPage ?? '') === 'reset-records' ? 'page' : 'false'; ?>">
-                    <i class="bi bi-exclamation-octagon" aria-hidden="true"></i> <span>Reset Records</span>
+                <a class="nav-link <?php echo ($currentPage ?? '') === 'system-admin' ? 'active' : ''; ?>" href="system-admin.php" aria-current="<?php echo ($currentPage ?? '') === 'system-admin' ? 'page' : 'false'; ?>">
+                    <i class="bi bi-shield-lock" aria-hidden="true"></i> <span>System Admin</span>
                 </a>
             </li>
             <?php endif; ?>

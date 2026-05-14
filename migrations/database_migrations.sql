@@ -1,5 +1,8 @@
 -- DOLE DILP Monitoring System Database Schema
 -- Database: dilp_monitoring
+-- v2.0: Multi-province support (Negros Occidental, Negros Oriental, Siquijor)
+-- IMPORTANT: This file is for FRESH INSTALLS only (new databases)
+-- For EXISTING production databases, use database_update_production.sql instead
 
 -- Create Users table (for authentication and role management)
 CREATE TABLE users (
@@ -7,7 +10,9 @@ CREATE TABLE users (
     username VARCHAR(100) UNIQUE NOT NULL,
     email VARCHAR(100) UNIQUE NOT NULL,
     password VARCHAR(255) NOT NULL,
-    role ENUM('admin', 'encoder', 'user') DEFAULT 'user',
+    role ENUM('admin', 'encoder', 'user', 'super_admin') NOT NULL DEFAULT 'user',
+    -- province NULL = super_admin (cross-province access); otherwise scoped to assigned province
+    province ENUM('Negros Occidental', 'Negros Oriental', 'Siquijor') DEFAULT NULL,
     full_name VARCHAR(255) NOT NULL,
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -24,6 +29,7 @@ CREATE TABLE beneficiaries (
     gender ENUM('Male', 'Female') NOT NULL,
     barangay VARCHAR(100) NOT NULL,
     municipality VARCHAR(100) NOT NULL,
+    province ENUM('Negros Occidental', 'Negros Oriental', 'Siquijor') DEFAULT NULL,
     contact_number VARCHAR(20),
     project_name VARCHAR(255) NOT NULL,
     type_of_worker VARCHAR(100),
@@ -57,6 +63,7 @@ CREATE TABLE proponents (
     number_of_copies INT,
     date_copies_received DATE,
     district VARCHAR(100),
+    province ENUM('Negros Occidental', 'Negros Oriental', 'Siquijor') DEFAULT NULL,
     proponent_name VARCHAR(255) NOT NULL,
     project_title VARCHAR(255) NOT NULL,
     amount DECIMAL(15,2) NOT NULL,
@@ -143,6 +150,7 @@ CREATE TABLE IF NOT EXISTS fieldwork_schedule (
     title VARCHAR(255) NOT NULL,
     description TEXT,
     location VARCHAR(500),
+    province ENUM('Negros Occidental', 'Negros Oriental', 'Siquijor') DEFAULT NULL,
     assigned_user_id INT NOT NULL,
     start_date DATE NOT NULL,
     end_date DATE,
@@ -160,8 +168,15 @@ CREATE INDEX idx_fieldwork_end_date ON fieldwork_schedule(end_date);
 CREATE INDEX idx_fieldwork_assigned_user ON fieldwork_schedule(assigned_user_id);
 CREATE INDEX idx_fieldwork_created_by ON fieldwork_schedule(created_by);
 
--- Insert default admin user (password: admin123 - hashed with bcrypt)
+-- Province indexes
+CREATE INDEX idx_users_province           ON users(province);
+CREATE INDEX idx_beneficiaries_province   ON beneficiaries(province);
+CREATE INDEX idx_proponents_province      ON proponents(province);
+CREATE INDEX idx_fieldwork_province       ON fieldwork_schedule(province);
+
+-- Insert default super_admin user (password: admin123 - hashed with bcrypt)
+-- province = NULL grants cross-province (super_admin) access
 -- Note: Change this password immediately after first login
-INSERT INTO users (username, email, password, role, full_name) VALUES 
-('admin', 'admin@dilp.gov.ph', '$2y$12$cxubeCJxgDoHaci9zO4Ud.b7uJ7PQQpWfOafrfLY2efdUQGNuRDLi', 'admin', 'System Administrator');
+INSERT INTO users (username, email, password, role, province, full_name) VALUES
+('admin', 'admin@dilp.gov.ph', '$2y$12$cxubeCJxgDoHaci9zO4Ud.b7uJ7PQQpWfOafrfLY2efdUQGNuRDLi', 'super_admin', NULL, 'System Administrator');
 

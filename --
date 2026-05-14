@@ -1,0 +1,23 @@
+
+-- ============================================================================
+-- STEP 3: RESET AUTO_INCREMENT VALUES TO MATCH PRODUCTION
+-- ============================================================================
+
+ALTER TABLE `activity_logs` AUTO_INCREMENT = 576;
+ALTER TABLE `beneficiaries` AUTO_INCREMENT = 75;
+ALTER TABLE `fieldwork_schedule` AUTO_INCREMENT = 24;
+ALTER TABLE `proponents` AUTO_INCREMENT = 3;
+ALTER TABLE `proponent_associations` AUTO_INCREMENT = 6;
+ALTER TABLE `proponent_returns` AUTO_INCREMENT = 2;
+ALTER TABLE `system_settings` AUTO_INCREMENT = 2;
+
+-- ============================================================================
+-- STEP 4: RE-ENABLE FOREIGN KEY CHECKS AND COMMIT
+-- ============================================================================
+
+SET FOREIGN_KEY_CHECKS = 1;
+COMMIT;
+
+-- ============================================================================
+-- IMPORT COMPLETE
+-- ==========================================================================-= STEP 3: RESET AUTO_INCREMENT VALUES TO MATCH PRODUCTION

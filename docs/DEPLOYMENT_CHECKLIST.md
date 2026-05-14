@@ -97,8 +97,9 @@ dilp-system/
 │   └── map-data.php              # AJAX: Map markers data
 │
 ├── Database:
-├── database_migrations.sql       # Complete database schema
-├── sample_data.sql               # Sample data (optional)
+├── database_migrations.sql          # Complete database schema (FRESH INSTALLS ONLY)
+├── database_update_production.sql     # Safe update for EXISTING production databases
+├── sample_data.sql                  # Sample data (optional)
 │
 └── Documentation:
     ├── README.md                 # Quick start guide
@@ -123,11 +124,15 @@ dilp-system/
 
 ### 2. Database Configuration
 - [ ] Database `dilp_monitoring` created
-- [ ] Database schema imported successfully
-- [ ] Default admin user exists
+- [ ] **CRITICAL: Create backup before any migration!**
+- [ ] **For Fresh Install:** Import `migrations/production_deploy_fresh.sql`
+- [ ] **For Production Schema Fix:** Import `migrations/production_schema_migration.sql` (fixes "Database Error")
+- [ ] **For Production Update:** Import `migrations/database_update_production.sql` (preserves existing data)
+- [ ] Default admin user exists (promoted to super_admin after migration)
 - [ ] Database triggers created and working
 - [ ] Indexes created for performance
 - [ ] Database backup procedure established
+- [ ] **Post-Migration:** Run `migrations/verify_migration.sql` to validate
 
 ### 3. File System
 - [ ] All files copied to htdocs/dilp-system

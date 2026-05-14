@@ -2,8 +2,9 @@
 session_start();
 header('Content-Type: application/json; charset=utf-8');
 
-// Only allow administrators to toggle maintenance mode
-if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+// Only allow admin and super_admin to toggle maintenance mode.
+// Checked against raw session role because Auth is not loaded here yet.
+if (!isset($_SESSION['role']) || !in_array($_SESSION['role'], ['admin', 'super_admin'], true)) {
     echo json_encode(['success' => false, 'message' => 'Unauthorized']);
     http_response_code(401);
     exit;
