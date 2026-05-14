@@ -37,16 +37,6 @@ $proponentCount = $db->query("SELECT COUNT(*) FROM proponents")->fetchColumn();
 $tablesStmt = $db->query("SHOW TABLES");
 $tableCount = $tablesStmt->rowCount();
 
-// Maintenance mode status
-$maintenanceEnabled = false;
-try {
-    $stmt = $db->query("SELECT setting_value FROM system_settings WHERE setting_key = 'maintenance_mode'");
-    if ($stmt && $row = $stmt->fetch()) {
-        $maintenanceEnabled = ($row['setting_value'] === '1');
-    }
-} catch (PDOException $e) {
-    // Table may not exist yet — default to disabled
-}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -174,24 +164,6 @@ try {
                     <h2><i class="bi bi-gear"></i> Settings</h2>
                 </div>
 
-                <!-- Maintenance Mode Card -->
-                <div class="settings-section">
-                    <h5><i class="bi bi-tools"></i> Site Maintenance</h5>
-                    <p class="text-muted mb-3">Enable maintenance mode to temporarily block access for regular users and encoders. Administrators will still be able to access the site.</p>
-                    <div class="d-flex align-items-center gap-3">
-                        <div id="maintenanceStatus" class="gdrive-status <?php echo $maintenanceEnabled ? 'connected' : 'disconnected'; ?>">
-                            <?php echo $maintenanceEnabled ? '<i class="bi bi-shield-lock"></i> Maintenance ON' : '<i class="bi bi-shield-check"></i> Maintenance OFF'; ?>
-                        </div>
-                        <div>
-                            <div class="form-check form-switch">
-                                <input class="form-check-input" type="checkbox" id="maintenanceToggle" <?php echo $maintenanceEnabled ? 'checked' : ''; ?> onchange="toggleMaintenance(this.checked)">
-                                <label class="form-check-label" for="maintenanceToggle">Enable maintenance mode</label>
-                            </div>
-                        </div>
-                    </div>
-                    <small class="text-muted d-block mt-2">When enabled, users with roles <code>users</code> and <code>encoder</code> will be redirected to the maintenance page.</small>
-                </div>
-
                 <!-- Tabs Navigation -->
                 <ul class="nav nav-tabs mb-4" id="settingsTabs" role="tablist">
                     <li class="nav-item" role="presentation">
@@ -202,11 +174,6 @@ try {
                     <li class="nav-item" role="presentation">
                         <button class="nav-link" id="import-tab" data-bs-toggle="tab" data-bs-target="#importPane" type="button" role="tab" aria-controls="importPane" aria-selected="false">
                             <i class="bi bi-upload" aria-hidden="true"></i> Data Import
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="backup-tab" data-bs-toggle="tab" data-bs-target="#backupPane" type="button" role="tab" aria-controls="backupPane" aria-selected="false">
-                            <i class="bi bi-shield-check" aria-hidden="true"></i> System Backup
                         </button>
                     </li>
                 </ul>
@@ -274,15 +241,25 @@ try {
                     <!-- ==================== IMPORT TAB ==================== -->
                     <div class="tab-pane fade" id="importPane" role="tabpanel" aria-labelledby="import-tab">
                         <div class="settings-section">
-                            <h5><i class="bi bi-upload"></i> Import Data</h5>
-                            <p class="text-muted mb-4">Upload CSV files to import records into the database. The CSV must include a header row matching the expected column names.</p>
+                            <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+                                <h5 class="mb-0"><i class="bi bi-upload"></i> Import Data</h5>
+                                <button type="button" class="btn btn-sm btn-outline-info"
+                                        data-bs-toggle="modal" data-bs-target="#formatGuideModal">
+                                    <i class="bi bi-question-circle me-1"></i>Format Guide
+                                </button>
+                            </div>
+                            <p class="text-muted mb-4">Upload CSV files to import records into the database. The CSV must include a header row matching the expected column names. Click <strong>Format Guide</strong> to view required columns and download sample templates.</p>
 
                             <div class="row g-4">
                                 <!-- Beneficiaries Import -->
                                 <div class="col-md-6">
                                     <div class="card h-100">
-                                        <div class="card-header bg-white">
+                                        <div class="card-header bg-white d-flex align-items-center justify-content-between">
                                             <h6 class="mb-0"><i class="bi bi-person"></i> Import Beneficiaries</h6>
+                                            <button type="button" class="btn btn-xs btn-outline-secondary btn-sm"
+                                                    onclick="downloadTemplate('beneficiaries')" title="Download CSV template">
+                                                <i class="bi bi-download me-1"></i>Template
+                                            </button>
                                         </div>
                                         <div class="card-body">
                                             <div class="import-zone" id="importZoneBeneficiaries" onclick="document.getElementById('importFileBeneficiaries').click()">
@@ -324,8 +301,12 @@ try {
                                 <!-- Proponents Import -->
                                 <div class="col-md-6">
                                     <div class="card h-100">
-                                        <div class="card-header bg-white">
+                                        <div class="card-header bg-white d-flex align-items-center justify-content-between">
                                             <h6 class="mb-0"><i class="bi bi-people"></i> Import Proponents</h6>
+                                            <button type="button" class="btn btn-xs btn-outline-secondary btn-sm"
+                                                    onclick="downloadTemplate('proponents')" title="Download CSV template">
+                                                <i class="bi bi-download me-1"></i>Template
+                                            </button>
                                         </div>
                                         <div class="card-body">
                                             <div class="import-zone" id="importZoneProponents" onclick="document.getElementById('importFileProponents').click()">
@@ -367,65 +348,6 @@ try {
                         </div>
                     </div>
 
-                    <!-- ==================== BACKUP TAB ==================== -->
-                    <div class="tab-pane fade" id="backupPane" role="tabpanel" aria-labelledby="backup-tab">
-                        <div class="settings-section">
-                            <h5><i class="bi bi-shield-check"></i> System Backup</h5>
-                            <p class="text-muted mb-4">Create a complete backup of the application database. The backup includes all tables, data, and structure.</p>
-
-                            <div class="row g-4">
-                                <!-- Local Download -->
-                                <div class="col-md-6">
-                                    <div class="backup-option text-center h-100">
-                                        <div class="backup-icon text-primary"><i class="bi bi-hdd-fill"></i></div>
-                                        <h6>Local Download</h6>
-                                        <p class="text-muted small mb-3">Download a .sql backup file to your computer. Contains all <?php echo $tableCount; ?> database tables.</p>
-                                        <button type="button" class="btn btn-primary" onclick="downloadBackup()">
-                                            <i class="bi bi-download"></i> Download Backup
-                                        </button>
-                                    </div>
-                                </div>
-
-                                <!-- Google Drive -->
-                                <div class="col-md-6">
-                                    <div class="backup-option text-center h-100">
-                                        <div class="backup-icon" style="color: #4285f4;"><i class="bi bi-google"></i></div>
-                                        <h6>Google Drive</h6>
-                                        <?php if (!$googleConfigured): ?>
-                                            <p class="text-muted small mb-3">Google Drive integration is not configured. Add <code>GOOGLE_CLIENT_ID</code> and <code>GOOGLE_CLIENT_SECRET</code> to your <code>.env</code> file.</p>
-                                            <button type="button" class="btn btn-secondary" disabled>
-                                                <i class="bi bi-google"></i> Not Configured
-                                            </button>
-                                        <?php elseif ($gdriveConnected): ?>
-                                            <div class="mb-2">
-                                                <span class="gdrive-status connected">
-                                                    <i class="bi bi-check-circle-fill"></i> Connected
-                                                    <?php if ($gdriveEmail): ?>
-                                                        (<?php echo htmlspecialchars($gdriveEmail); ?>)
-                                                    <?php endif; ?>
-                                                </span>
-                                            </div>
-                                            <p class="text-muted small mb-3">Save backup directly to your Google Drive account.</p>
-                                            <button type="button" class="btn btn-primary" onclick="backupToGoogleDrive()" style="background: #4285f4; border-color: #4285f4;">
-                                                <i class="bi bi-cloud-arrow-up"></i> Backup to Google Drive
-                                            </button>
-                                            <div class="mt-2">
-                                                <button type="button" class="btn btn-sm btn-outline-danger" onclick="disconnectGoogleDrive()">
-                                                    <i class="bi bi-x-circle"></i> Disconnect
-                                                </button>
-                                            </div>
-                                        <?php else: ?>
-                                            <p class="text-muted small mb-3">Connect your Google Drive account to enable cloud backups.</p>
-                                            <button type="button" class="btn btn-primary" onclick="connectGoogleDrive()" style="background: #4285f4; border-color: #4285f4;">
-                                                <i class="bi bi-google"></i> Connect Google Drive
-                                            </button>
-                                        <?php endif; ?>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
                 </div>
             </main>
             <?php include 'includes/footer.php'; ?>
@@ -456,23 +378,126 @@ try {
         </div>
     </div>
 
-    <!-- Backup Confirmation Modal -->
-    <div class="modal fade" id="backupConfirmModal" tabindex="-1" aria-labelledby="backupConfirmLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
+    <!-- ── Format Guide Modal ─────────────────────────────────────────── -->
+    <div class="modal fade" id="formatGuideModal" tabindex="-1" aria-labelledby="formatGuideLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="backupConfirmLabel"><i class="bi bi-cloud-arrow-up" style="color: #4285f4;"></i> Backup to Google Drive</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <h5 class="modal-title" id="formatGuideLabel">
+                        <i class="bi bi-filetype-csv me-2 text-success"></i>CSV Import Format Guide
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <p>This will create a full database backup and upload it to your connected Google Drive account.</p>
-                    <p class="text-muted small">The backup file will be saved in a folder named <strong>DILP_Backups</strong>.</p>
-                </div>
+
+                    <!-- General notes -->
+                    <div class="alert alert-info mb-4 py-2">
+                        <i class="bi bi-info-circle me-1"></i>
+                        <strong>General Rules:</strong> The first row must be a header row with exact column names (case-insensitive). Dates must be in <code>YYYY-MM-DD</code> format. Amounts must be numeric (no currency symbols). Empty optional fields can be left blank.
+                    </div>
+
+                    <!-- Nav tabs -->
+                    <ul class="nav nav-tabs mb-3" id="fgTabs" role="tablist">
+                        <li class="nav-item">
+                            <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#fgBenef" type="button">
+                                <i class="bi bi-person me-1"></i>Beneficiaries
+                            </button>
+                        </li>
+                        <li class="nav-item">
+                            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#fgProp" type="button">
+                                <i class="bi bi-people me-1"></i>Proponents
+                            </button>
+                        </li>
+                    </ul>
+
+                    <div class="tab-content" id="fgTabContent">
+
+                        <!-- Beneficiaries tab -->
+                        <div class="tab-pane fade show active" id="fgBenef" role="tabpanel">
+                            <p class="text-muted small mb-2">
+                                Download a pre-filled template or create your own CSV with the columns below.
+                                Columns marked <span class="badge bg-danger">required</span> must not be empty.
+                                Columns marked <span class="badge bg-secondary">optional</span> may be left blank.
+                            </p>
+                            <div class="table-responsive">
+                                <table class="table table-sm table-bordered table-hover align-middle mb-0">
+                                    <thead class="table-light">
+                                        <tr><th>Column Name</th><th>Type</th><th>Required?</th><th>Notes / Allowed Values</th></tr>
+                                    </thead>
+                                    <tbody style="font-size:.82rem;">
+                                        <tr><td><code>last_name</code></td><td>Text</td><td><span class="badge bg-danger">required</span></td><td>Beneficiary's last name</td></tr>
+                                        <tr><td><code>first_name</code></td><td>Text</td><td><span class="badge bg-danger">required</span></td><td>Beneficiary's first name</td></tr>
+                                        <tr><td><code>middle_name</code></td><td>Text</td><td><span class="badge bg-secondary">optional</span></td><td></td></tr>
+                                        <tr><td><code>suffix</code></td><td>Text</td><td><span class="badge bg-secondary">optional</span></td><td>e.g. Jr., Sr., III</td></tr>
+                                        <tr><td><code>gender</code></td><td>Text</td><td><span class="badge bg-danger">required</span></td><td><code>Male</code> or <code>Female</code></td></tr>
+                                        <tr><td><code>barangay</code></td><td>Text</td><td><span class="badge bg-danger">required</span></td><td></td></tr>
+                                        <tr><td><code>municipality</code></td><td>Text</td><td><span class="badge bg-danger">required</span></td><td></td></tr>
+                                        <tr><td><code>contact_number</code></td><td>Text</td><td><span class="badge bg-secondary">optional</span></td><td></td></tr>
+                                        <tr><td><code>project_name</code></td><td>Text</td><td><span class="badge bg-danger">required</span></td><td>Name of the livelihood project</td></tr>
+                                        <tr><td><code>type_of_worker</code></td><td>Text</td><td><span class="badge bg-secondary">optional</span></td><td></td></tr>
+                                        <tr><td><code>amount_worth</code></td><td>Number</td><td><span class="badge bg-danger">required</span></td><td>Numeric only, e.g. <code>15000</code></td></tr>
+                                        <tr><td><code>status</code></td><td>Text</td><td><span class="badge bg-secondary">optional</span></td><td><code>pending</code>, <code>approved</code>, <code>implemented</code>, <code>monitored</code></td></tr>
+                                        <tr><td><code>source_of_funds</code></td><td>Text</td><td><span class="badge bg-secondary">optional</span></td><td></td></tr>
+                                        <tr><td><code>date_approved</code></td><td>Date</td><td><span class="badge bg-secondary">optional</span></td><td>Format: <code>YYYY-MM-DD</code></td></tr>
+                                        <tr><td><code>date_monitoring</code></td><td>Date</td><td><span class="badge bg-secondary">optional</span></td><td>Format: <code>YYYY-MM-DD</code></td></tr>
+                                        <tr><td><code>noted_findings</code></td><td>Text</td><td><span class="badge bg-secondary">optional</span></td><td></td></tr>
+                                        <tr><td><code>latitude</code></td><td>Number</td><td><span class="badge bg-secondary">optional</span></td><td>Decimal degrees, e.g. <code>10.6713</code></td></tr>
+                                        <tr><td><code>longitude</code></td><td>Number</td><td><span class="badge bg-secondary">optional</span></td><td>Decimal degrees, e.g. <code>122.9511</code></td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="mt-3">
+                                <button type="button" class="btn btn-sm btn-success" onclick="downloadTemplate('beneficiaries');bootstrap.Modal.getInstance(document.getElementById('formatGuideModal')).hide();">
+                                    <i class="bi bi-download me-1"></i>Download Beneficiaries Template
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Proponents tab -->
+                        <div class="tab-pane fade" id="fgProp" role="tabpanel">
+                            <p class="text-muted small mb-2">
+                                Download a pre-filled template or create your own CSV with the columns below.
+                                Columns marked <span class="badge bg-danger">required</span> must not be empty.
+                                Columns marked <span class="badge bg-secondary">optional</span> may be left blank.
+                            </p>
+                            <div class="table-responsive">
+                                <table class="table table-sm table-bordered table-hover align-middle mb-0">
+                                    <thead class="table-light">
+                                        <tr><th>Column Name</th><th>Type</th><th>Required?</th><th>Notes / Allowed Values</th></tr>
+                                    </thead>
+                                    <tbody style="font-size:.82rem;">
+                                        <tr><td><code>proponent_type</code></td><td>Text</td><td><span class="badge bg-danger">required</span></td><td><code>LGU-associated</code> or <code>Non-LGU-associated</code></td></tr>
+                                        <tr><td><code>proponent_name</code></td><td>Text</td><td><span class="badge bg-danger">required</span></td><td>Name of the proponent / association</td></tr>
+                                        <tr><td><code>project_title</code></td><td>Text</td><td><span class="badge bg-danger">required</span></td><td></td></tr>
+                                        <tr><td><code>district</code></td><td>Text</td><td><span class="badge bg-secondary">optional</span></td><td></td></tr>
+                                        <tr><td><code>municipality</code></td><td>Text</td><td><span class="badge bg-secondary">optional</span></td><td></td></tr>
+                                        <tr><td><code>amount</code></td><td>Number</td><td><span class="badge bg-danger">required</span></td><td>Numeric only, e.g. <code>250000</code></td></tr>
+                                        <tr><td><code>total_beneficiaries</code></td><td>Number</td><td><span class="badge bg-danger">required</span></td><td>Integer count</td></tr>
+                                        <tr><td><code>male_beneficiaries</code></td><td>Number</td><td><span class="badge bg-secondary">optional</span></td><td></td></tr>
+                                        <tr><td><code>female_beneficiaries</code></td><td>Number</td><td><span class="badge bg-secondary">optional</span></td><td></td></tr>
+                                        <tr><td><code>category</code></td><td>Text</td><td><span class="badge bg-danger">required</span></td><td>e.g. Farming, Fishing, Handicraft</td></tr>
+                                        <tr><td><code>type_of_beneficiaries</code></td><td>Text</td><td><span class="badge bg-secondary">optional</span></td><td></td></tr>
+                                        <tr><td><code>status</code></td><td>Text</td><td><span class="badge bg-secondary">optional</span></td><td><code>pending</code>, <code>approved</code>, <code>implemented</code>, <code>liquidated</code>, <code>monitored</code></td></tr>
+                                        <tr><td><code>source_of_funds</code></td><td>Text</td><td><span class="badge bg-secondary">optional</span></td><td></td></tr>
+                                        <tr><td><code>date_approved</code></td><td>Date</td><td><span class="badge bg-secondary">optional</span></td><td>Format: <code>YYYY-MM-DD</code></td></tr>
+                                        <tr><td><code>liquidation_deadline</code></td><td>Date</td><td><span class="badge bg-secondary">optional</span></td><td>Format: <code>YYYY-MM-DD</code></td></tr>
+                                        <tr><td><code>noted_findings</code></td><td>Text</td><td><span class="badge bg-secondary">optional</span></td><td></td></tr>
+                                        <tr><td><code>latitude</code></td><td>Number</td><td><span class="badge bg-secondary">optional</span></td><td>Decimal degrees</td></tr>
+                                        <tr><td><code>longitude</code></td><td>Number</td><td><span class="badge bg-secondary">optional</span></td><td>Decimal degrees</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="mt-3">
+                                <button type="button" class="btn btn-sm btn-success" onclick="downloadTemplate('proponents');bootstrap.Modal.getInstance(document.getElementById('formatGuideModal')).hide();">
+                                    <i class="bi bi-download me-1"></i>Download Proponents Template
+                                </button>
+                            </div>
+                        </div>
+
+                    </div><!-- /.tab-content -->
+                </div><!-- /.modal-body -->
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary" id="gdriveBackupBtn" onclick="executeGoogleDriveBackup()" style="background: #4285f4; border-color: #4285f4;">
-                        <i class="bi bi-cloud-arrow-up"></i> Start Backup
-                    </button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                 </div>
             </div>
         </div>
@@ -697,6 +722,69 @@ try {
             });
         }
 
+        // ==================== CSV TEMPLATE DOWNLOAD ====================
+        var CSV_TEMPLATES = {
+            beneficiaries: {
+                filename: 'beneficiaries_template.csv',
+                headers: [
+                    'last_name','first_name','middle_name','suffix','gender',
+                    'barangay','municipality','contact_number','project_name',
+                    'type_of_worker','amount_worth','status','source_of_funds',
+                    'date_approved','date_monitoring','noted_findings',
+                    'latitude','longitude'
+                ],
+                sample: [
+                    'Dela Cruz','Juan','Santos','Jr.','Male',
+                    'Brgy. Sample','Bacolod City','09171234567','Livelihood Project A',
+                    'Skilled Worker','15000','pending','GAA',
+                    '2025-01-15','2025-06-01','No findings',
+                    '10.6713','122.9511'
+                ]
+            },
+            proponents: {
+                filename: 'proponents_template.csv',
+                headers: [
+                    'proponent_type','proponent_name','project_title',
+                    'district','municipality','amount','total_beneficiaries',
+                    'male_beneficiaries','female_beneficiaries','category',
+                    'type_of_beneficiaries','status','source_of_funds',
+                    'date_approved','liquidation_deadline','noted_findings',
+                    'latitude','longitude'
+                ],
+                sample: [
+                    'LGU-associated','Sample Farmers Association','Farming Livelihood Project',
+                    'District I','Bacolod City','250000','20',
+                    '10','10','Farming',
+                    'Farmers','pending','GAA',
+                    '2025-01-15','2025-12-31','No findings',
+                    '10.6713','122.9511'
+                ]
+            }
+        };
+
+        function downloadTemplate(type) {
+            var tpl = CSV_TEMPLATES[type];
+            if (!tpl) return;
+
+            // Build CSV: header row + one sample row
+            var rows = [
+                tpl.headers.map(function(h) { return '"' + h + '"'; }).join(','),
+                tpl.sample.map(function(v)  { return '"' + String(v).replace(/"/g, '""') + '"'; }).join(',')
+            ];
+            var csvContent = rows.join('\r\n');
+
+            // Trigger download
+            var blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            var url  = URL.createObjectURL(blob);
+            var a    = document.createElement('a');
+            a.href     = url;
+            a.download = tpl.filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
         // ==================== BACKUP ====================
         function downloadBackup() {
             if (typeof DILP !== 'undefined' && DILP.loading) {
@@ -859,63 +947,6 @@ try {
             return rows;
         }
 
-        // ==================== MAINTENANCE TOGGLE ====================
-        function toggleMaintenance(enabled) {
-            var confirmMsg = enabled
-                ? 'Enable maintenance mode? Users and encoders will be prevented from accessing the site.'
-                : 'Disable maintenance mode? The site will be available to all users.';
-
-            if (!confirm(confirmMsg)) {
-                // Revert checkbox
-                document.getElementById('maintenanceToggle').checked = !enabled;
-                return;
-            }
-
-            var form = new URLSearchParams();
-            form.append('value', enabled ? '1' : '0');
-
-            if (typeof DILP !== 'undefined' && DILP.loading) {
-                DILP.loading.show(enabled ? 'Enabling maintenance...' : 'Disabling maintenance...');
-            }
-
-            fetch('api/toggle-maintenance.php', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: form.toString()
-            })
-            .then(function(resp) { return resp.json(); })
-            .then(function(data) {
-                if (typeof DILP !== 'undefined' && DILP.loading) {
-                    DILP.loading.hide();
-                }
-                if (data.success) {
-                    var statusEl = document.getElementById('maintenanceStatus');
-                    if (enabled) {
-                        statusEl.classList.remove('disconnected');
-                        statusEl.classList.add('connected');
-                        statusEl.innerHTML = '<i class="bi bi-shield-lock"></i> Maintenance ON';
-                        showToast('success', 'Enabled', 'Maintenance mode enabled. Non-admin users will be blocked.');
-                    } else {
-                        statusEl.classList.remove('connected');
-                        statusEl.classList.add('disconnected');
-                        statusEl.innerHTML = '<i class="bi bi-shield-check"></i> Maintenance OFF';
-                        showToast('success', 'Disabled', 'Maintenance mode disabled. Site is available to all users.');
-                    }
-                } else {
-                    showToast('error', 'Error', data.message || 'Failed to update maintenance mode.');
-                    document.getElementById('maintenanceToggle').checked = !enabled;
-                }
-            })
-            .catch(function(err) {
-                if (typeof DILP !== 'undefined' && DILP.loading) {
-                    DILP.loading.hide();
-                }
-                console.error('Toggle maintenance error', err);
-                showToast('error', 'Error', 'Unexpected error while toggling maintenance mode.');
-                document.getElementById('maintenanceToggle').checked = !enabled;
-            });
-        }
-
         // Handle URL params for Google Drive callback messages
         $(document).ready(function() {
             // Initialize last export/import date displays
@@ -927,15 +958,9 @@ try {
             var urlParams = new URLSearchParams(window.location.search);
             if (urlParams.get('gdrive') === 'connected') {
                 showToast('success', 'Google Drive Connected', 'Your Google Drive account has been linked successfully.');
-                // Switch to backup tab
-                var backupTab = new bootstrap.Tab(document.getElementById('backup-tab'));
-                backupTab.show();
-                // Clean URL
                 window.history.replaceState({}, document.title, 'settings.php');
             } else if (urlParams.get('gdrive') === 'error') {
                 showToast('error', 'Connection Failed', urlParams.get('message') || 'Failed to connect Google Drive.');
-                var backupTab = new bootstrap.Tab(document.getElementById('backup-tab'));
-                backupTab.show();
                 window.history.replaceState({}, document.title, 'settings.php');
             }
 

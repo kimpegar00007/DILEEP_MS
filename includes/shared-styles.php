@@ -136,6 +136,40 @@
         margin: 0.25rem 0;
     }
 
+    /* Province identity badge in navbar */
+    .navbar-province-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0.25rem 0.65rem;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        letter-spacing: 0.01em;
+        background: rgba(255, 255, 255, 0.18);
+        color: #fff;
+        border: 1px solid rgba(255, 255, 255, 0.30);
+        backdrop-filter: blur(6px);
+        -webkit-backdrop-filter: blur(6px);
+        white-space: nowrap;
+        cursor: default;
+        user-select: none;
+    }
+
+    .navbar-province-badge.badge-super-admin {
+        background: rgba(212, 160, 23, 0.30);
+        border-color: rgba(212, 160, 23, 0.60);
+        color: var(--dole-accent-light);
+    }
+
+    /* Province shown in dropdown header (mobile + desktop) */
+    .navbar-dropdown-province {
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: var(--dole-primary);
+        padding: 0.4rem 1rem;
+    }
+
     .navbar-accent-bar {
         position: absolute;
         bottom: 0;

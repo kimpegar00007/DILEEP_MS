@@ -5,91 +5,190 @@ require_once 'includes/Auth.php';
 
 $auth = new Auth();
 $auth->requireLogin();
-$auth->requireRole('admin');
+$auth->requireRole('super_admin'); // Restricted to super_admin only
 
 $db = Database::getInstance()->getConnection();
-$success = '';
-$errors = [];
 
+$isSuperAdmin    = $auth->isSuperAdmin();
+$sessionProvince = $auth->getProvince(); // null for super_admin
+
+$success = '';
+$errors  = [];
+
+// Allowed provinces list (single source of truth)
+$provinces = Auth::PROVINCES; // ['Negros Occidental', 'Negros Oriental', 'Siquijor']
+
+// -----------------------------------------------------------------------
+// Province scope helper for the users table
+// super_admin → no restriction; admin → own province only
+// -----------------------------------------------------------------------
+function userProvinceScope(bool $isSuperAdmin, ?string $province): array {
+    if ($isSuperAdmin)      return ['', []];
+    if ($province === null) return [' AND 1 = 0', []]; // safe guard: no province = no users
+    return [' AND province = ?', [$province]];
+}
+
+// -----------------------------------------------------------------------
+// POST handling
+// -----------------------------------------------------------------------
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
-    
+
+    // ----------------------------------------------------------------
+    // CREATE user
+    // ----------------------------------------------------------------
     if ($action === 'create') {
-        $username = trim($_POST['username'] ?? '');
-        $email = trim($_POST['email'] ?? '');
-        $fullName = trim($_POST['full_name'] ?? '');
-        $password = $_POST['password'] ?? '';
-        $confirmPassword = $_POST['confirm_password'] ?? '';
-        $role = $_POST['role'] ?? '';
-        
-        if (empty($username)) $errors[] = 'Username is required';
-        if (empty($email)) $errors[] = 'Email is required';
-        if (empty($fullName)) $errors[] = 'Full name is required';
-        if (empty($password)) $errors[] = 'Password is required';
+        $username        = trim($_POST['username']        ?? '');
+        $email           = trim($_POST['email']           ?? '');
+        $fullName        = trim($_POST['full_name']       ?? '');
+        $password        = $_POST['password']             ?? '';
+        $confirmPassword = $_POST['confirm_password']     ?? '';
+        $role            = $_POST['role']                 ?? '';
+
+        // Province: super_admin picks from form; admin always uses their session province
+        if ($isSuperAdmin) {
+            $newProvince = $_POST['province'] ?? null;
+            if ($newProvince === '') $newProvince = null;
+            if ($newProvince !== null && !in_array($newProvince, $provinces, true)) {
+                $errors[] = 'Invalid province selected';
+            }
+        } else {
+            $newProvince = $sessionProvince; // immutable for admin
+        }
+
+        // Allowed roles: admin cannot create super_admin accounts
+        $allowedRoles = $isSuperAdmin
+            ? ['admin', 'encoder', 'user', 'super_admin', 'regional_director']
+            : ['admin', 'encoder', 'user'];
+
+        if (empty($username))  $errors[] = 'Username is required';
+        if (empty($email))     $errors[] = 'Email is required';
+        if (empty($fullName))  $errors[] = 'Full name is required';
+        if (empty($password))  $errors[] = 'Password is required';
         if (strlen($password) < 8) $errors[] = 'Password must be at least 8 characters';
         if ($password !== $confirmPassword) $errors[] = 'Passwords do not match';
-        if (!in_array($role, ['admin', 'encoder', 'user'])) $errors[] = 'Invalid role';
-        
+        if (!in_array($role, $allowedRoles, true)) $errors[] = 'Invalid role';
+
         $stmt = $db->prepare("SELECT COUNT(*) FROM users WHERE username = ?");
         $stmt->execute([$username]);
         if ($stmt->fetchColumn() > 0) $errors[] = 'Username already exists';
-        
+
         $stmt = $db->prepare("SELECT COUNT(*) FROM users WHERE email = ?");
         $stmt->execute([$email]);
         if ($stmt->fetchColumn() > 0) $errors[] = 'Email already exists';
-        
+
         if (empty($errors)) {
             $hashedPassword = password_hash($password, PASSWORD_BCRYPT);
-            $stmt = $db->prepare("INSERT INTO users (username, email, password, full_name, role, is_active) VALUES (?, ?, ?, ?, ?, 1)");
-            if ($stmt->execute([$username, $email, $hashedPassword, $fullName, $role])) {
-                $userId = $db->lastInsertId();
-                $logStmt = $db->prepare("INSERT INTO activity_logs (user_id, action, table_name, record_id, description, ip_address) VALUES (?, 'create', 'users', ?, ?, ?)");
-                $logStmt->execute([$_SESSION['user_id'], $userId, "Created new user: $username", $_SERVER['REMOTE_ADDR'] ?? 'unknown']);
+            $stmt = $db->prepare(
+                "INSERT INTO users (username, email, password, full_name, role, province, is_active)
+                 VALUES (?, ?, ?, ?, ?, ?, 1)"
+            );
+            if ($stmt->execute([$username, $email, $hashedPassword, $fullName, $role, $newProvince])) {
+                $userId  = $db->lastInsertId();
+                $logStmt = $db->prepare(
+                    "INSERT INTO activity_logs (user_id, action, table_name, record_id, description, ip_address)
+                     VALUES (?, 'create', 'users', ?, ?, ?)"
+                );
+                $logStmt->execute([
+                    $_SESSION['user_id'], $userId,
+                    "Created new user: $username (province: " . ($newProvince ?? 'none') . ")",
+                    $_SERVER['REMOTE_ADDR'] ?? 'unknown',
+                ]);
                 $success = 'User created successfully!';
             } else {
                 $errors[] = 'Failed to create user';
             }
         }
-    } elseif ($action === 'update') {
-        $userId = intval($_POST['user_id'] ?? 0);
-        $email = trim($_POST['email'] ?? '');
-        $fullName = trim($_POST['full_name'] ?? '');
-        $role = $_POST['role'] ?? '';
-        $isActive = isset($_POST['is_active']) ? 1 : 0;
-        $newPassword = $_POST['new_password'] ?? '';
-        
-        if (empty($email)) $errors[] = 'Email is required';
+    }
+
+    // ----------------------------------------------------------------
+    // UPDATE user
+    // ----------------------------------------------------------------
+    elseif ($action === 'update') {
+        $userId      = intval($_POST['user_id']    ?? 0);
+        $email       = trim($_POST['email']        ?? '');
+        $fullName    = trim($_POST['full_name']     ?? '');
+        $role        = $_POST['role']              ?? '';
+        $isActive    = isset($_POST['is_active']) ? 1 : 0;
+        $newPassword = $_POST['new_password']       ?? '';
+
+        $allowedRoles = $isSuperAdmin
+            ? ['admin', 'encoder', 'user', 'super_admin', 'regional_director']
+            : ['admin', 'encoder', 'user'];
+
+        // Province: only super_admin may re-assign; admin leaves province unchanged
+        if ($isSuperAdmin) {
+            $updProvince = $_POST['province'] ?? null;
+            if ($updProvince === '') $updProvince = null;
+            if ($updProvince !== null && !in_array($updProvince, $provinces, true)) {
+                $errors[] = 'Invalid province selected';
+            }
+            $provinceSetSql    = ', province = ?';
+            $provinceSetParams = [$updProvince];
+        } else {
+            $provinceSetSql    = '';
+            $provinceSetParams = [];
+        }
+
+        if (empty($email))    $errors[] = 'Email is required';
         if (empty($fullName)) $errors[] = 'Full name is required';
-        if (!in_array($role, ['admin', 'encoder', 'user'])) $errors[] = 'Invalid role';
-        
+        if (!in_array($role, $allowedRoles, true)) $errors[] = 'Invalid role';
+
         $stmt = $db->prepare("SELECT COUNT(*) FROM users WHERE email = ? AND id != ?");
         $stmt->execute([$email, $userId]);
         if ($stmt->fetchColumn() > 0) $errors[] = 'Email already exists';
-        
+
+        // Province-scope guard on WHERE: admin cannot edit users outside their province
+        [$pSql, $pParams] = userProvinceScope($isSuperAdmin, $sessionProvince);
+
         if (empty($errors)) {
             if (!empty($newPassword)) {
                 if (strlen($newPassword) < 8) {
                     $errors[] = 'Password must be at least 8 characters';
                 } else {
-                    $hashedPassword = password_hash($newPassword, PASSWORD_BCRYPT);
-                    $stmt = $db->prepare("UPDATE users SET email = ?, full_name = ?, role = ?, is_active = ?, password = ? WHERE id = ?");
-                    $stmt->execute([$email, $fullName, $role, $isActive, $hashedPassword, $userId]);
+                    $hashed = password_hash($newPassword, PASSWORD_BCRYPT);
+                    $stmt   = $db->prepare(
+                        "UPDATE users SET email = ?, full_name = ?, role = ?, is_active = ?,
+                         password = ?" . $provinceSetSql . " WHERE id = ?" . $pSql
+                    );
+                    $stmt->execute(array_merge(
+                        [$email, $fullName, $role, $isActive, $hashed],
+                        $provinceSetParams, [$userId], $pParams
+                    ));
                 }
             } else {
-                $stmt = $db->prepare("UPDATE users SET email = ?, full_name = ?, role = ?, is_active = ? WHERE id = ?");
-                $stmt->execute([$email, $fullName, $role, $isActive, $userId]);
+                $stmt = $db->prepare(
+                    "UPDATE users SET email = ?, full_name = ?, role = ?,
+                     is_active = ?" . $provinceSetSql . " WHERE id = ?" . $pSql
+                );
+                $stmt->execute(array_merge(
+                    [$email, $fullName, $role, $isActive],
+                    $provinceSetParams, [$userId], $pParams
+                ));
             }
-            
+
             if (empty($errors)) {
-                $logStmt = $db->prepare("INSERT INTO activity_logs (user_id, action, table_name, record_id, description, ip_address) VALUES (?, 'update', 'users', ?, ?, ?)");
-                $logStmt->execute([$_SESSION['user_id'], $userId, "Updated user ID: $userId", $_SERVER['REMOTE_ADDR'] ?? 'unknown']);
+                $logStmt = $db->prepare(
+                    "INSERT INTO activity_logs (user_id, action, table_name, record_id, description, ip_address)
+                     VALUES (?, 'update', 'users', ?, ?, ?)"
+                );
+                $logStmt->execute([
+                    $_SESSION['user_id'], $userId,
+                    "Updated user ID: $userId",
+                    $_SERVER['REMOTE_ADDR'] ?? 'unknown',
+                ]);
                 $success = 'User updated successfully!';
             }
         }
     }
 }
 
-$stmt = $db->query("SELECT * FROM users ORDER BY created_at DESC");
+// -----------------------------------------------------------------------
+// Fetch user list — province-scoped for admin
+// -----------------------------------------------------------------------
+[$pSql, $pParams] = userProvinceScope($isSuperAdmin, $sessionProvince);
+$stmt  = $db->prepare("SELECT * FROM users WHERE 1=1" . $pSql . " ORDER BY created_at DESC");
+$stmt->execute($pParams);
 $users = $stmt->fetchAll();
 ?>
 <!DOCTYPE html>
@@ -114,7 +213,15 @@ $users = $stmt->fetchAll();
 
             <main class="col-md-10 ms-sm-auto px-md-4 py-4" id="mainContent" role="main">
                 <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h2><i class="bi bi-people-fill"></i> User Management</h2>
+                    <div>
+                        <h2><i class="bi bi-people-fill"></i> User Management</h2>
+                        <?php if (!$isSuperAdmin && $sessionProvince): ?>
+                        <p class="text-muted mb-0 small">
+                            <i class="bi bi-geo-alt-fill"></i>
+                            Showing users for <strong><?php echo htmlspecialchars($sessionProvince); ?></strong>
+                        </p>
+                        <?php endif; ?>
+                    </div>
                     <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createUserModal">
                         <i class="bi bi-plus-circle"></i> Add New User
                     </button>
@@ -150,6 +257,7 @@ $users = $stmt->fetchAll();
                                         <th>Full Name</th>
                                         <th>Email</th>
                                         <th>Role</th>
+                                        <th>Province</th>
                                         <th>Status</th>
                                         <th>Created</th>
                                         <th>Actions</th>
@@ -164,12 +272,36 @@ $users = $stmt->fetchAll();
                                         <td><?php echo htmlspecialchars($user['email']); ?></td>
                                         <td>
                                             <?php
-                                            $roleColors = ['admin' => 'danger', 'encoder' => 'primary', 'user' => 'secondary'];
+                                            $roleColors = [
+                                                'super_admin'       => 'dark',
+                                                'regional_director' => 'info',
+                                                'admin'             => 'danger',
+                                                'encoder'           => 'primary',
+                                                'user'              => 'secondary',
+                                            ];
+                                            $roleLabels = [
+                                                'super_admin'       => 'Super Admin',
+                                                'regional_director' => 'Regional Director',
+                                                'admin'             => 'Admin',
+                                                'encoder'           => 'Encoder',
+                                                'user'              => 'User',
+                                            ];
                                             $color = $roleColors[$user['role']] ?? 'secondary';
+                                            $label = $roleLabels[$user['role']] ?? ucfirst($user['role']);
                                             ?>
                                             <span class="badge bg-<?php echo $color; ?>">
-                                                <?php echo ucfirst($user['role']); ?>
+                                                <?php echo htmlspecialchars($label); ?>
                                             </span>
+                                        </td>
+                                        <td>
+                                            <?php if ($user['province']): ?>
+                                                <span class="badge bg-info text-dark">
+                                                    <i class="bi bi-geo-alt-fill"></i>
+                                                    <?php echo htmlspecialchars($user['province']); ?>
+                                                </span>
+                                            <?php else: ?>
+                                                <span class="text-muted small">—</span>
+                                            <?php endif; ?>
                                         </td>
                                         <td>
                                             <span class="badge bg-<?php echo $user['is_active'] ? 'success' : 'secondary'; ?>">
@@ -178,7 +310,7 @@ $users = $stmt->fetchAll();
                                         </td>
                                         <td><?php echo date('M d, Y', strtotime($user['created_at'])); ?></td>
                                         <td>
-                                            <button class="btn btn-sm btn-warning action-btn" 
+                                            <button class="btn btn-sm btn-warning action-btn"
                                                     onclick="editUser(<?php echo htmlspecialchars(json_encode($user)); ?>)">
                                                 <i class="bi bi-pencil"></i>
                                             </button>
@@ -194,6 +326,9 @@ $users = $stmt->fetchAll();
         </div>
     </div>
 
+    <!-- ================================================================
+         CREATE USER MODAL
+    ================================================================ -->
     <div class="modal fade" id="createUserModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -227,15 +362,42 @@ $users = $stmt->fetchAll();
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Role <span class="text-danger">*</span>
-                                <span class="help-icon" data-bs-toggle="tooltip" title="Admin: Full access. Encoder: Can add/edit records. User: View only.">?</span>
+                                <span class="help-icon" data-bs-toggle="tooltip"
+                                    title="Admin: Full access within their province. Encoder: Can add/edit records. User: View only.">?</span>
                             </label>
                             <select name="role" class="form-select" required>
                                 <option value="">Select Role</option>
                                 <option value="admin">Admin</option>
                                 <option value="encoder">Encoder</option>
                                 <option value="user">User</option>
+                                <?php if ($isSuperAdmin): ?>
+                                <option value="regional_director">Regional Director</option>
+                                <option value="super_admin">Super Admin</option>
+                                <?php endif; ?>
                             </select>
                         </div>
+                        <?php if ($isSuperAdmin): ?>
+                        <div class="mb-3">
+                            <label class="form-label">Province
+                                <span class="help-icon" data-bs-toggle="tooltip"
+                                    title="Leave blank for super_admin / regional_director accounts that span all provinces.">?</span>
+                            </label>
+                            <select name="province" class="form-select">
+                                <option value="">— None (cross-province roles) —</option>
+                                <?php foreach ($provinces as $p): ?>
+                                <option value="<?php echo htmlspecialchars($p); ?>"><?php echo htmlspecialchars($p); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <?php else: ?>
+                        <!-- Province auto-assigned from admin's own session province -->
+                        <div class="mb-3">
+                            <label class="form-label">Province</label>
+                            <input type="text" class="form-control"
+                                   value="<?php echo htmlspecialchars($sessionProvince ?? ''); ?>" disabled>
+                            <small class="text-muted">Users you create are automatically assigned to your province.</small>
+                        </div>
+                        <?php endif; ?>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -246,6 +408,9 @@ $users = $stmt->fetchAll();
         </div>
     </div>
 
+    <!-- ================================================================
+         EDIT USER MODAL
+    ================================================================ -->
     <div class="modal fade" id="editUserModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -281,8 +446,29 @@ $users = $stmt->fetchAll();
                                 <option value="admin">Admin</option>
                                 <option value="encoder">Encoder</option>
                                 <option value="user">User</option>
+                                <?php if ($isSuperAdmin): ?>
+                                <option value="regional_director">Regional Director</option>
+                                <option value="super_admin">Super Admin</option>
+                                <?php endif; ?>
                             </select>
                         </div>
+                        <?php if ($isSuperAdmin): ?>
+                        <div class="mb-3">
+                            <label class="form-label">Province</label>
+                            <select name="province" id="edit_province" class="form-select">
+                                <option value="">— None (cross-province roles) —</option>
+                                <?php foreach ($provinces as $p): ?>
+                                <option value="<?php echo htmlspecialchars($p); ?>"><?php echo htmlspecialchars($p); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <?php else: ?>
+                        <div class="mb-3">
+                            <label class="form-label">Province</label>
+                            <input type="text" id="edit_province_display" class="form-control" disabled>
+                            <small class="text-muted">Province cannot be changed.</small>
+                        </div>
+                        <?php endif; ?>
                         <div class="mb-3">
                             <div class="form-check">
                                 <input type="checkbox" name="is_active" id="edit_is_active" class="form-check-input" value="1">
@@ -306,6 +492,8 @@ $users = $stmt->fetchAll();
     <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
     <script>
+        const IS_SUPER_ADMIN = <?php echo $isSuperAdmin ? 'true' : 'false'; ?>;
+
         $(document).ready(function() {
             $('#usersTable').DataTable({
                 order: [[0, 'desc']],
@@ -320,7 +508,13 @@ $users = $stmt->fetchAll();
             $('#edit_full_name').val(user.full_name);
             $('#edit_role').val(user.role);
             $('#edit_is_active').prop('checked', user.is_active == 1);
-            
+
+            if (IS_SUPER_ADMIN) {
+                $('#edit_province').val(user.province || '');
+            } else {
+                $('#edit_province_display').val(user.province || '—');
+            }
+
             var editModal = new bootstrap.Modal(document.getElementById('editUserModal'));
             editModal.show();
         }

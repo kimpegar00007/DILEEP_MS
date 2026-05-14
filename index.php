@@ -9,6 +9,30 @@ require_once 'models/FieldworkSchedule.php';
 $auth = new Auth();
 $auth->requireLogin();
 
+// -----------------------------------------------------------------------
+// Province config — baked into JS for map centering
+// -----------------------------------------------------------------------
+$isSuperAdmin    = $auth->isSuperAdmin();
+$isCrossProvince = $auth->isCrossProvince(); // true for super_admin + regional_director
+$sessionProvince = $auth->getProvince();     // null for cross-province roles
+
+// Province center coordinates [lat, lng, zoom]
+$provinceCenters = [
+    'Negros Occidental' => [10.67, 123.00, 9],
+    'Negros Oriental'   => [9.50,  123.00, 9],
+    'Siquijor'          => [9.20,  123.50, 11],
+];
+
+// Determine initial map center:
+//   • Province user → their province center
+//   • super_admin   → regional overview (all 3 provinces visible)
+if ($sessionProvince !== null && isset($provinceCenters[$sessionProvince])) {
+    $mapCenter = $provinceCenters[$sessionProvince];
+} else {
+    // Regional center covering Negros Occ, Negros Or, and Siquijor
+    $mapCenter = [10.0, 123.0, 8];
+}
+
 $beneficiaryModel = new Beneficiary();
 $proponentModel = new Proponent();
 $fieldworkModel = new FieldworkSchedule();
@@ -28,12 +52,65 @@ $overdueLiquidations = $proponentModel->getOverdueLiquidations();
 
 // Get chart data
 $beneficiaryMunicipalityData = $beneficiaryModel->getMunicipalityDistribution();
-$beneficiaryProjectTypeData = $beneficiaryModel->getProjectTypeDistribution();
 $beneficiaryMonthlyTrends = $beneficiaryModel->getMonthlyTrends();
 $proponentDistrictData = $proponentModel->getDistrictDistribution();
-$proponentCategoryData = $proponentModel->getCategoryDistribution();
-$proponentFundingData = $proponentModel->getFundingSourceBreakdown();
 $proponentMonthlyTrends = $proponentModel->getMonthlyTrends();
+
+// Combined data for Worker Type Distribution (Beneficiaries + Proponents)
+$beneficiaryWorkerData = $beneficiaryModel->getProjectTypeDistribution();
+$proponentWorkerData = $proponentModel->getWorkerTypeDistribution();
+$combinedWorkerTypeData = [];
+foreach (array_merge($beneficiaryWorkerData, $proponentWorkerData) as $item) {
+    $type = $item['type_of_worker'];
+    if (!isset($combinedWorkerTypeData[$type])) {
+        $combinedWorkerTypeData[$type] = 0;
+    }
+    $combinedWorkerTypeData[$type] += (int)$item['count'];
+}
+$workerTypeChartData = [];
+foreach ($combinedWorkerTypeData as $type => $count) {
+    $workerTypeChartData[] = ['type_of_worker' => $type, 'count' => $count];
+}
+usort($workerTypeChartData, function($a, $b) { return $b['count'] - $a['count']; });
+
+// Combined data for Funding Source Breakdown (Beneficiaries + Proponents)
+$beneficiaryFundingData = $beneficiaryModel->getFundingSourceBreakdown();
+$proponentFundingData = $proponentModel->getFundingSourceBreakdown();
+$combinedFundingData = [];
+foreach (array_merge($beneficiaryFundingData, $proponentFundingData) as $item) {
+    $source = $item['source_of_funds'];
+    if (!isset($combinedFundingData[$source])) {
+        $combinedFundingData[$source] = ['count' => 0, 'total_amount' => 0];
+    }
+    $combinedFundingData[$source]['count'] += (int)$item['count'];
+    $combinedFundingData[$source]['total_amount'] += (float)$item['total_amount'];
+}
+$fundingChartData = [];
+foreach ($combinedFundingData as $source => $data) {
+    $fundingChartData[] = [
+        'source_of_funds' => $source,
+        'count' => $data['count'],
+        'total_amount' => $data['total_amount']
+    ];
+}
+usort($fundingChartData, function($a, $b) { return $b['total_amount'] - $a['total_amount']; });
+
+// Combined data for Category Distribution (Proponents only, Beneficiaries don't have category)
+$beneficiaryCategoryData = $beneficiaryModel->getCategoryDistribution();
+$proponentCategoryData = $proponentModel->getCategoryDistribution();
+$combinedCategoryData = [];
+foreach (array_merge($beneficiaryCategoryData, $proponentCategoryData) as $item) {
+    $category = $item['category'];
+    if (!isset($combinedCategoryData[$category])) {
+        $combinedCategoryData[$category] = 0;
+    }
+    $combinedCategoryData[$category] += (int)$item['count'];
+}
+$categoryChartData = [];
+foreach ($combinedCategoryData as $category => $count) {
+    $categoryChartData[] = ['category' => $category, 'count' => $count];
+}
+usort($categoryChartData, function($a, $b) { return $b['count'] - $a['count']; });
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -267,6 +344,7 @@ $proponentMonthlyTrends = $proponentModel->getMonthlyTrends();
                             <div class="col-auto">
                                 <label class="form-label mb-0 fw-semibold"><i class="bi bi-funnel"></i> Filter Data:</label>
                             </div>
+                            <?php if ($isCrossProvince): ?>
                             <div class="col-auto">
                                 <select id="filter-province" class="form-select form-select-sm" style="width: auto;">
                                     <option value="">All Provinces</option>
@@ -275,6 +353,10 @@ $proponentMonthlyTrends = $proponentModel->getMonthlyTrends();
                                     <option value="Siquijor">Siquijor</option>
                                 </select>
                             </div>
+                            <?php else: ?>
+                            <!-- Province filter hidden: province users are scoped to their own province -->
+                            <input type="hidden" id="filter-province" value="<?php echo htmlspecialchars($sessionProvince ?? ''); ?>">
+                            <?php endif; ?>
                             <div class="col-auto">
                                 <select id="filter-year" class="form-select form-select-sm" style="width: auto;">
                                     <option value="">All Years</option>
@@ -474,11 +556,11 @@ $proponentMonthlyTrends = $proponentModel->getMonthlyTrends();
                         </div>
                     </div>
 
-                    <!-- Project Type Distribution -->
+                    <!-- Worker Type Distribution -->
                     <div class="col-lg-6">
                         <div class="card stat-card h-100">
                             <div class="card-header bg-white">
-                                <h5 class="mb-0"><i class="bi bi-diagram-3-fill"></i> Worker Type Distribution</h5>
+                                <h5 class="mb-0"><i class="bi bi-diagram-3-fill"></i> Worker Type Distribution (Combined)</h5>
                             </div>
                             <div class="card-body">
                                 <canvas id="projectTypeChart" style="max-height: 300px;"></canvas>
@@ -490,7 +572,7 @@ $proponentMonthlyTrends = $proponentModel->getMonthlyTrends();
                     <div class="col-lg-6">
                         <div class="card stat-card h-100">
                             <div class="card-header bg-white">
-                                <h5 class="mb-0"><i class="bi bi-cash-coin"></i> Funding Source Breakdown</h5>
+                                <h5 class="mb-0"><i class="bi bi-cash-coin"></i> Funding Source Breakdown (Combined)</h5>
                             </div>
                             <div class="card-body">
                                 <canvas id="fundingChart" style="max-height: 300px;"></canvas>
@@ -502,7 +584,7 @@ $proponentMonthlyTrends = $proponentModel->getMonthlyTrends();
                     <div class="col-lg-6">
                         <div class="card stat-card h-100">
                             <div class="card-header bg-white">
-                                <h5 class="mb-0"><i class="bi bi-tags-fill"></i> Project Category Distribution</h5>
+                                <h5 class="mb-0"><i class="bi bi-tags-fill"></i> Project Category Distribution (Combined)</h5>
                             </div>
                             <div class="card-body">
                                 <canvas id="categoryChart" style="max-height: 300px;"></canvas>
@@ -735,18 +817,18 @@ $proponentMonthlyTrends = $proponentModel->getMonthlyTrends();
             });
         }
 
-        // 3. Project Type Distribution Chart (Pie)
-        const projectTypeData = <?php echo json_encode($beneficiaryProjectTypeData); ?>;
+        // 3. Worker Type Distribution Chart (Combined: Beneficiaries + Proponents)
+        const workerTypeData = <?php echo json_encode($workerTypeChartData); ?>;
         window.workerTypeChart = null;
-        if (projectTypeData && projectTypeData.length > 0) {
+        if (workerTypeData && workerTypeData.length > 0) {
             const projectTypeCtx = document.getElementById('projectTypeChart').getContext('2d');
             window.workerTypeChart = new Chart(projectTypeCtx, {
                 type: 'pie',
                 data: {
-                    labels: projectTypeData.map(item => item.type_of_worker),
+                    labels: workerTypeData.map(item => item.type_of_worker),
                     datasets: [{
                         label: 'Count',
-                        data: projectTypeData.map(item => item.count),
+                        data: workerTypeData.map(item => item.count),
                         backgroundColor: colorPalette,
                         borderWidth: 2,
                         borderColor: '#fff'
@@ -776,8 +858,8 @@ $proponentMonthlyTrends = $proponentModel->getMonthlyTrends();
             });
         }
 
-        // 4. Funding Source Breakdown Chart (Bar)
-        const fundingData = <?php echo json_encode($proponentFundingData); ?>;
+        // 4. Funding Source Breakdown Chart (Combined: Beneficiaries + Proponents)
+        const fundingData = <?php echo json_encode($fundingChartData); ?>;
         window.fundingChart = null;
         if (fundingData && fundingData.length > 0) {
             const fundingCtx = document.getElementById('fundingChart').getContext('2d');
@@ -845,8 +927,8 @@ $proponentMonthlyTrends = $proponentModel->getMonthlyTrends();
             fundingCtx.fillText('No funding source data available', fundingCanvas.width / 2, fundingCanvas.height / 2);
         }
 
-        // 5. Category Distribution Chart (Doughnut)
-        const categoryData = <?php echo json_encode($proponentCategoryData); ?>;
+        // 5. Category Distribution Chart (Combined: Beneficiaries + Proponents)
+        const categoryData = <?php echo json_encode($categoryChartData); ?>;
         window.categoryChart = null;
         if (categoryData && categoryData.length > 0) {
             const categoryCtx = document.getElementById('categoryChart').getContext('2d');
@@ -960,8 +1042,12 @@ $proponentMonthlyTrends = $proponentModel->getMonthlyTrends();
         }
     </script>
     <script>
-        // Initialize map centered on Negros Occidental
-        var map = L.map('map').setView([10.5, 123.0], 9);
+        // Province center config (mirrors PHP $provinceCenters)
+        var PROVINCE_CENTERS = <?php echo json_encode($provinceCenters); ?>;
+
+        // Auto-center on logged-in user's province; super_admin sees regional overview
+        var MAP_CENTER  = <?php echo json_encode(array_values($mapCenter)); ?>;
+        var map = L.map('map').setView([MAP_CENTER[0], MAP_CENTER[1]], MAP_CENTER[2]);
 
         // Add OpenStreetMap tile layer
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -1177,14 +1263,23 @@ $proponentMonthlyTrends = $proponentModel->getMonthlyTrends();
             if (data.success) {
                 // Update statistics cards
                 updateStatCards(data);
-                
+
                 // Update charts (wrapped in try-catch to prevent errors from blocking success)
                 try {
                     updateCharts(data);
                 } catch (chartError) {
                     console.warn('Chart update warning:', chartError);
                 }
-                
+
+                // Re-center map when super_admin selects a province
+                if (province && typeof map !== 'undefined' && PROVINCE_CENTERS[province]) {
+                    const center = PROVINCE_CENTERS[province];
+                    map.setView([center[0], center[1]], center[2]);
+                } else if (!province && typeof map !== 'undefined') {
+                    // Reset to regional overview
+                    map.setView([MAP_CENTER[0], MAP_CENTER[1]], MAP_CENTER[2]);
+                }
+
                 // Show filter active badge
                 if (province || year || approvedOnly) {
                     filterStatus.style.display = '';
@@ -1304,8 +1399,13 @@ $proponentMonthlyTrends = $proponentModel->getMonthlyTrends();
     
     function updateCharts(data) {
         // Update Municipality Chart
+        // When cross-province user has no province filter active, rows include a `province`
+        // column → label bars as "Municipality (Province)" for clarity.
         if (window.municipalityChart && data.municipalityDistribution) {
-            window.municipalityChart.data.labels = data.municipalityDistribution.map(m => m.municipality);
+            const showProvince = data.isCrossProvince && !data.filters?.province;
+            window.municipalityChart.data.labels = data.municipalityDistribution.map(m =>
+                showProvince && m.province ? `${m.municipality} (${m.province})` : m.municipality
+            );
             window.municipalityChart.data.datasets[0].data = data.municipalityDistribution.map(m => m.count);
             window.municipalityChart.update();
         }
@@ -1365,6 +1465,24 @@ $proponentMonthlyTrends = $proponentModel->getMonthlyTrends();
             window.trendsChart.update();
         }
     }
+
+    // ── Auto-apply province filter on initial page load ──────────────────
+    // Province-scoped users: charts should reflect their province from the
+    // very first render, not just after manually applying filters.
+    // Cross-province users: no auto-filter on load (they see all by default).
+    (function autoLoadProvinceFilter() {
+        const isCrossProvince = <?php echo $isCrossProvince ? 'true' : 'false'; ?>;
+        const sessionProvince = <?php echo json_encode($sessionProvince); ?>;
+
+        if (!isCrossProvince && sessionProvince) {
+            // Province-scoped user — silently trigger the filter so charts
+            // initialize with the correct province scope.
+            document.addEventListener('DOMContentLoaded', function () {
+                // Small delay to let Chart.js finish initial render
+                setTimeout(applyDashboardFilters, 300);
+            });
+        }
+    })();
     </script>
 </body>
 </html>

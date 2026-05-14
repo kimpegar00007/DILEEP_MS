@@ -77,14 +77,25 @@
 4. Click "Create"
 
 ### Step 3: Import Database Schema
+
+**For Fresh Install (New Database):**
 1. Select the `dilp_monitoring` database from the left sidebar
 2. Click the "SQL" tab at the top
-3. Click "Choose File" and select `database_migrations.sql`
+3. Click "Choose File" and select `migrations/database_migrations.sql`
 4. Click "Go" to execute the SQL script
+
+**For Production Update (Existing Database with Data):**
+1. Select the `dilp_monitoring` database from the left sidebar
+2. Click the "SQL" tab at the top
+3. Click "Choose File" and select `migrations/database_update_production.sql`
+4. Click "Go" to execute the SQL script
+
+> **Note:** `database_update_production.sql` is idempotent (safe to run multiple times) and preserves all existing data while adding missing columns, tables, and indexes.
 
 **Alternative Method:**
 ```sql
--- Copy and paste the entire contents of database_migrations.sql
+-- For fresh install: Copy and paste database_migrations.sql
+-- For production update: Copy and paste database_update_production.sql
 -- into the SQL tab and click "Go"
 ```
 

@@ -228,10 +228,12 @@ try {
 }
 
 /**
- * Enforce edit permissions (admin or encoder only)
+ * Enforce edit permissions (admin, regional_director, super_admin, or encoder only).
+ * super_admin and regional_director are explicitly included because this function
+ * receives the raw $_SESSION['role'] string, bypassing Auth::hasRole().
  */
 function requireEditPermission($role) {
-    if (!in_array($role, ['admin', 'encoder'])) {
+    if (!in_array($role, ['admin', 'encoder', 'super_admin', 'regional_director'], true)) {
         http_response_code(403);
         echo json_encode(['success' => false, 'error' => 'You do not have permission to perform this action']);
         exit;

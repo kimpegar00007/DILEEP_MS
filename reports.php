@@ -8,6 +8,9 @@ require_once 'models/Proponent.php';
 $auth = new Auth();
 $auth->requireLogin();
 
+$sessionProvince = $auth->getProvince();
+$isSuperAdmin    = $auth->isSuperAdmin();
+
 $beneficiaryModel = new Beneficiary();
 $proponentModel = new Proponent();
 
@@ -18,6 +21,14 @@ $municipality = $_GET['municipality'] ?? '';
 $district = $_GET['district'] ?? '';
 $status = $_GET['status'] ?? '';
 $selectedStatus = $status; // keep backward-compatible variable name
+
+// Province filter: super_admin can choose freely; provincial users are locked
+$provinceFilter = '';
+if ($isSuperAdmin) {
+    $provinceFilter = $_GET['province'] ?? '';
+} elseif ($sessionProvince) {
+    $provinceFilter = $sessionProvince;
+}
 
 $reportData = [];
 $reportGenerated = false;
@@ -81,17 +92,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['generate'])) {
 
         if ($reportType === 'beneficiaries') {
             $filters['municipality'] = $municipality;
+            if ($provinceFilter) $filters['province'] = $provinceFilter;
             $reportData = $beneficiaryModel->getAll($filters);
         } else {
             $filters['district'] = $district;
+            if ($provinceFilter) $filters['province'] = $provinceFilter;
             $reportData = $proponentModel->getAll($filters);
         }
     }
 }
 
 $db = Database::getInstance()->getConnection();
-$municipalities = $db->query("SELECT DISTINCT municipality FROM beneficiaries ORDER BY municipality")->fetchAll(PDO::FETCH_COLUMN);
-$districts = $db->query("SELECT DISTINCT district FROM proponents WHERE district IS NOT NULL ORDER BY district")->fetchAll(PDO::FETCH_COLUMN);
+// Scope dropdown lists by province for non-super-admin users
+if (!$isSuperAdmin && $sessionProvince) {
+    $stmt = $db->prepare("SELECT DISTINCT municipality FROM beneficiaries WHERE province = ? ORDER BY municipality");
+    $stmt->execute([$sessionProvince]);
+    $municipalities = $stmt->fetchAll(PDO::FETCH_COLUMN);
+
+    $stmt = $db->prepare("SELECT DISTINCT district FROM proponents WHERE district IS NOT NULL AND province = ? ORDER BY district");
+    $stmt->execute([$sessionProvince]);
+    $districts = $stmt->fetchAll(PDO::FETCH_COLUMN);
+} else {
+    $municipalities = $db->query("SELECT DISTINCT municipality FROM beneficiaries ORDER BY municipality")->fetchAll(PDO::FETCH_COLUMN);
+    $districts = $db->query("SELECT DISTINCT district FROM proponents WHERE district IS NOT NULL ORDER BY district")->fetchAll(PDO::FETCH_COLUMN);
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -134,8 +158,8 @@ $districts = $db->query("SELECT DISTINCT district FROM proponents WHERE district
                         <h5 class="card-title mb-3">Generate Report</h5>
                         <form method="GET" action="" class="row g-3">
                             <input type="hidden" name="generate" value="1">
-                            
-                            <div class="col-md-3">
+
+                            <div class="col-md-2">
                                 <label class="form-label">Report Type</label>
                                 <select name="type" id="reportType" class="form-select" required>
                                     <option value="beneficiaries" <?php echo $reportType === 'beneficiaries' ? 'selected' : ''; ?>>Individual Beneficiaries</option>
@@ -143,7 +167,31 @@ $districts = $db->query("SELECT DISTINCT district FROM proponents WHERE district
                                     <option value="cqpr" <?php echo $reportType === 'cqpr' ? 'selected' : ''; ?>>CQPR (Consolidated Quarterly)</option>
                                 </select>
                             </div>
-                            
+
+                            <div class="col-md-2">
+                                <label class="form-label">Province</label>
+                                <?php if ($isSuperAdmin): ?>
+                                <select name="province" id="provinceFilter" class="form-select">
+                                    <option value="">All Provinces</option>
+                                    <?php foreach (Auth::PROVINCES as $prov): ?>
+                                    <option value="<?php echo htmlspecialchars($prov); ?>"
+                                            <?php echo $provinceFilter === $prov ? 'selected' : ''; ?>>
+                                        <?php echo htmlspecialchars($prov); ?>
+                                    </option>
+                                    <?php endforeach; ?>
+                                </select>
+                                <?php else: ?>
+                                <input type="hidden" name="province" value="<?php echo htmlspecialchars($sessionProvince); ?>">
+                                <select class="form-select bg-light" disabled>
+                                    <option selected><?php echo htmlspecialchars($sessionProvince ?? 'All'); ?></option>
+                                </select>
+                                <small class="text-muted d-flex align-items-center gap-1 mt-1">
+                                    <i class="bi bi-lock-fill"></i>
+                                    <span>Locked to your assigned province</span>
+                                </small>
+                                <?php endif; ?>
+                            </div>
+
                             <div class="col-md-2">
                                 <label class="form-label">Date From</label>
                                 <input type="date" name="date_from" class="form-control" value="<?php echo htmlspecialchars($dateFrom); ?>">

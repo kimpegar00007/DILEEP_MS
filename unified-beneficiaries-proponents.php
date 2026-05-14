@@ -8,34 +8,73 @@ require_once 'models/Proponent.php';
 $auth = new Auth();
 $auth->requireLogin();
 
+$sessionProvince = $auth->getProvince();
+$isSuperAdmin    = $auth->isSuperAdmin();
+
 $beneficiaryModel = new Beneficiary();
 $proponentModel = new Proponent();
 
+// Province filter: super_admin can choose freely; provincial users are locked to session province
+$provinceFilter = '';
+if ($isSuperAdmin) {
+    $provinceFilter = $_GET['province'] ?? '';
+} elseif ($sessionProvince) {
+    $provinceFilter = $sessionProvince;
+}
+
 // Get filters from query string
 $beneficiaryFilters = [
+    'province'     => $provinceFilter,
     'municipality' => $_GET['municipality'] ?? '',
-    'barangay' => $_GET['barangay'] ?? '',
-    'status' => $_GET['status'] ?? '',
-    'search' => $_GET['search'] ?? ''
+    'barangay'     => $_GET['barangay'] ?? '',
+    'status'       => $_GET['status'] ?? '',
+    'search'       => $_GET['search'] ?? ''
 ];
 
 $proponentFilters = [
-    'proponent_type' => $_GET['proponent_type'] ?? '',
-    'district' => $_GET['district'] ?? '',
-    'status' => $_GET['status'] ?? '',
-    'category' => $_GET['category'] ?? '',
-    'search' => $_GET['search'] ?? ''
+    'province'      => $provinceFilter,
+    'proponent_type'=> $_GET['proponent_type'] ?? '',
+    'district'      => $_GET['district'] ?? '',
+    'status'        => $_GET['status'] ?? '',
+    'category'      => $_GET['category'] ?? '',
+    'search'        => $_GET['search'] ?? ''
 ];
 
 // Get data
 $beneficiaries = $beneficiaryModel->getAll($beneficiaryFilters);
 $proponents = $proponentModel->getAll($proponentFilters);
 
-// Get unique values for filters
+// Get unique values for filters — scope by province for non-super-admin
 $db = Database::getInstance()->getConnection();
-$municipalities = $db->query("SELECT DISTINCT municipality FROM beneficiaries ORDER BY municipality")->fetchAll(PDO::FETCH_COLUMN);
-$barangays = $db->query("SELECT DISTINCT barangay FROM beneficiaries ORDER BY barangay")->fetchAll(PDO::FETCH_COLUMN);
-$districts = $db->query("SELECT DISTINCT district FROM proponents WHERE district IS NOT NULL ORDER BY district")->fetchAll(PDO::FETCH_COLUMN);
+if ($isSuperAdmin && $provinceFilter) {
+    $municipalities = $db->prepare("SELECT DISTINCT municipality FROM beneficiaries WHERE province = ? ORDER BY municipality");
+    $municipalities->execute([$provinceFilter]);
+    $municipalities = $municipalities->fetchAll(PDO::FETCH_COLUMN);
+
+    $barangays = $db->prepare("SELECT DISTINCT barangay FROM beneficiaries WHERE province = ? ORDER BY barangay");
+    $barangays->execute([$provinceFilter]);
+    $barangays = $barangays->fetchAll(PDO::FETCH_COLUMN);
+
+    $districts = $db->prepare("SELECT DISTINCT district FROM proponents WHERE district IS NOT NULL AND province = ? ORDER BY district");
+    $districts->execute([$provinceFilter]);
+    $districts = $districts->fetchAll(PDO::FETCH_COLUMN);
+} elseif (!$isSuperAdmin && $sessionProvince) {
+    $municipalities = $db->prepare("SELECT DISTINCT municipality FROM beneficiaries WHERE province = ? ORDER BY municipality");
+    $municipalities->execute([$sessionProvince]);
+    $municipalities = $municipalities->fetchAll(PDO::FETCH_COLUMN);
+
+    $barangays = $db->prepare("SELECT DISTINCT barangay FROM beneficiaries WHERE province = ? ORDER BY barangay");
+    $barangays->execute([$sessionProvince]);
+    $barangays = $barangays->fetchAll(PDO::FETCH_COLUMN);
+
+    $districts = $db->prepare("SELECT DISTINCT district FROM proponents WHERE district IS NOT NULL AND province = ? ORDER BY district");
+    $districts->execute([$sessionProvince]);
+    $districts = $districts->fetchAll(PDO::FETCH_COLUMN);
+} else {
+    $municipalities = $db->query("SELECT DISTINCT municipality FROM beneficiaries ORDER BY municipality")->fetchAll(PDO::FETCH_COLUMN);
+    $barangays = $db->query("SELECT DISTINCT barangay FROM beneficiaries ORDER BY barangay")->fetchAll(PDO::FETCH_COLUMN);
+    $districts = $db->query("SELECT DISTINCT district FROM proponents WHERE district IS NOT NULL ORDER BY district")->fetchAll(PDO::FETCH_COLUMN);
+}
 
 // Get current view from query string or default to beneficiaries
 $currentView = $_GET['view'] ?? 'beneficiaries';
@@ -370,9 +409,32 @@ if (!in_array($currentView, ['beneficiaries', 'proponents'])) {
                     <h5 class="mb-3"><i class="bi bi-funnel"></i> Filter Beneficiaries</h5>
                     <form method="GET" action="" class="row g-3">
                         <input type="hidden" name="view" value="beneficiaries">
+                        <div class="col-md-2">
+                            <label class="form-label">Province</label>
+                            <?php if ($isSuperAdmin): ?>
+                            <select name="province" class="form-select">
+                                <option value="">All Provinces</option>
+                                <?php foreach (\Auth::PROVINCES as $prov): ?>
+                                <option value="<?php echo htmlspecialchars($prov); ?>"
+                                        <?php echo $provinceFilter === $prov ? 'selected' : ''; ?>>
+                                    <?php echo htmlspecialchars($prov); ?>
+                                </option>
+                                <?php endforeach; ?>
+                            </select>
+                            <?php else: ?>
+                            <input type="hidden" name="province" value="<?php echo htmlspecialchars($sessionProvince); ?>">
+                            <select class="form-select bg-light" disabled>
+                                <option selected><?php echo htmlspecialchars($sessionProvince ?? 'All'); ?></option>
+                            </select>
+                            <small class="text-muted d-flex align-items-center gap-1 mt-1">
+                                <i class="bi bi-lock-fill"></i>
+                                <span>Locked to your assigned province</span>
+                            </small>
+                            <?php endif; ?>
+                        </div>
                         <div class="col-md-3">
                             <label class="form-label">Search</label>
-                            <input type="text" name="search" class="form-control" 
+                            <input type="text" name="search" class="form-control"
                                    placeholder="Name or Project" value="<?php echo htmlspecialchars($beneficiaryFilters['search']); ?>">
                         </div>
                         <div class="col-md-2">
@@ -425,9 +487,32 @@ if (!in_array($currentView, ['beneficiaries', 'proponents'])) {
                     <h5 class="mb-3"><i class="bi bi-funnel"></i> Filter Proponents</h5>
                     <form method="GET" action="" class="row g-3">
                         <input type="hidden" name="view" value="proponents">
+                        <div class="col-md-2">
+                            <label class="form-label">Province</label>
+                            <?php if ($isSuperAdmin): ?>
+                            <select name="province" class="form-select">
+                                <option value="">All Provinces</option>
+                                <?php foreach (\Auth::PROVINCES as $prov): ?>
+                                <option value="<?php echo htmlspecialchars($prov); ?>"
+                                        <?php echo $provinceFilter === $prov ? 'selected' : ''; ?>>
+                                    <?php echo htmlspecialchars($prov); ?>
+                                </option>
+                                <?php endforeach; ?>
+                            </select>
+                            <?php else: ?>
+                            <input type="hidden" name="province" value="<?php echo htmlspecialchars($sessionProvince); ?>">
+                            <select class="form-select bg-light" disabled>
+                                <option selected><?php echo htmlspecialchars($sessionProvince ?? 'All'); ?></option>
+                            </select>
+                            <small class="text-muted d-flex align-items-center gap-1 mt-1">
+                                <i class="bi bi-lock-fill"></i>
+                                <span>Locked to your assigned province</span>
+                            </small>
+                            <?php endif; ?>
+                        </div>
                         <div class="col-md-3">
                             <label class="form-label">Search</label>
-                            <input type="text" name="search" class="form-control" 
+                            <input type="text" name="search" class="form-control"
                                    placeholder="Name, Project, or Control #" value="<?php echo htmlspecialchars($proponentFilters['search']); ?>">
                         </div>
                         <div class="col-md-2">
@@ -482,24 +567,39 @@ if (!in_array($currentView, ['beneficiaries', 'proponents'])) {
                 </div>
 
                 <!-- Cards Container -->
+                <?php
+                // Pagination setup — 12 cards per page
+                define('CARDS_PER_PAGE', 12);
+                $currentPage    = max(1, intval($_GET['page'] ?? 1));
+                $activeDataset  = $currentView === 'beneficiaries' ? $beneficiaries : $proponents;
+                $totalItems     = count($activeDataset);
+                $totalPages     = max(1, (int) ceil($totalItems / CARDS_PER_PAGE));
+                $currentPage    = min($currentPage, $totalPages);
+                $offset         = ($currentPage - 1) * CARDS_PER_PAGE;
+                $pageItems      = array_slice($activeDataset, $offset, CARDS_PER_PAGE);
+                
+                // Debug: Uncomment to troubleshoot pagination
+                // error_log("Pagination Debug - View: {$currentView}, Total: {$totalItems}, Pages: {$totalPages}, Current: {$currentPage}, Offset: {$offset}, Showing: " . count($pageItems));
+                ?>
                 <div id="cardsContainer">
+                    <?php if (!empty($pageItems)): ?>
                     <?php if ($currentView === 'beneficiaries'): ?>
                         <div class="cards-grid" id="beneficiaryCards">
-                            <?php foreach ($beneficiaries as $beneficiary): ?>
+                            <?php foreach ($pageItems as $beneficiary): ?>
                             <div class="entity-card" data-type="beneficiary" data-id="<?php echo $beneficiary['id']; ?>">
                                 <div class="card-header">
                                     <div>
                                         <div class="card-title">
-                                            <?php echo htmlspecialchars($beneficiary['first_name'] . ' ' . 
-                                                      ($beneficiary['middle_name'] ? substr($beneficiary['middle_name'], 0, 1) . '. ' : '') . 
-                                                      $beneficiary['last_name'] . 
+                                            <?php echo htmlspecialchars($beneficiary['first_name'] . ' ' .
+                                                      ($beneficiary['middle_name'] ? substr($beneficiary['middle_name'], 0, 1) . '. ' : '') .
+                                                      $beneficiary['last_name'] .
                                                       ($beneficiary['suffix'] ? ' ' . $beneficiary['suffix'] : '')); ?>
                                         </div>
                                         <div class="card-subtitle">
                                             <i class="bi bi-geo-alt"></i> <?php echo htmlspecialchars($beneficiary['barangay'] . ', ' . $beneficiary['municipality']); ?>
                                         </div>
                                     </div>
-                                    <span class="badge bg-<?php 
+                                    <span class="badge bg-<?php
                                         $statusColors = ['pending' => 'secondary', 'approved' => 'primary', 'implemented' => 'success', 'monitored' => 'info'];
                                         echo $statusColors[$beneficiary['status']] ?? 'secondary';
                                     ?> badge-status">
@@ -524,16 +624,14 @@ if (!in_array($currentView, ['beneficiaries', 'proponents'])) {
                                 </div>
                                 <div class="card-footer">
                                     <div class="amount">₱<?php echo number_format($beneficiary['amount_worth'], 2); ?></div>
-                                    <div>
-                                        <i class="bi bi-arrow-right"></i>
-                                    </div>
+                                    <div><i class="bi bi-arrow-right"></i></div>
                                 </div>
                             </div>
                             <?php endforeach; ?>
                         </div>
                     <?php else: ?>
                         <div class="cards-grid" id="proponentCards">
-                            <?php foreach ($proponents as $proponent): ?>
+                            <?php foreach ($pageItems as $proponent): ?>
                             <div class="entity-card" data-type="proponent" data-id="<?php echo $proponent['id']; ?>">
                                 <div class="card-header">
                                     <div>
@@ -544,7 +642,7 @@ if (!in_array($currentView, ['beneficiaries', 'proponents'])) {
                                             <i class="bi bi-briefcase"></i> <?php echo htmlspecialchars($proponent['project_title']); ?>
                                         </div>
                                     </div>
-                                    <span class="badge bg-<?php 
+                                    <span class="badge bg-<?php
                                         $statusColors = ['pending' => 'secondary', 'approved' => 'primary', 'implemented' => 'success', 'liquidated' => 'warning', 'monitored' => 'info'];
                                         echo $statusColors[$proponent['status']] ?? 'secondary';
                                     ?> badge-status">
@@ -575,32 +673,70 @@ if (!in_array($currentView, ['beneficiaries', 'proponents'])) {
                                 </div>
                                 <div class="card-footer">
                                     <div class="amount">₱<?php echo number_format($proponent['amount'], 2); ?></div>
-                                    <div>
-                                        <i class="bi bi-arrow-right"></i>
-                                    </div>
+                                    <div><i class="bi bi-arrow-right"></i></div>
                                 </div>
                             </div>
                             <?php endforeach; ?>
                         </div>
                     <?php endif; ?>
+                    <?php else: ?>
+                    <!-- Empty State -->
+                    <div class="text-center py-5">
+                        <i class="bi bi-inbox" style="font-size: 4rem; color: #6c757d;"></i>
+                        <h4 class="mt-3">No <?php echo $currentView === 'beneficiaries' ? 'Beneficiaries' : 'Proponents'; ?> Found</h4>
+                        <p class="text-muted">Try adjusting your filters or add a new <?php echo $currentView === 'beneficiaries' ? 'beneficiary' : 'proponent'; ?>.</p>
+                    </div>
+                    <?php endif; ?>
                 </div>
 
-                <!-- Empty State -->
-                <?php if (($currentView === 'beneficiaries' && empty($beneficiaries)) || ($currentView === 'proponents' && empty($proponents))): ?>
-                <div class="text-center py-5">
-                    <i class="bi bi-inbox" style="font-size: 4rem; color: #6c757d;"></i>
-                    <h4 class="mt-3">No <?php echo $currentView === 'beneficiaries' ? 'Beneficiaries' : 'Proponents'; ?> Found</h4>
-                    <p class="text-muted">Try adjusting your filters or add a new <?php echo $currentView === 'beneficiaries' ? 'beneficiary' : 'proponent'; ?>.</p>
-                </div>
+                <!-- Pagination -->
+                <?php if ($totalPages > 1): ?>
+                <nav aria-label="Card pagination" class="mt-4">
+                    <?php
+                    // Build the base query string (preserve all filters, update page)
+                    $paginationParams = $_GET;
+                    unset($paginationParams['page']);
+                    $baseQuery = http_build_query($paginationParams);
+                    $baseQuery = $baseQuery ? $baseQuery . '&' : '';
+                    ?>
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                        <small class="text-muted">
+                            Showing <?php echo $offset + 1; ?>–<?php echo min($offset + CARDS_PER_PAGE, $totalItems); ?> of <?php echo $totalItems; ?> records
+                        </small>
+                        <ul class="pagination pagination-sm mb-0">
+                            <li class="page-item <?php echo $currentPage <= 1 ? 'disabled' : ''; ?>">
+                                <a class="page-link" href="?<?php echo $baseQuery; ?>page=<?php echo $currentPage - 1; ?>">
+                                    <i class="bi bi-chevron-left"></i>
+                                </a>
+                            </li>
+                            <?php for ($p = 1; $p <= $totalPages; $p++): ?>
+                            <?php if ($p === 1 || $p === $totalPages || abs($p - $currentPage) <= 2): ?>
+                            <li class="page-item <?php echo $p === $currentPage ? 'active' : ''; ?>">
+                                <a class="page-link" href="?<?php echo $baseQuery; ?>page=<?php echo $p; ?>"><?php echo $p; ?></a>
+                            </li>
+                            <?php elseif (abs($p - $currentPage) === 3): ?>
+                            <li class="page-item disabled"><span class="page-link">…</span></li>
+                            <?php endif; ?>
+                            <?php endfor; ?>
+                            <li class="page-item <?php echo $currentPage >= $totalPages ? 'disabled' : ''; ?>">
+                                <a class="page-link" href="?<?php echo $baseQuery; ?>page=<?php echo $currentPage + 1; ?>">
+                                    <i class="bi bi-chevron-right"></i>
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </nav>
                 <?php endif; ?>
             </main>
         </div>
     </div>
 
-    <!-- Add Button FAB -->
+    <!-- Add Button FAB — hidden for 'user' role (view-only) -->
+    <?php if ($auth->hasRole(['admin', 'encoder'])): ?>
     <button class="add-button-fab" data-bs-toggle="modal" data-bs-target="#addChoiceModal">
         <i class="bi bi-plus"></i>
     </button>
+    <?php endif; ?>
 
     <!-- Add Choice Modal -->
     <div class="modal fade" id="addChoiceModal" tabindex="-1">
@@ -665,20 +801,11 @@ if (!in_array($currentView, ['beneficiaries', 'proponents'])) {
                 $('.view-toggle button').removeClass('active');
                 $(this).addClass('active');
                 
-                // Update URL without page reload
+                // Update URL and reload to switch view (preserves pagination)
                 const url = new URL(window.location);
                 url.searchParams.set('view', view);
-                window.history.pushState({}, '', url);
-                
-                // Switch filters
-                $('#beneficiaryFilters').toggleClass('visible hidden', view === 'beneficiaries');
-                $('#proponentFilters').toggleClass('visible hidden', view === 'proponents');
-                
-                // Show loading state
-                showSkeletonCards();
-                
-                // Load new content
-                loadCards(view);
+                url.searchParams.delete('page'); // Reset to page 1 when switching views
+                window.location.href = url.toString();
             });
             
             // Card click handler
@@ -700,20 +827,6 @@ if (!in_array($currentView, ['beneficiaries', 'proponents'])) {
                 }
             });
         });
-        
-        function showSkeletonCards() {
-            const skeletonHtml = Array(8).fill('<div class="skeleton-card"></div>').join('');
-            $('#cardsContainer').html('<div class="cards-grid">' + skeletonHtml + '</div>');
-        }
-        
-        function loadCards(view) {
-            // Simulate loading delay for demo
-            setTimeout(() => {
-                const url = new URL(window.location);
-                url.searchParams.set('view', view);
-                window.location.reload();
-            }, 500);
-        }
         
         function showDetailModal(type, id) {
             $('#detailModal').data('current-type', type);

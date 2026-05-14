@@ -7,20 +7,38 @@ require_once 'models/Proponent.php';
 $auth = new Auth();
 $auth->requireLogin();
 
+$sessionProvince = $auth->getProvince();
+$isSuperAdmin    = $auth->isSuperAdmin();
+
 $proponentModel = new Proponent();
 
+// Province filter: super_admin can choose freely; provincial users are locked
+$provinceFilter = '';
+if ($isSuperAdmin) {
+    $provinceFilter = $_GET['province'] ?? '';
+} elseif ($sessionProvince) {
+    $provinceFilter = $sessionProvince;
+}
+
 $filters = [
+    'province'       => $provinceFilter,
     'proponent_type' => $_GET['proponent_type'] ?? '',
-    'district' => $_GET['district'] ?? '',
-    'status' => $_GET['status'] ?? '',
-    'category' => $_GET['category'] ?? '',
-    'search' => $_GET['search'] ?? ''
+    'district'       => $_GET['district'] ?? '',
+    'status'         => $_GET['status'] ?? '',
+    'category'       => $_GET['category'] ?? '',
+    'search'         => $_GET['search'] ?? ''
 ];
 
 $proponents = $proponentModel->getAll($filters);
 
 $db = Database::getInstance()->getConnection();
-$districts = $db->query("SELECT DISTINCT district FROM proponents WHERE district IS NOT NULL ORDER BY district")->fetchAll(PDO::FETCH_COLUMN);
+if ($provinceFilter) {
+    $stmt = $db->prepare("SELECT DISTINCT district FROM proponents WHERE district IS NOT NULL AND province = ? ORDER BY district");
+    $stmt->execute([$provinceFilter]);
+    $districts = $stmt->fetchAll(PDO::FETCH_COLUMN);
+} else {
+    $districts = $db->query("SELECT DISTINCT district FROM proponents WHERE district IS NOT NULL ORDER BY district")->fetchAll(PDO::FETCH_COLUMN);
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -55,9 +73,32 @@ $districts = $db->query("SELECT DISTINCT district FROM proponents WHERE district
                 <div class="card filters-card mb-4">
                     <div class="card-body">
                         <form method="GET" action="" class="row g-3">
+                            <div class="col-md-2">
+                                <label class="form-label">Province</label>
+                                <?php if ($isSuperAdmin): ?>
+                                <select name="province" class="form-select">
+                                    <option value="">All Provinces</option>
+                                    <?php foreach (\Auth::PROVINCES as $prov): ?>
+                                    <option value="<?php echo htmlspecialchars($prov); ?>"
+                                            <?php echo $provinceFilter === $prov ? 'selected' : ''; ?>>
+                                        <?php echo htmlspecialchars($prov); ?>
+                                    </option>
+                                    <?php endforeach; ?>
+                                </select>
+                                <?php else: ?>
+                                <input type="hidden" name="province" value="<?php echo htmlspecialchars($sessionProvince); ?>">
+                                <select class="form-select bg-light" disabled>
+                                    <option selected><?php echo htmlspecialchars($sessionProvince ?? 'All'); ?></option>
+                                </select>
+                                <small class="text-muted d-flex align-items-center gap-1 mt-1">
+                                    <i class="bi bi-lock-fill"></i>
+                                    <span>Locked to your assigned province</span>
+                                </small>
+                                <?php endif; ?>
+                            </div>
                             <div class="col-md-3">
                                 <label class="form-label">Search</label>
-                                <input type="text" name="search" class="form-control" 
+                                <input type="text" name="search" class="form-control"
                                        placeholder="Name, Project, or Control #" value="<?php echo htmlspecialchars($filters['search']); ?>">
                             </div>
                             <div class="col-md-2">

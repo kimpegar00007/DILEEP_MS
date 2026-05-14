@@ -8,13 +8,32 @@ $auth = new Auth();
 $auth->requireLogin();
 $auth->requireRole(['admin', 'encoder']);
 
+$sessionProvince = $auth->getProvince();
+$isSuperAdmin    = $auth->isSuperAdmin();
+
 $proponentModel = new Proponent();
 $errors = [];
 $success = '';
 $proponent = null;
 $isEdit = false;
-$beneficiaryTypeOptions = ['Farmers', 'Fisherfolk', 'PDL', 'Vendor', 'Displaced Worker', 'Tricycle Driver', 'Senior Citizen', 'PCL', 'PWD', 'Women'];
-$workerTypeOptions = ['Vendors', 'Farmers', 'Fisher Folk', 'Driver', 'Laborer'];
+$beneficiaryTypeOptions = [
+    'Marginalized and Landless Farmers',
+    'Marginalized Fisherfolk',
+    'Self-employed with Insufficient Income',
+    'Parents/Guardians of Child Laborers',
+    'Displaced Workers',
+    'Among others'
+];
+$workerTypeOptions = [
+    'Disadvantaged Workers',
+    'Indigenous People (IPs)',
+    'Parents/Guardians of Child Laborers',
+    'TESDA graduates',
+    'Micro-establishment\'s beneficiaries of NWPC and RTWPB\'s Productive Improvement Trainings',
+    'Labor Organizations and Workers\' Association under BLR\'s WODP Plus',
+    'Micro-entrepreneur under the BWC\'s TAV',
+    'Others'
+];
 
 function proponentNormalizeOptions($allowedOptions, $values) {
     if (!is_array($values)) {
@@ -27,7 +46,7 @@ function proponentNormalizeOptions($allowedOptions, $values) {
 
 function normalizeBeneficiaryNames($values) {
     if (!is_array($values)) {
-        $values = $values === '' ? [] : [$values];
+        $values = $values === '' ? [] : explode(',', $values);
     }
 
     $values = array_map('trim', $values);
@@ -43,6 +62,14 @@ if (isset($_GET['id'])) {
         header('Location: proponents.php');
         exit;
     }
+}
+
+// Determine the province to pre-fill the form with
+$formProvince = '';
+if ($isEdit && $proponent) {
+    $formProvince = $proponent['province'] ?? '';
+} elseif (!$isSuperAdmin && $sessionProvince) {
+    $formProvince = $sessionProvince;
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -137,6 +164,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     
     if (empty($errors)) {
+        $excludeId = $isEdit ? (int) $_GET['id'] : null;
+        $duplicate = $proponentModel->checkProponentDuplicate(
+            $data['proponent_name'], $data['project_title'], $excludeId
+        );
+        if ($duplicate) {
+            $errors[] = 'Duplicate detected: a proponent with the same name and project title already exists in this province (Record #' . $duplicate['id'] . ' — ' . htmlspecialchars($duplicate['proponent_name']) . ', ' . htmlspecialchars($duplicate['project_title']) . '). Please verify before saving.';
+        }
+    }
+
+    if (empty($errors)) {
         try {
             if ($isEdit) {
                 if ($proponentModel->update($_GET['id'], $data)) {
@@ -191,6 +228,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             padding: 1rem;
             border-radius: 5px;
             border-left: 4px solid var(--dole-warning);
+        }
+        .province-locked-notice {
+            background: linear-gradient(135deg, rgba(27,122,61,0.08), rgba(27,122,61,0.04));
+            border: 1px solid rgba(27,122,61,0.20);
+            border-left: 4px solid var(--dole-primary);
+            border-radius: 8px;
+            padding: 0.6rem 1rem;
+            font-size: 0.82rem;
+            color: var(--dole-secondary);
+            display: flex; align-items: center; gap: 0.5rem;
+            margin-top: 0.4rem;
         }
     </style>
 </head>
@@ -392,7 +440,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                         </div>
                                     </div>
                                     <div class="col-md-6 mb-3">
-                                        <label class="form-label">Type of Workers</label>
+                                        <label class="form-label">Kinds Beneficiaries</label>
                                         <div class="row g-2">
                                             <?php foreach ($workerTypeOptions as $index => $option): ?>
                                             <div class="col-sm-6 col-lg-4">
@@ -603,13 +651,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                             <div class="form-section">
                                 <h5><i class="bi bi-geo-alt"></i> Location (For Map Visualization)</h5>
+                                <p class="text-muted small mb-3">
+                                    <i class="bi bi-info-circle"></i>
+                                    Coordinates are auto-filled when you select a Barangay, or use the button to re-fetch them.
+                                </p>
                                 <div class="row">
                                     <div class="col-md-3 mb-3">
                                         <label class="form-label">Province</label>
-                                        <select name="province" id="geo_province" class="form-select">
-                                            <option value="">Select Province</option>
-                                        </select>
-                                        <input type="hidden" id="province_value" value="<?php echo htmlspecialchars($proponent['province'] ?? ''); ?>">
+                                        <?php if ($isSuperAdmin): ?>
+                                            <select name="province" id="geo_province" class="form-select">
+                                                <option value="">Select Province</option>
+                                            </select>
+                                            <input type="hidden" id="province_value" value="<?php echo htmlspecialchars($formProvince); ?>">
+                                        <?php else: ?>
+                                            <!-- Province is always submitted as hidden; display-only select is purely visual -->
+                                            <input type="hidden" name="province" value="<?php echo htmlspecialchars($formProvince); ?>">
+                                            <input type="text" class="form-control bg-light"
+                                                   value="<?php echo htmlspecialchars($formProvince ?: 'Not assigned'); ?>" disabled>
+                                            <div class="province-locked-notice">
+                                                <i class="bi bi-lock-fill"></i>
+                                                Province is locked to your assigned region.
+                                            </div>
+                                        <?php endif; ?>
                                     </div>
                                     <div class="col-md-3 mb-3">
                                         <label class="form-label">Municipality/City</label>
@@ -632,14 +695,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 <div class="row">
                                     <div class="col-md-6 mb-3">
                                         <label class="form-label">Latitude</label>
-                                        <input type="text" name="latitude" id="latitude" class="form-control" 
+                                        <input type="text" name="latitude" id="latitude" class="form-control"
                                                placeholder="e.g., 10.5"
                                                value="<?php echo $proponent['latitude'] ?? ''; ?>">
                                         <small class="text-muted">Decimal degrees format</small>
                                     </div>
                                     <div class="col-md-6 mb-3">
                                         <label class="form-label">Longitude</label>
-                                        <input type="text" name="longitude" id="longitude" class="form-control" 
+                                        <input type="text" name="longitude" id="longitude" class="form-control"
                                                placeholder="e.g., 123.0"
                                                value="<?php echo $proponent['longitude'] ?? ''; ?>">
                                         <small class="text-muted">Decimal degrees format</small>
@@ -871,15 +934,156 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
-        DILPLocation.initLocationAutoFill({
-            provinceSelect: '#geo_province',
-            municipalitySelect: '#geo_municipality',
-            barangaySelect: '#geo_barangay',
-            latitudeInput: '#latitude',
-            longitudeInput: '#longitude',
-            geocodeButton: '#btn-geocode',
-            provinceValueInput: '#province_value'
-        });
+        // ── Province / location bootstrap ──────────────────────────────────
+        const IS_SUPER_ADMIN     = <?php echo $isSuperAdmin ? 'true' : 'false'; ?>;
+        const SESSION_PROVINCE   = <?php echo json_encode($sessionProvince ?? ''); ?>;
+        const FORM_PROVINCE      = <?php echo json_encode($formProvince); ?>;
+        const SAVED_MUNICIPALITY = <?php echo json_encode($proponent['municipality'] ?? ''); ?>;
+        const SAVED_BARANGAY     = <?php echo json_encode($proponent['barangay'] ?? ''); ?>;
+
+        if (IS_SUPER_ADMIN) {
+            // Super-admin: full free province selection via shared DILPLocation lib
+            DILPLocation.initLocationAutoFill({
+                provinceSelect:     '#geo_province',
+                municipalitySelect: '#geo_municipality',
+                barangaySelect:     '#geo_barangay',
+                latitudeInput:      '#latitude',
+                longitudeInput:     '#longitude',
+                geocodeButton:      '#btn-geocode',
+                provinceValueInput: '#province_value',
+            });
+        } else {
+            // Provincial user: province is locked — load municipalities directly
+            _bootstrapLockedProvince();
+        }
+
+        async function _bootstrapLockedProvince() {
+            if (!FORM_PROVINCE) return;
+
+            // 1. Resolve province code
+            let provinceCode = null;
+            try {
+                const resp   = await fetch('api/get-locations.php?action=provinces', { headers: { 'Accept': 'application/json' } });
+                const result = await resp.json();
+                if (!result.success) return;
+                const match = result.data.find(p => p.name === FORM_PROVINCE);
+                if (match) provinceCode = match.code;
+            } catch (e) {
+                console.error('Province lookup failed', e);
+            }
+            if (!provinceCode) return;
+
+            // 2. Load municipalities
+            const muniSelect = document.getElementById('geo_municipality');
+            try {
+                const resp   = await fetch(`api/get-locations.php?action=cities&province_code=${encodeURIComponent(provinceCode)}`, { headers: { 'Accept': 'application/json' } });
+                const result = await resp.json();
+                if (!result.success) return;
+
+                muniSelect.innerHTML = '<option value="">Select Municipality/City</option>';
+                result.data.forEach(city => {
+                    const opt = document.createElement('option');
+                    opt.value        = city.name;
+                    opt.textContent  = city.name;
+                    opt.dataset.code = city.code;
+                    if (city.name === SAVED_MUNICIPALITY) opt.selected = true;
+                    muniSelect.appendChild(opt);
+                });
+                muniSelect.disabled = false;
+            } catch (e) {
+                console.error('Municipality fetch failed', e);
+                return;
+            }
+
+            // 3. Load barangays for saved municipality (if any)
+            if (SAVED_MUNICIPALITY && muniSelect.value) {
+                const cityCode = muniSelect.selectedOptions[0]?.dataset.code;
+                if (cityCode) await _loadBarangays(cityCode, SAVED_BARANGAY);
+            }
+
+            // 4. Wire municipality change → barangay reload
+            muniSelect.addEventListener('change', async function () {
+                const bgySelect = document.getElementById('geo_barangay');
+                if (!this.value) {
+                    bgySelect.innerHTML = '<option value="">Select Municipality first</option>';
+                    bgySelect.disabled  = true;
+                    return;
+                }
+                const cityCode = this.selectedOptions[0]?.dataset.code;
+                if (cityCode) await _loadBarangays(cityCode, '');
+            });
+
+            // 5. Manual geocode button
+            document.getElementById('btn-geocode')?.addEventListener('click', function () {
+                _autoGeocode();
+            });
+        }
+
+        async function _loadBarangays(cityCode, savedBarangay) {
+            const bgySelect = document.getElementById('geo_barangay');
+            bgySelect.innerHTML = '<option value="">Loading barangays...</option>';
+            bgySelect.disabled  = true;
+            try {
+                const resp   = await fetch(`api/get-locations.php?action=barangays&city_code=${encodeURIComponent(cityCode)}`, { headers: { 'Accept': 'application/json' } });
+                const result = await resp.json();
+                if (!result.success) {
+                    bgySelect.innerHTML = '<option value="">Error loading barangays</option>';
+                    return;
+                }
+                bgySelect.innerHTML = '<option value="">Select Barangay</option>';
+                result.data.forEach(b => {
+                    const opt = document.createElement('option');
+                    opt.value       = b.name;
+                    opt.textContent = b.name;
+                    if (b.name === savedBarangay) opt.selected = true;
+                    bgySelect.appendChild(opt);
+                });
+                bgySelect.disabled = false;
+
+                // Auto-geocode when barangay restored or changed
+                if (savedBarangay && bgySelect.value) _autoGeocode();
+
+                bgySelect.addEventListener('change', function () {
+                    _autoGeocode();
+                });
+            } catch (e) {
+                console.error('Barangay fetch failed', e);
+                bgySelect.innerHTML = '<option value="">Error loading barangays</option>';
+            }
+        }
+
+        async function _autoGeocode() {
+            const province     = IS_SUPER_ADMIN
+                ? (document.getElementById('geo_province')?.value || '')
+                : FORM_PROVINCE;
+            const municipality = document.getElementById('geo_municipality')?.value || '';
+            const barangay     = document.getElementById('geo_barangay')?.value || '';
+            const latInput     = document.getElementById('latitude');
+            const lngInput     = document.getElementById('longitude');
+
+            if (!municipality) return;
+
+            const btn = document.getElementById('btn-geocode');
+            if (btn) { btn.disabled = true; btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Fetching…'; }
+
+            try {
+                const params = new URLSearchParams({ municipality });
+                if (province)  params.append('province',  province);
+                if (barangay)  params.append('barangay',  barangay);
+
+                const resp   = await fetch(`api/geocode.php?${params}`, { headers: { 'Accept': 'application/json' } });
+                const result = await resp.json();
+
+                if (result.success) {
+                    if (latInput) latInput.value = result.latitude.toFixed(8);
+                    if (lngInput) lngInput.value = result.longitude.toFixed(8);
+                }
+            } catch (e) {
+                console.warn('Auto-geocode failed:', e);
+            } finally {
+                if (btn) { btn.disabled = false; btn.innerHTML = '<i class="bi bi-geo-alt-fill"></i> Auto-fill Coordinates'; }
+            }
+        }
         
         // Application Return History Functions
         async function addReturn() {

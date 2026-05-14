@@ -146,24 +146,68 @@ $philippineHolidays = json_encode([
         .status-dot.missed    { background-color: #dc3545; }
         .status-dot.holiday   { background-color: #dc3545; opacity: 0.3; }
 
-        /* Table View */
-        .table-fieldwork th {
+        /* Table View — Compact */
+        .table-fieldwork {
             font-size: 0.82rem;
-            font-weight: 600;
+        }
+        .table-fieldwork th {
+            font-size: 0.75rem;
+            font-weight: 700;
             text-transform: uppercase;
-            letter-spacing: 0.03em;
+            letter-spacing: 0.04em;
             color: var(--dole-secondary);
             border-bottom-width: 2px;
+            padding: 0.5rem 0.6rem;
+            white-space: nowrap;
         }
         .table-fieldwork td {
-            font-size: 0.88rem;
+            font-size: 0.82rem;
             vertical-align: middle;
+            padding: 0.4rem 0.6rem;
+        }
+        .table-fieldwork .activity-title-cell strong {
+            font-size: 0.82rem;
+            display: block;
+            line-height: 1.3;
+        }
+        .table-fieldwork .activity-title-cell small {
+            font-size: 0.72rem;
+            color: #6c757d;
         }
         .badge-fieldwork {
-            padding: 0.35rem 0.65rem;
-            font-weight: 500;
-            font-size: 0.76rem;
+            padding: 0.22rem 0.55rem;
+            font-weight: 600;
+            font-size: 0.7rem;
             border-radius: 20px;
+            letter-spacing: 0.02em;
+        }
+
+        /* Dropdown Actions */
+        .action-dropdown .btn-action-toggle {
+            padding: 0.2rem 0.55rem;
+            font-size: 0.75rem;
+            border-radius: 6px;
+        }
+        .action-dropdown .dropdown-menu {
+            font-size: 0.78rem;
+            min-width: 160px;
+            padding: 0.25rem 0;
+            border-radius: 8px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+        }
+        .action-dropdown .dropdown-item {
+            padding: 0.35rem 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .action-dropdown .dropdown-item i {
+            width: 14px;
+            text-align: center;
+            font-size: 0.78rem;
+        }
+        .action-dropdown .dropdown-divider {
+            margin: 0.2rem 0;
         }
 
         /* View Toggle */
@@ -351,11 +395,11 @@ $philippineHolidays = json_encode([
                                             <th>Title</th>
                                             <th>Location</th>
                                             <th>Assigned To</th>
-                                            <th>Start Date</th>
-                                            <th>End Date</th>
+                                            <th>Start</th>
+                                            <th>End</th>
                                             <th>Status</th>
                                             <?php if ($canEdit): ?>
-                                            <th class="text-center">Actions</th>
+                                            <th class="text-center" style="width:60px;">Actions</th>
                                             <?php endif; ?>
                                         </tr>
                                     </thead>
@@ -647,25 +691,78 @@ $philippineHolidays = json_encode([
         const badge = getStatusBadge(a.status);
         const startDate = formatDate(a.start_date);
         const endDate = a.end_date ? formatDate(a.end_date) : '<span class="text-muted">—</span>';
+        const safeTitle = escapeHtml(a.title);
+        const uid = 'dd-' + a.id; // unique dropdown id
 
+        // Compact status cell — badge only
+        const statusCell = `<td>${badge}</td>`;
+
+        // Single dropdown button combining record actions + quick status updates
         let actions = '';
         if (CAN_EDIT) {
+            // Build status change items (skip current status)
+            let statusItems = '';
+            const statusMap = [
+                { val: 'pending',   icon: 'bi-arrow-counterclockwise', label: 'Reset to Pending',  cls: 'text-secondary' },
+                { val: 'ongoing',   icon: 'bi-play-circle',            label: 'Mark as Ongoing',   cls: 'text-primary'   },
+                { val: 'completed', icon: 'bi-check-circle',           label: 'Mark as Completed', cls: 'text-success'   },
+                { val: 'missed',    icon: 'bi-x-circle',               label: 'Mark as Missed',    cls: 'text-danger'    },
+            ];
+            statusMap.forEach(s => {
+                if (s.val !== a.status) {
+                    statusItems += `<li>
+                        <a class="dropdown-item ${s.cls}" href="#"
+                           onclick="event.preventDefault(); quickUpdateStatus(${a.id}, '${s.val}')">
+                            <i class="bi ${s.icon}"></i> ${s.label}
+                        </a>
+                    </li>`;
+                }
+            });
+
             actions = `<td class="text-center">
-                <div class="action-buttons-container justify-content-center">
-                    <button class="btn btn-sm btn-outline-primary action-btn" onclick="viewActivity(${a.id})" title="View"><i class="bi bi-eye"></i></button>
-                    <button class="btn btn-sm btn-outline-secondary action-btn" onclick="openActivityModal(${a.id})" title="Edit"><i class="bi bi-pencil"></i></button>
-                    <button class="btn btn-sm btn-outline-danger action-btn" onclick="deleteActivity(${a.id}, '${escapeHtml(a.title)}')" title="Delete"><i class="bi bi-trash"></i></button>
+                <div class="action-dropdown dropdown">
+                    <button class="btn btn-sm btn-outline-secondary btn-action-toggle dropdown-toggle"
+                            type="button" id="${uid}" data-bs-toggle="dropdown"
+                            aria-expanded="false" title="Actions">
+                        <i class="bi bi-three-dots-vertical"></i>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="${uid}">
+                        <li>
+                            <a class="dropdown-item" href="#"
+                               onclick="event.preventDefault(); viewActivity(${a.id})">
+                                <i class="bi bi-eye text-info"></i> View Details
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="#"
+                               onclick="event.preventDefault(); openActivityModal(${a.id})">
+                                <i class="bi bi-pencil text-secondary"></i> Edit
+                            </a>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                        ${statusItems}
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <a class="dropdown-item text-danger" href="#"
+                               onclick="event.preventDefault(); deleteActivity(${a.id}, '${safeTitle}')">
+                                <i class="bi bi-trash"></i> Delete
+                            </a>
+                        </li>
+                    </ul>
                 </div>
             </td>`;
         }
 
         return `<tr>
-            <td><strong>${escapeHtml(a.title)}</strong>${a.description ? '<br><small class="text-muted">' + escapeHtml(truncate(a.description, 60)) + '</small>' : ''}</td>
+            <td class="activity-title-cell">
+                <strong>${safeTitle}</strong>
+                ${a.description ? '<small>' + escapeHtml(truncate(a.description, 55)) + '</small>' : ''}
+            </td>
             <td>${a.location ? escapeHtml(a.location) : '<span class="text-muted">—</span>'}</td>
             <td>${escapeHtml(a.assigned_user_name || 'N/A')}</td>
-            <td>${startDate}</td>
-            <td>${endDate}</td>
-            <td>${badge}</td>
+            <td style="white-space:nowrap">${startDate}</td>
+            <td style="white-space:nowrap">${endDate}</td>
+            ${statusCell}
             ${actions}
         </tr>`;
     }
@@ -874,6 +971,25 @@ $philippineHolidays = json_encode([
                 console.error('View error:', err);
                 showToast('error', 'Error', 'Failed to load activity details');
             });
+    }
+
+    function quickUpdateStatus(id, newStatus) {
+        // One-click status update with confirmation for critical actions
+        const statusLabels = {
+            'pending': 'Pending',
+            'ongoing': 'Ongoing',
+            'completed': 'Completed',
+            'missed': 'Missed'
+        };
+        
+        const label = statusLabels[newStatus] || newStatus;
+        
+        // Confirm for missed status
+        if (newStatus === 'missed') {
+            if (!confirm(`Mark this activity as Missed?`)) return;
+        }
+        
+        updateActivityStatus(id, newStatus);
     }
 
     function updateActivityStatus(id, status) {

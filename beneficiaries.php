@@ -7,6 +7,9 @@ require_once 'models/Beneficiary.php';
 $auth = new Auth();
 $auth->requireLogin();
 
+$sessionProvince = $auth->getProvince();
+$isSuperAdmin    = $auth->isSuperAdmin();
+
 // Check if user selected "Group" type - redirect to proponents page
 if (isset($_GET['type']) && $_GET['type'] === 'group') {
     header('Location: proponents.php');
@@ -15,21 +18,40 @@ if (isset($_GET['type']) && $_GET['type'] === 'group') {
 
 $beneficiaryModel = new Beneficiary();
 
+// Province filter: super_admin can choose freely; provincial users are locked
+$provinceFilter = '';
+if ($isSuperAdmin) {
+    $provinceFilter = $_GET['province'] ?? '';
+} elseif ($sessionProvince) {
+    $provinceFilter = $sessionProvince;
+}
+
 // Get filters from query string
 $filters = [
+    'province'     => $provinceFilter,
     'municipality' => $_GET['municipality'] ?? '',
-    'barangay' => $_GET['barangay'] ?? '',
-    'status' => $_GET['status'] ?? '',
-    'search' => $_GET['search'] ?? ''
+    'barangay'     => $_GET['barangay'] ?? '',
+    'status'       => $_GET['status'] ?? '',
+    'search'       => $_GET['search'] ?? ''
 ];
 
 // Get beneficiaries
 $beneficiaries = $beneficiaryModel->getAll($filters);
 
-// Get unique municipalities and barangays for filters
+// Get unique municipalities and barangays scoped by province
 $db = Database::getInstance()->getConnection();
-$municipalities = $db->query("SELECT DISTINCT municipality FROM beneficiaries ORDER BY municipality")->fetchAll(PDO::FETCH_COLUMN);
-$barangays = $db->query("SELECT DISTINCT barangay FROM beneficiaries ORDER BY barangay")->fetchAll(PDO::FETCH_COLUMN);
+if ($provinceFilter) {
+    $stmt = $db->prepare("SELECT DISTINCT municipality FROM beneficiaries WHERE province = ? ORDER BY municipality");
+    $stmt->execute([$provinceFilter]);
+    $municipalities = $stmt->fetchAll(PDO::FETCH_COLUMN);
+
+    $stmt = $db->prepare("SELECT DISTINCT barangay FROM beneficiaries WHERE province = ? ORDER BY barangay");
+    $stmt->execute([$provinceFilter]);
+    $barangays = $stmt->fetchAll(PDO::FETCH_COLUMN);
+} else {
+    $municipalities = $db->query("SELECT DISTINCT municipality FROM beneficiaries ORDER BY municipality")->fetchAll(PDO::FETCH_COLUMN);
+    $barangays      = $db->query("SELECT DISTINCT barangay FROM beneficiaries ORDER BY barangay")->fetchAll(PDO::FETCH_COLUMN);
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -72,6 +94,29 @@ $barangays = $db->query("SELECT DISTINCT barangay FROM beneficiaries ORDER BY ba
                                     <option value="individual" <?php echo ($_GET['type'] ?? 'individual') === 'individual' ? 'selected' : ''; ?>>Individual</option>
                                     <option value="group" <?php echo ($_GET['type'] ?? '') === 'group' ? 'selected' : ''; ?>>Group (Proponents)</option>
                                 </select>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">Province</label>
+                                <?php if ($isSuperAdmin): ?>
+                                <select name="province" class="form-select">
+                                    <option value="">All Provinces</option>
+                                    <?php foreach (\Auth::PROVINCES as $prov): ?>
+                                    <option value="<?php echo htmlspecialchars($prov); ?>"
+                                            <?php echo $provinceFilter === $prov ? 'selected' : ''; ?>>
+                                        <?php echo htmlspecialchars($prov); ?>
+                                    </option>
+                                    <?php endforeach; ?>
+                                </select>
+                                <?php else: ?>
+                                <input type="hidden" name="province" value="<?php echo htmlspecialchars($sessionProvince); ?>">
+                                <select class="form-select bg-light" disabled>
+                                    <option selected><?php echo htmlspecialchars($sessionProvince ?? 'All'); ?></option>
+                                </select>
+                                <small class="text-muted d-flex align-items-center gap-1 mt-1">
+                                    <i class="bi bi-lock-fill"></i>
+                                    <span>Locked to your assigned province</span>
+                                </small>
+                                <?php endif; ?>
                             </div>
                             <div class="col-md-2">
                                 <label class="form-label">Search</label>
