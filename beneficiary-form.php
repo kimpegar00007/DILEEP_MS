@@ -70,6 +70,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'province'                   => trim($_POST['province'] ?? ''),
         'contact_number'             => trim($_POST['contact_number'] ?? ''),
         'project_name'               => trim($_POST['project_name'] ?? ''),
+        'proponent_id'               => !empty($_POST['proponent_id']) ? intval($_POST['proponent_id']) : null,
         'type_of_worker'             => implode(', ', $selectedWorkerTypes) ?: null,
         'type_of_beneficiaries'      => implode(', ', $selectedBeneficiaryTypes) ?: null,
         'amount_worth'               => floatval($_POST['amount_worth'] ?? 0),
@@ -315,6 +316,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <div class="form-section">
                                 <h5><i class="bi bi-briefcase"></i> Project Information</h5>
                                 <div class="row">
+                                    <div class="col-md-12 mb-3">
+                                        <label class="form-label">Associated Proponent (Optional)</label>
+                                        <select name="proponent_id" class="form-select">
+                                            <option value="">None - Individual Project</option>
+                                            <?php
+                                            // Fetch proponents filtered by user's province
+                                            $proponentProvince = $isSuperAdmin ? '' : $sessionProvince;
+                                            $proponentQuery = "SELECT id, proponent_name, project_title, control_number FROM proponents";
+                                            if ($proponentProvince) {
+                                                $proponentQuery .= " WHERE province = :province";
+                                            }
+                                            $proponentQuery .= " ORDER BY proponent_name ASC";
+                                            $proponentStmt = $db->prepare($proponentQuery);
+                                            if ($proponentProvince) {
+                                                $proponentStmt->bindValue(':province', $proponentProvince);
+                                            }
+                                            $proponentStmt->execute();
+                                            $proponents = $proponentStmt->fetchAll(PDO::FETCH_ASSOC);
+                                            
+                                            foreach ($proponents as $prop):
+                                                $selected = isset($beneficiary['proponent_id']) && $beneficiary['proponent_id'] == $prop['id'] ? 'selected' : '';
+                                                $displayText = htmlspecialchars($prop['proponent_name']) . ' - ' . htmlspecialchars($prop['project_title']);
+                                                if ($prop['control_number']) {
+                                                    $displayText .= ' (' . htmlspecialchars($prop['control_number']) . ')';
+                                                }
+                                            ?>
+                                            <option value="<?php echo $prop['id']; ?>" <?php echo $selected; ?>><?php echo $displayText; ?></option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                        <small class="text-muted">Link this beneficiary to a group proponent project if applicable</small>
+                                    </div>
+                                </div>
+                                <div class="row">
                                     <div class="col-md-6 mb-3">
                                         <label class="form-label">Project Name/Title <span class="text-danger">*</span></label>
                                         <input type="text" name="project_name" class="form-control" required
@@ -400,7 +434,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                                value="<?php echo $beneficiary['date_complied_by_proponent'] ?? ''; ?>">
                                     </div>
                                     <div class="col-md-4 mb-3">
-                                        <label class="form-label">Date Forwarded to RO6 for RPMT Evaluation</label>
+                                        <label class="form-label">Date Forwarded to NIR for RPMT Evaluation</label>
                                         <input type="date" name="date_forwarded_to_ro6" class="form-control"
                                                value="<?php echo $beneficiary['date_forwarded_to_ro6'] ?? ''; ?>">
                                     </div>
@@ -418,7 +452,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 </div>
                                 <div class="row">
                                     <div class="col-md-4 mb-3">
-                                        <label class="form-label">Date Forwarded of Approved Proposal to NOFO</label>
+                                        <label class="form-label" id="office-label">Date Forwarded of Approved Proposal to NOFO</label>
                                         <input type="date" name="date_forwarded_to_nofo" class="form-control"
                                                value="<?php echo $beneficiary['date_forwarded_to_nofo'] ?? ''; ?>">
                                     </div>
@@ -505,6 +539,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <?php include 'includes/notification-script.php'; ?>
     <script src="assets/js/location-autofill.js"></script>
+    <script src="assets/js/auto-save.js"></script>
     <?php include 'includes/ux-utilities.php'; ?>
     <script>DILP.validation.init('form[method="POST"]');</script>
     <script>
@@ -663,6 +698,54 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // For super-admin, the DILPLocation lib already wires auto-geocode via barangay change.
         // For locked-province, we wire it inside _loadBarangays above.
+
+        // ── Dynamic Office Label Update ────────────────────────────────────
+        function updateOfficeLabel() {
+            const officeLabel = document.getElementById('office-label');
+            if (!officeLabel) return;
+
+            let province = '';
+            if (IS_SUPER_ADMIN) {
+                const provinceSelect = document.getElementById('province');
+                province = provinceSelect ? provinceSelect.value : '';
+            } else {
+                province = SESSION_PROVINCE || '';
+            }
+
+            let officeName = 'NOFO';
+            if (province === 'Negros Occidental') {
+                officeName = 'NOCFO';
+            } else if (province === 'Negros Oriental') {
+                officeName = 'NORFO';
+            } else if (province === 'Siquijor') {
+                officeName = 'SFO';
+            }
+
+            officeLabel.textContent = 'Date Forwarded of Approved Proposal to ' + officeName;
+        }
+
+        // Update label on page load
+        updateOfficeLabel();
+
+        // Update label when province changes (for super-admin)
+        if (IS_SUPER_ADMIN) {
+            const provinceSelect = document.getElementById('province');
+            if (provinceSelect) {
+                provinceSelect.addEventListener('change', updateOfficeLabel);
+            }
+        }
+
+        // ── Initialize Auto-save ───────────────────────────────────────────
+        DILP_AutoSave.init('form[method="POST"]', {
+            excludeFields: ['_token', 'csrf_token'],
+            onRestore: function() {
+                // Re-trigger dynamic updates after restore
+                updateOfficeLabel();
+                if (typeof renderBeneficiaryNameFields === 'function') {
+                    // Trigger any dynamic field rendering if needed
+                }
+            }
+        });
 
     })();
     </script>

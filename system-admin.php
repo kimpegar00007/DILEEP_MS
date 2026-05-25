@@ -260,6 +260,28 @@ try {
                     </div>
                 </div>
 
+                <!-- Database Backup & Restore -->
+                <div class="admin-card">
+                    <div class="row align-items-center">
+                        <div class="col-md-2 text-center">
+                            <div class="admin-card-icon" style="background: linear-gradient(135deg, #28a745, #20c997); color: white; margin: 0 auto;">
+                                <i class="bi bi-database-fill-down"></i>
+                            </div>
+                        </div>
+                        <div class="col-md-7">
+                            <h5 class="mb-2">Database Backup & Restore</h5>
+                            <p class="text-muted mb-0">
+                                Create database backups, restore from previous backups, and configure automatic backup schedules.
+                            </p>
+                        </div>
+                        <div class="col-md-3 text-end">
+                            <a href="settings.php#backup-section" class="btn btn-primary">
+                                <i class="bi bi-hdd-stack"></i> Manage Backups
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Danger Zone -->
                 <div class="admin-card">
                     <div class="danger-zone">

@@ -4,8 +4,12 @@ $db = Database::getInstance()->getConnection();
 $cqprDateFrom = $dateFrom;
 $cqprDateTo = $dateTo;
 $regionalOffice = $_GET['regional_office'] ?? 'NIR';
+$cqprProvinceFilter = $provinceFilter;
+$cqprStatusFilter = $_GET['status'] ?? '';
 
 $dateCondition = '';
+$provinceCondition = '';
+$statusCondition = '';
 $params = [];
 
 if ($cqprDateFrom && $cqprDateTo) {
@@ -20,6 +24,16 @@ if ($cqprDateFrom && $cqprDateTo) {
     $params[':date_to'] = $cqprDateTo;
 }
 
+if (!empty($cqprProvinceFilter)) {
+    $provinceCondition = " AND province = :province";
+    $params[':province'] = $cqprProvinceFilter;
+}
+
+if (!empty($cqprStatusFilter)) {
+    $statusCondition = " AND status = :status";
+    $params[':status'] = $cqprStatusFilter;
+}
+
 // Get proponents data (Group projects)
 $proponentsSql = "SELECT 
     p.id,
@@ -27,7 +41,7 @@ $proponentsSql = "SELECT
     p.proponent_name as name_of_implementor,
     p.recipient_barangays as barangay,
     '' as city_municipality,
-    'Negros Occidental' as province,
+    p.province,
     p.district,
     '' as income_class,
     CASE p.category 
@@ -47,7 +61,7 @@ $proponentsSql = "SELECT
     p.status as project_status,
     'proponent' as source_table
 FROM proponents p
-WHERE p.status IN ('approved', 'implemented', 'liquidated', 'monitored')" . $dateCondition . "
+WHERE 1=1" . (!empty($cqprStatusFilter) ? $statusCondition : " AND p.status IN ('approved', 'implemented', 'liquidated', 'monitored')") . $dateCondition . $provinceCondition . "
 ORDER BY p.date_approved DESC";
 
 $stmt = $db->prepare($proponentsSql);
@@ -64,7 +78,7 @@ $beneficiariesSql = "SELECT
     CONCAT(b.first_name, ' ', b.last_name) as name_of_implementor,
     b.barangay,
     b.municipality as city_municipality,
-    'Negros Occidental' as province,
+    b.province,
     '' as district,
     '' as income_class,
     '' as purpose_of_project,
@@ -79,7 +93,7 @@ $beneficiariesSql = "SELECT
     b.status as project_status,
     'beneficiary' as source_table
 FROM beneficiaries b
-WHERE b.status IN ('approved', 'implemented', 'monitored')" . $dateCondition . "
+WHERE 1=1" . (!empty($cqprStatusFilter) ? $statusCondition : " AND b.status IN ('approved', 'implemented', 'monitored')") . $dateCondition . $provinceCondition . "
 ORDER BY b.date_approved DESC";
 
 $stmt = $db->prepare($beneficiariesSql);

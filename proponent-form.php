@@ -748,6 +748,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <?php include 'includes/notification-script.php'; ?>
     <script src="assets/js/location-autofill.js"></script>
+    <script src="assets/js/auto-save.js"></script>
     <script>
         const existingBeneficiaryNames = <?php echo json_encode($formBeneficiaryNames); ?>;
 
@@ -780,15 +781,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         function renderBeneficiaryNameFields() {
             const countValue = parseInt(document.getElementById('total_beneficiaries').value, 10);
             const currentValues = getCurrentBeneficiaryValues();
-            const fieldCount = Math.max(1, Number.isInteger(countValue) && countValue > 0 ? countValue : Math.max(existingBeneficiaryNames.length, currentValues.length, 1));
+            
+            // Determine field count - use the larger of: entered count, existing values, or saved names
+            let fieldCount = 1;
+            if (Number.isInteger(countValue) && countValue > 0) {
+                fieldCount = countValue;
+            } else if (currentValues.length > 0) {
+                fieldCount = currentValues.length;
+            } else if (existingBeneficiaryNames.length > 0) {
+                fieldCount = existingBeneficiaryNames.length;
+            }
+
             const container = document.getElementById('beneficiary_name_fields');
+            
+            // Don't re-render if count hasn't changed and we have values
+            const existingFieldCount = container.querySelectorAll('input[name="beneficiary_full_names[]"]').length;
+            if (existingFieldCount === fieldCount && currentValues.length === fieldCount) {
+                return; // Preserve existing fields
+            }
 
             container.innerHTML = '';
 
             for (let i = 0; i < fieldCount; i++) {
-                const value = typeof currentValues[i] !== 'undefined' && currentValues[i] !== ''
-                    ? currentValues[i]
-                    : (existingBeneficiaryNames[i] || '');
+                // Priority: current values > existing saved names > empty
+                let value = '';
+                if (currentValues[i] !== undefined && currentValues[i] !== '') {
+                    value = currentValues[i];
+                } else if (existingBeneficiaryNames[i] !== undefined && existingBeneficiaryNames[i] !== '') {
+                    value = existingBeneficiaryNames[i];
+                }
 
                 const fieldWrapper = document.createElement('div');
                 fieldWrapper.className = 'mb-2';
@@ -1150,6 +1171,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </script>
     <?php include 'includes/ux-utilities.php'; ?>
     <script>DILP.validation.init('form[method="POST"]');</script>
+    <script>
+        // Initialize Auto-save
+        DILP_AutoSave.init('form[method="POST"]', {
+            excludeFields: ['_token', 'csrf_token'],
+            onRestore: function() {
+                // Re-trigger dynamic field rendering after restore
+                renderBeneficiaryNameFields();
+                renderAssociationFields();
+                updateLiquidationAndMonitoringPreview();
+            }
+        });
+    </script>
     <?php include 'includes/footer.php'; ?>
 </body>
 </html>
