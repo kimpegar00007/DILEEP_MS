@@ -206,7 +206,29 @@ if (!$proponent) {
                             <div class="view-row">
                                 <div class="view-item">
                                     <label>Full Name of Beneficiary</label>
-                                    <p><?php echo htmlspecialchars(($proponent['beneficiary_full_name'] ?? '') ?: 'Not specified'); ?></p>
+                                    <?php
+                                    $rawNames = $proponent['beneficiary_full_name'] ?? '';
+                                    $namesList = [];
+                                    if ($rawNames !== '' && $rawNames !== null) {
+                                        $trimmed = ltrim($rawNames);
+                                        if ($trimmed !== '' && $trimmed[0] === '[') {
+                                            $decoded = json_decode($rawNames, true);
+                                            if (is_array($decoded)) $namesList = $decoded;
+                                        } else {
+                                            $namesList = array_map('trim', explode(',', $rawNames));
+                                        }
+                                        $namesList = array_values(array_filter($namesList, function ($n) { return trim((string) $n) !== ''; }));
+                                    }
+                                    ?>
+                                    <?php if (empty($namesList)): ?>
+                                        <p>Not specified</p>
+                                    <?php else: ?>
+                                        <ol class="mb-0 ps-3">
+                                            <?php foreach ($namesList as $name): ?>
+                                                <li><?php echo htmlspecialchars($name); ?></li>
+                                            <?php endforeach; ?>
+                                        </ol>
+                                    <?php endif; ?>
                                 </div>
                                 <div class="view-item">
                                     <label>Number of Associations</label>
@@ -252,7 +274,7 @@ if (!$proponent) {
                                 <p><?php echo $proponent['date_complied_by_proponent_nofo'] ? date('F d, Y', strtotime($proponent['date_complied_by_proponent_nofo'])) : 'Not set'; ?></p>
                             </div>
                             <div class="timeline-item <?php echo $proponent['date_forwarded_to_nofo'] ? 'completed' : 'pending'; ?>">
-                                <strong>Date Forwarded to NOFO</strong>
+                                <strong><?php echo htmlspecialchars(Auth::getForwardedToOfficeLabel($proponent['province'] ?? '')); ?></strong>
                                 <p><?php echo $proponent['date_forwarded_to_nofo'] ? date('F d, Y', strtotime($proponent['date_forwarded_to_nofo'])) : 'Not set'; ?></p>
                             </div>
                             <div class="timeline-item <?php echo $proponent['date_approved'] ? 'completed' : 'pending'; ?>">

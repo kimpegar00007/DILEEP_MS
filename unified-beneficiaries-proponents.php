@@ -621,6 +621,22 @@ if (!in_array($currentView, ['beneficiaries', 'proponents'])) {
                                         <span><?php echo htmlspecialchars($beneficiary['contact_number']); ?></span>
                                     </div>
                                     <?php endif; ?>
+                                    <?php if (!empty($beneficiary['proponent_id'])):
+                                        // Lazy-load linked proponent name (cached per card set)
+                                        if (!isset($linkedProponentCache)) $linkedProponentCache = [];
+                                        $lpId = (int) $beneficiary['proponent_id'];
+                                        if (!isset($linkedProponentCache[$lpId])) {
+                                            $lpRow = $proponentModel->findById($lpId);
+                                            $linkedProponentCache[$lpId] = $lpRow ? $lpRow['proponent_name'] : null;
+                                        }
+                                        if ($linkedProponentCache[$lpId]): ?>
+                                    <div class="info-row">
+                                        <i class="bi bi-link-45deg"></i>
+                                        <span class="text-truncate" title="<?php echo htmlspecialchars($linkedProponentCache[$lpId]); ?>">
+                                            <?php echo htmlspecialchars($linkedProponentCache[$lpId]); ?>
+                                        </span>
+                                    </div>
+                                    <?php endif; endif; ?>
                                 </div>
                                 <div class="card-footer">
                                     <div class="amount">₱<?php echo number_format($beneficiary['amount_worth'], 2); ?></div>

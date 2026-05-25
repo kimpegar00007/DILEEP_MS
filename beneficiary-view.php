@@ -163,6 +163,21 @@ if (!$beneficiary) {
                                     <p><strong>₱<?php echo number_format($beneficiary['amount_worth'], 2); ?></strong></p>
                                 </div>
                             </div>
+                            <?php if (!empty($beneficiary['proponent_id'])):
+                                require_once 'models/Proponent.php';
+                                $linkedProp = (new Proponent())->findById($beneficiary['proponent_id']);
+                                if ($linkedProp): ?>
+                            <div class="view-row">
+                                <div class="view-item">
+                                    <label><i class="bi bi-link-45deg"></i> Linked Proponent</label>
+                                    <p>
+                                        <a href="proponent-view.php?id=<?php echo (int) $linkedProp['id']; ?>">
+                                            <?php echo htmlspecialchars($linkedProp['proponent_name'] . ' — ' . $linkedProp['project_title']); ?>
+                                        </a>
+                                    </p>
+                                </div>
+                            </div>
+                            <?php endif; endif; ?>
                         </div>
 
                         <div class="view-section">
@@ -173,7 +188,7 @@ if (!$beneficiary) {
                                     <p><?php echo $beneficiary['date_complied_by_proponent'] ? date('F d, Y', strtotime($beneficiary['date_complied_by_proponent'])) : 'Not set'; ?></p>
                                 </div>
                                 <div class="view-item">
-                                    <label>Date Forwarded to NIR</label>
+                                    <label><?php echo htmlspecialchars(Auth::getForwardedToRoLabel()); ?></label>
                                     <p><?php echo $beneficiary['date_forwarded_to_ro6'] ? date('F d, Y', strtotime($beneficiary['date_forwarded_to_ro6'])) : 'Not set'; ?></p>
                                 </div>
                                 <div class="view-item">
@@ -183,7 +198,7 @@ if (!$beneficiary) {
                             </div>
                             <div class="view-row">
                                 <div class="view-item">
-                                    <label>Date Forwarded to NOFO</label>
+                                    <label><?php echo htmlspecialchars(Auth::getForwardedToOfficeLabel($beneficiary['province'] ?? '')); ?></label>
                                     <p><?php echo $beneficiary['date_forwarded_to_nofo'] ? date('F d, Y', strtotime($beneficiary['date_forwarded_to_nofo'])) : 'Not set'; ?></p>
                                 </div>
                                 <div class="view-item">

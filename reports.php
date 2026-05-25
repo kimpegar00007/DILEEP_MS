@@ -37,19 +37,19 @@ $errorMessage = '';
 // Predefine the available status/date-field options for both report types so the form can render them
 $beneficiaryStatusOptions = [
     'date_complied_by_proponent' => 'Date Complied by Proponent/ACP',
-    'date_forwarded_to_ro6' => 'Date Forwarded to RO6 for RPMT Evaluation',
+    'date_forwarded_to_ro6' => Auth::getForwardedToRoLabel(),
     'date_approved' => 'Date Approved',
-    'date_forwarded_to_nofo' => 'Date Forwarded of Approved Proposal to NOFO',
+    'date_forwarded_to_nofo' => Auth::getForwardedToOfficeLabel($provinceFilter ?: $sessionProvince),
     'date_turnover' => 'Date of Turn-over',
     'date_monitoring' => 'Date of Monitoring'
 ];
 
 $proponentStatusOptions = [
     'letter_of_intent_date' => 'Letter of Intent - Date Received',
-    'date_forwarded_to_ro6' => 'Date Forwarded to RO6 for RPMT',
+    'date_forwarded_to_ro6' => 'Date Forwarded to NIR for RPMT',
     'date_complied_by_proponent' => 'Date Complied by Proponent/ACP',
-    'date_complied_by_proponent_nofo' => 'Date Complied by Proponent/ACP/NOFO',
-    'date_forwarded_to_nofo' => 'Date Forwarded to NOFO',
+    'date_complied_by_proponent_nofo' => 'Date Complied by Proponent/ACP/' . Auth::getOfficeForProvince($provinceFilter ?: $sessionProvince),
+    'date_forwarded_to_nofo' => Auth::getForwardedToOfficeLabel($provinceFilter ?: $sessionProvince),
     'date_approved' => 'Date Approved',
     'date_check_release' => 'Date of Check Release',
     'check_date_issued' => 'Check Date Issued',
@@ -59,6 +59,13 @@ $proponentStatusOptions = [
     'date_implemented' => 'Date Implemented',
     'date_liquidated' => 'Date Liquidated',
     'date_monitoring' => 'Date of Monitoring'
+];
+
+$cqprStatusOptions = [
+    'approved' => 'Approved',
+    'implemented' => 'Implemented',
+    'liquidated' => 'Liquidated',
+    'monitored' => 'Monitored'
 ];
 
 if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['generate'])) {
@@ -397,7 +404,8 @@ if (!$isSuperAdmin && $sessionProvince) {
             
             var statusOptions = {
                 'beneficiaries': <?php echo json_encode($beneficiaryStatusOptions); ?>,
-                'proponents': <?php echo json_encode($proponentStatusOptions); ?>
+                'proponents': <?php echo json_encode($proponentStatusOptions); ?>,
+                'cqpr': <?php echo json_encode($cqprStatusOptions); ?>
             };
 
             function rebuildStatusOptions(reportType, selected) {
@@ -425,7 +433,7 @@ if (!$isSuperAdmin && $sessionProvince) {
                 } else if (val === 'cqpr') {
                     $('#municipalityFilter').hide();
                     $('#districtFilter').hide();
-                    $('select[name="status"]').closest('.col-md-2').hide();
+                    $('select[name="status"]').closest('.col-md-2').show();
                 }
                 rebuildStatusOptions(val, '');
             });
@@ -438,7 +446,7 @@ if (!$isSuperAdmin && $sessionProvince) {
             } else if (currentType === 'cqpr') {
                 $('#municipalityFilter').hide();
                 $('#districtFilter').hide();
-                $('select[name="status"]').closest('.col-md-2').hide();
+                $('select[name="status"]').closest('.col-md-2').show();
             }
             rebuildStatusOptions($('#reportType').val(), '<?php echo addslashes($selectedStatus); ?>');
         });

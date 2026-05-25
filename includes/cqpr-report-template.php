@@ -4,6 +4,7 @@ $db = Database::getInstance()->getConnection();
 $cqprDateFrom = $dateFrom;
 $cqprDateTo = $dateTo;
 $regionalOffice = $_GET['regional_office'] ?? 'NIR';
+$cqprStatus = $_GET['status'] ?? '';
 
 $dateCondition = '';
 $params = [];
@@ -20,6 +21,22 @@ if ($cqprDateFrom && $cqprDateTo) {
     $params[':date_to'] = $cqprDateTo;
 }
 
+// Province filter from report form
+$provinceCondition = '';
+if (!empty($provinceFilter)) {
+    $provinceCondition = " AND province = :province";
+    $params[':province'] = $provinceFilter;
+}
+
+// Status filter for CQPR
+$proponentStatusList = "('approved', 'implemented', 'liquidated', 'monitored')";
+$beneficiaryStatusList = "('approved', 'implemented', 'monitored')";
+if (!empty($cqprStatus)) {
+    $proponentStatusList = "(:cqpr_status)";
+    $beneficiaryStatusList = "(:cqpr_status)";
+    $params[':cqpr_status'] = $cqprStatus;
+}
+
 // Get proponents data (Group projects)
 $proponentsSql = "SELECT 
     p.id,
@@ -27,7 +44,7 @@ $proponentsSql = "SELECT
     p.proponent_name as name_of_implementor,
     p.recipient_barangays as barangay,
     '' as city_municipality,
-    'Negros Occidental' as province,
+    p.province,
     p.district,
     '' as income_class,
     CASE p.category 
@@ -47,7 +64,7 @@ $proponentsSql = "SELECT
     p.status as project_status,
     'proponent' as source_table
 FROM proponents p
-WHERE p.status IN ('approved', 'implemented', 'liquidated', 'monitored')" . $dateCondition . "
+WHERE p.status IN {$proponentStatusList}" . $dateCondition . $provinceCondition . "
 ORDER BY p.date_approved DESC";
 
 $stmt = $db->prepare($proponentsSql);
@@ -57,6 +74,9 @@ foreach ($params as $key => $value) {
 $stmt->execute();
 $proponents = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+// Re-bind params without :cqpr_status for beneficiaries if status differs
+$beneficiaryParams = $params;
+
 // Get beneficiaries data (Individual projects)
 $beneficiariesSql = "SELECT 
     b.id,
@@ -64,7 +84,7 @@ $beneficiariesSql = "SELECT
     CONCAT(b.first_name, ' ', b.last_name) as name_of_implementor,
     b.barangay,
     b.municipality as city_municipality,
-    'Negros Occidental' as province,
+    b.province,
     '' as district,
     '' as income_class,
     '' as purpose_of_project,
@@ -74,16 +94,16 @@ $beneficiariesSql = "SELECT
     b.type_of_worker as beneficiary_type,
     b.amount_worth as amount_released,
     b.date_approved as date_released,
-    '' as source_of_funds,
+    b.source_of_funds,
     '' as convergence_project,
     b.status as project_status,
     'beneficiary' as source_table
 FROM beneficiaries b
-WHERE b.status IN ('approved', 'implemented', 'monitored')" . $dateCondition . "
+WHERE b.status IN {$beneficiaryStatusList}" . $dateCondition . $provinceCondition . "
 ORDER BY b.date_approved DESC";
 
 $stmt = $db->prepare($beneficiariesSql);
-foreach ($params as $key => $value) {
+foreach ($beneficiaryParams as $key => $value) {
     $stmt->bindValue($key, $value);
 }
 $stmt->execute();

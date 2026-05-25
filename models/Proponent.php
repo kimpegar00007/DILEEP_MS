@@ -386,8 +386,21 @@ class Proponent {
         }
 
         if (!empty($filters['search'])) {
-            $sql     .= " AND (proponent_name LIKE ? OR project_title LIKE ? OR control_number LIKE ?)";
+            // Match by proponent fields, internal beneficiary name list (JSON or legacy CSV),
+            // and any linked beneficiaries via proponent_id FK (bidirectional search).
+            $sql     .= " AND ("
+                       . "proponents.proponent_name LIKE ? "
+                       . "OR proponents.project_title LIKE ? "
+                       . "OR proponents.control_number LIKE ? "
+                       . "OR proponents.beneficiary_full_name LIKE ? "
+                       . "OR EXISTS ("
+                       . "    SELECT 1 FROM beneficiaries lb "
+                       . "    WHERE lb.proponent_id = proponents.id "
+                       . "    AND (CONCAT(lb.first_name, ' ', lb.last_name) LIKE ? OR lb.project_name LIKE ?)"
+                       . ")"
+                       . ")";
             $term     = '%' . $filters['search'] . '%';
+            $params[] = $term; $params[] = $term; $params[] = $term;
             $params[] = $term; $params[] = $term; $params[] = $term;
         }
 

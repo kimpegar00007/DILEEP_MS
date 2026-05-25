@@ -3,6 +3,7 @@ session_start();
 require_once 'config/database.php';
 require_once 'includes/Auth.php';
 require_once 'models/Beneficiary.php';
+require_once 'models/Proponent.php';
 
 $auth = new Auth();
 $auth->requireLogin();
@@ -85,6 +86,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'longitude'                  => !empty(trim($_POST['longitude'] ?? '')) ? floatval(trim($_POST['longitude'])) : null,
         'status'                     => $_POST['status'] ?? 'pending',
         'source_of_funds'            => trim($_POST['source_of_funds'] ?? '') ?: null,
+        'proponent_id'               => !empty($_POST['proponent_id']) ? (int) $_POST['proponent_id'] : null,
     ];
 
     if (empty($data['last_name']))    $errors[] = 'Last name is required';
@@ -337,6 +339,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     </div>
                                 </div>
 
+                                <div class="row">
+                                    <div class="col-md-12 mb-3">
+                                        <label class="form-label" for="proponent_search"><i class="bi bi-link-45deg"></i> Linked Proponent (Optional)</label>
+                                        <?php
+                                        $linkedProponentLabel = '';
+                                        $linkedProponentId    = $beneficiary['proponent_id'] ?? '';
+                                        if (!empty($linkedProponentId)) {
+                                            $linkedProponent = (new Proponent())->findById($linkedProponentId);
+                                            if ($linkedProponent) {
+                                                $linkedProponentLabel = $linkedProponent['proponent_name'] . ' — ' . $linkedProponent['project_title'];
+                                            } else {
+                                                // Linked proponent no longer accessible, clear stale link
+                                                $linkedProponentId = '';
+                                            }
+                                        }
+                                        ?>
+                                        <div class="position-relative" id="proponent_combobox">
+                                            <input type="hidden" name="proponent_id" id="proponent_id" value="<?php echo htmlspecialchars((string) $linkedProponentId); ?>">
+                                            <div class="input-group">
+                                                <input type="text"
+                                                       id="proponent_search"
+                                                       class="form-control"
+                                                       autocomplete="off"
+                                                       placeholder="Type to search proponents (min 2 characters)..."
+                                                       value="<?php echo htmlspecialchars($linkedProponentLabel); ?>">
+                                                <button type="button" id="proponent_clear_btn" class="btn btn-outline-secondary" title="Clear linked proponent">
+                                                    <i class="bi bi-x-lg"></i>
+                                                </button>
+                                            </div>
+                                            <div id="proponent_dropdown"
+                                                 class="list-group position-absolute w-100 shadow-sm"
+                                                 style="z-index: 1050; max-height: 260px; overflow-y: auto; display: none; top: 100%;"></div>
+                                        </div>
+                                        <small class="text-muted">Search and select an existing proponent to link this beneficiary to a group project.</small>
+                                    </div>
+                                </div>
+
                                 <!-- Kinds Beneficiaries — checkboxes -->
                                 <div class="row">
                                     <div class="col-md-12 mb-3">
@@ -400,7 +439,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                                value="<?php echo $beneficiary['date_complied_by_proponent'] ?? ''; ?>">
                                     </div>
                                     <div class="col-md-4 mb-3">
-                                        <label class="form-label">Date Forwarded to RO6 for RPMT Evaluation</label>
+                                        <label class="form-label"><?php echo htmlspecialchars(Auth::getForwardedToRoLabel()); ?></label>
                                         <input type="date" name="date_forwarded_to_ro6" class="form-control"
                                                value="<?php echo $beneficiary['date_forwarded_to_ro6'] ?? ''; ?>">
                                     </div>
@@ -418,7 +457,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 </div>
                                 <div class="row">
                                     <div class="col-md-4 mb-3">
-                                        <label class="form-label">Date Forwarded of Approved Proposal to NOFO</label>
+                                        <label class="form-label"><?php echo htmlspecialchars(Auth::getForwardedToOfficeLabel($formProvince)); ?></label>
                                         <input type="date" name="date_forwarded_to_nofo" class="form-control"
                                                value="<?php echo $beneficiary['date_forwarded_to_nofo'] ?? ''; ?>">
                                     </div>
@@ -487,9 +526,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 </div>
                             </div>
 
-                            <div class="d-flex gap-2">
+                            <div class="d-flex gap-2 flex-wrap">
                                 <button type="submit" class="btn btn-primary">
                                     <i class="bi bi-save"></i> <?php echo $isEdit ? 'Update' : 'Save'; ?> Beneficiary
+                                </button>
+                                <button type="button" id="btn-clear-form" class="btn btn-outline-warning">
+                                    <i class="bi bi-eraser"></i> Clear Form
                                 </button>
                                 <a href="beneficiaries.php" class="btn btn-secondary">
                                     <i class="bi bi-x-circle"></i> Cancel
@@ -505,8 +547,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <?php include 'includes/notification-script.php'; ?>
     <script src="assets/js/location-autofill.js"></script>
+    <script src="assets/js/form-autosave.js"></script>
     <?php include 'includes/ux-utilities.php'; ?>
     <script>DILP.validation.init('form[method="POST"]');</script>
+    <script>DILPAutoSave.init({ storageKey: 'dilp_beneficiary_form' });</script>
     <script>
     (function () {
         'use strict';
@@ -663,6 +707,113 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // For super-admin, the DILPLocation lib already wires auto-geocode via barangay change.
         // For locked-province, we wire it inside _loadBarangays above.
+
+        // ── Proponent combobox (searchable dropdown with visible results) ──
+        (function initProponentCombobox() {
+            const hiddenInput = document.getElementById('proponent_id');
+            const searchInput = document.getElementById('proponent_search');
+            const dropdown    = document.getElementById('proponent_dropdown');
+            const clearBtn    = document.getElementById('proponent_clear_btn');
+            const combobox    = document.getElementById('proponent_combobox');
+            if (!hiddenInput || !searchInput || !dropdown || !combobox) return;
+
+            let debounceTimer = null;
+            let lastQuery     = null;
+
+            function showDropdown() { dropdown.style.display = 'block'; }
+            function hideDropdown() { dropdown.style.display = 'none'; }
+
+            function renderItems(items) {
+                dropdown.innerHTML = '';
+                if (!items || items.length === 0) {
+                    const empty = document.createElement('div');
+                    empty.className = 'list-group-item text-muted small';
+                    empty.textContent = 'No matching proponents found.';
+                    dropdown.appendChild(empty);
+                    showDropdown();
+                    return;
+                }
+                items.forEach(function (item) {
+                    const a = document.createElement('button');
+                    a.type = 'button';
+                    a.className = 'list-group-item list-group-item-action text-start';
+                    a.textContent = item.label;
+                    a.dataset.id = item.id;
+                    a.addEventListener('mousedown', function (e) {
+                        // mousedown so it fires before searchInput blur
+                        e.preventDefault();
+                        hiddenInput.value = item.id;
+                        searchInput.value = item.label;
+                        hideDropdown();
+                    });
+                    dropdown.appendChild(a);
+                });
+                showDropdown();
+            }
+
+            async function search(query) {
+                if (query === lastQuery) { showDropdown(); return; }
+                lastQuery = query;
+                try {
+                    const resp = await fetch('api/get-proponents.php?search=' + encodeURIComponent(query), {
+                        credentials: 'same-origin',
+                        headers: { 'Accept': 'application/json' }
+                    });
+                    const json = await resp.json();
+                    if (!json || !json.success) {
+                        renderItems([]);
+                        return;
+                    }
+                    renderItems(json.data || []);
+                } catch (e) {
+                    console.warn('Proponent search error:', e);
+                    renderItems([]);
+                }
+            }
+
+            searchInput.addEventListener('input', function () {
+                clearTimeout(debounceTimer);
+                const query = this.value.trim();
+
+                // Clear linked id immediately when user edits text — they must re-select
+                hiddenInput.value = '';
+
+                if (query.length < 2) {
+                    hideDropdown();
+                    return;
+                }
+                debounceTimer = setTimeout(function () { search(query); }, 250);
+            });
+
+            searchInput.addEventListener('focus', function () {
+                const query = this.value.trim();
+                if (query.length >= 2) search(query);
+            });
+
+            // Hide dropdown when clicking outside
+            document.addEventListener('click', function (e) {
+                if (!combobox.contains(e.target)) hideDropdown();
+            });
+
+            // Clear button
+            if (clearBtn) {
+                clearBtn.addEventListener('click', function () {
+                    hiddenInput.value = '';
+                    searchInput.value = '';
+                    lastQuery = null;
+                    hideDropdown();
+                    searchInput.focus();
+                });
+            }
+
+            // Reset combobox when the whole form is cleared via Clear Form button
+            document.addEventListener('dilp:form-cleared', function () {
+                hiddenInput.value = '';
+                searchInput.value = '';
+                lastQuery = null;
+                hideDropdown();
+            });
+        })();
 
     })();
     </script>

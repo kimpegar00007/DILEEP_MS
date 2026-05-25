@@ -44,12 +44,50 @@ function proponentNormalizeOptions($allowedOptions, $values) {
     return array_values(array_intersect($allowedOptions, $values));
 }
 
+/**
+ * Normalize beneficiary names from various input formats.
+ *
+ * Supports:
+ * - Array (from POST): used as-is.
+ * - JSON string (new storage format): decoded as array. Names may contain commas safely.
+ * - Comma-separated string (legacy storage format): split on comma. Names with commas
+ *   may have been fragmented in legacy data — best-effort recovery only.
+ *
+ * @param mixed $values Array, JSON string, or comma-separated string.
+ * @return array<int, string> Trimmed, non-empty names indexed sequentially.
+ */
 function normalizeBeneficiaryNames($values) {
-    if (!is_array($values)) {
-        $values = $values === '' ? [] : explode(',', $values);
+    if (is_array($values)) {
+        // Already an array (e.g. from $_POST['beneficiary_full_names'])
+    } elseif ($values === '' || $values === null) {
+        $values = [];
+    } else {
+        $trimmed = ltrim($values);
+        // Try JSON first (new format): a JSON array starts with '['
+        if ($trimmed !== '' && $trimmed[0] === '[') {
+            $decoded = json_decode($values, true);
+            if (is_array($decoded)) {
+                $values = $decoded;
+            } else {
+                // Recovery: JSON is malformed (most commonly because the legacy
+                // VARCHAR(255) column truncated the payload mid-string). Salvage
+                // any complete double-quoted entries so the user only has to
+                // re-enter the truncated tail rather than the entire list.
+                if (preg_match_all('/"((?:[^"\\\\]|\\\\.)*)"/', $values, $matches)) {
+                    $values = array_map(function ($s) {
+                        return json_decode('"' . $s . '"') ?? $s;
+                    }, $matches[1]);
+                } else {
+                    $values = [];
+                }
+            }
+        } else {
+            // Legacy fallback: comma-separated string
+            $values = explode(',', $values);
+        }
     }
 
-    $values = array_map('trim', $values);
+    $values = array_map(function ($v) { return trim((string) $v); }, $values);
     return array_values(array_filter($values, function ($name) {
         return $name !== '';
     }));
@@ -93,7 +131,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'association_names' => $_POST['association_names'] ?? [],
         'association_addresses' => $_POST['association_addresses'] ?? [],
         'total_beneficiaries' => intval($_POST['total_beneficiaries'] ?? 0),
-        'beneficiary_full_name' => implode(', ', $beneficiaryNames),
+        // JSON-encoded to preserve commas in names like "AGRAVANTE, NENA ACEDERA"
+        'beneficiary_full_name' => $beneficiaryNames ? json_encode(array_values($beneficiaryNames), JSON_UNESCAPED_UNICODE) : '',
         'male_beneficiaries' => intval($_POST['male_beneficiaries'] ?? 0),
         'female_beneficiaries' => intval($_POST['female_beneficiaries'] ?? 0),
         'type_of_beneficiaries' => implode(', ', $selectedBeneficiaryTypes),
@@ -206,10 +245,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $formBeneficiaryTypes = proponentNormalizeOptions($beneficiaryTypeOptions, $_POST['type_of_beneficiaries'] ?? []);
     $formWorkerTypes = proponentNormalizeOptions($workerTypeOptions, $_POST['type_of_workers'] ?? []);
     $formBeneficiaryNames = normalizeBeneficiaryNames($_POST['beneficiary_full_names'] ?? $_POST['beneficiary_full_name'] ?? []);
+
+    // Preserve all POST values so the form repopulates on validation failure
+    if (!empty($errors) || !$success) {
+        $formValues = array_merge($proponent ?? [], $_POST);
+    } else {
+        $formValues = $proponent;
+    }
 } else {
     $formBeneficiaryTypes = proponentNormalizeOptions($beneficiaryTypeOptions, $proponent['type_of_beneficiaries'] ?? '');
     $formWorkerTypes = proponentNormalizeOptions($workerTypeOptions, $proponent['type_of_workers'] ?? '');
     $formBeneficiaryNames = normalizeBeneficiaryNames($proponent['beneficiary_full_name'] ?? '');
+    $formValues = $proponent;
 }
 ?>
 <!DOCTYPE html>
@@ -287,39 +334,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                         <label class="form-label">Proponent Type <span class="text-danger">*</span></label>
                                         <select name="proponent_type" id="proponent_type" class="form-select" required>
                                             <option value="">Select Type</option>
-                                            <option value="LGU-associated" <?php echo ($proponent['proponent_type'] ?? '') === 'LGU-associated' ? 'selected' : ''; ?>>LGU-associated</option>
-                                            <option value="Non-LGU-associated" <?php echo ($proponent['proponent_type'] ?? '') === 'Non-LGU-associated' ? 'selected' : ''; ?>>Non-LGU-associated</option>
-                                            <option value="By Administration" <?php echo ($proponent['proponent_type'] ?? '') === 'By Administration' ? 'selected' : ''; ?>>By Administration</option>
-                                            <option value="Others" <?php echo ($proponent['proponent_type'] ?? '') === 'Others' ? 'selected' : ''; ?>>Others</option>
+                                            <option value="LGU-associated" <?php echo ($formValues['proponent_type'] ?? '') === 'LGU-associated' ? 'selected' : ''; ?>>LGU-associated</option>
+                                            <option value="Non-LGU-associated" <?php echo ($formValues['proponent_type'] ?? '') === 'Non-LGU-associated' ? 'selected' : ''; ?>>Non-LGU-associated</option>
+                                            <option value="By Administration" <?php echo ($formValues['proponent_type'] ?? '') === 'By Administration' ? 'selected' : ''; ?>>By Administration</option>
+                                            <option value="Others" <?php echo ($formValues['proponent_type'] ?? '') === 'Others' ? 'selected' : ''; ?>>Others</option>
                                         </select>
                                         <small class="text-muted">LGU: 10 days liquidation | Non-LGU: 60 days</small>
                                     </div>
                                     <div class="col-md-4 mb-3">
                                         <label class="form-label">Date Received (DILP)</label>
                                         <input type="date" name="date_received" class="form-control"
-                                               value="<?php echo $proponent['date_received'] ?? ''; ?>">
+                                               value="<?php echo $formValues['date_received'] ?? ''; ?>">
                                     </div>
                                     <div class="col-md-4 mb-3">
                                         <label class="form-label">Control Number</label>
                                         <input type="text" name="control_number" class="form-control"
-                                               value="<?php echo htmlspecialchars($proponent['control_number'] ?? ''); ?>">
+                                               value="<?php echo htmlspecialchars($formValues['control_number'] ?? ''); ?>">
                                     </div>
                                 </div>
                                 <div class="row">
                                     <div class="col-md-4 mb-3" style="display: none;">
                                         <label class="form-label">Number of Proposal Copies</label>
                                         <input type="number" name="number_of_copies" class="form-control" min="0"
-                                               value="<?php echo $proponent['number_of_copies'] ?? ''; ?>">
+                                               value="<?php echo $formValues['number_of_copies'] ?? ''; ?>">
                                     </div>
                                     <div class="col-md-4 mb-3" style="display: none;">
                                         <label class="form-label">Date Copies Received</label>
                                         <input type="date" name="date_copies_received" class="form-control"
-                                               value="<?php echo $proponent['date_copies_received'] ?? ''; ?>">
+                                               value="<?php echo $formValues['date_copies_received'] ?? ''; ?>">
                                     </div>
                                     <div class="col-md-4 mb-3">
                                         <label class="form-label">District</label>
                                         <input type="text" name="district" class="form-control"
-                                               value="<?php echo htmlspecialchars($proponent['district'] ?? ''); ?>">
+                                               value="<?php echo htmlspecialchars($formValues['district'] ?? ''); ?>">
                                     </div>
                                 </div>
                             </div>
@@ -330,33 +377,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     <div class="col-md-6 mb-3">
                                         <label class="form-label">Name of Proponent/ACP <span class="text-danger">*</span></label>
                                         <input type="text" name="proponent_name" class="form-control" required
-                                               value="<?php echo htmlspecialchars($proponent['proponent_name'] ?? ''); ?>">
+                                               value="<?php echo htmlspecialchars($formValues['proponent_name'] ?? ''); ?>">
                                     </div>
                                     <div class="col-md-6 mb-3">
                                         <label class="form-label">Project Title <span class="text-danger">*</span></label>
                                         <input type="text" name="project_title" class="form-control" required
-                                               value="<?php echo htmlspecialchars($proponent['project_title'] ?? ''); ?>">
+                                               value="<?php echo htmlspecialchars($formValues['project_title'] ?? ''); ?>">
                                     </div>
                                 </div>
                                 <div class="row">
                                     <div class="col-md-4 mb-3">
                                         <label class="form-label">Amount (₱) <span class="text-danger">*</span></label>
                                         <input type="number" name="amount" class="form-control" step="0.01" required
-                                               value="<?php echo $proponent['amount'] ?? ''; ?>">
+                                               value="<?php echo $formValues['amount'] ?? ''; ?>">
                                     </div>
                                     <div class="col-md-4 mb-3">
                                         <label class="form-label">Category <span class="text-danger">*</span></label>
                                         <select name="category" class="form-select" required>
                                             <option value="">Select Category</option>
-                                            <option value="Formation" <?php echo ($proponent['category'] ?? '') === 'Formation' ? 'selected' : ''; ?>>Formation</option>
-                                            <option value="Enhancement" <?php echo ($proponent['category'] ?? '') === 'Enhancement' ? 'selected' : ''; ?>>Enhancement</option>
-                                            <option value="Restoration" <?php echo ($proponent['category'] ?? '') === 'Restoration' ? 'selected' : ''; ?>>Restoration</option>
+                                            <option value="Formation" <?php echo ($formValues['category'] ?? '') === 'Formation' ? 'selected' : ''; ?>>Formation</option>
+                                            <option value="Enhancement" <?php echo ($formValues['category'] ?? '') === 'Enhancement' ? 'selected' : ''; ?>>Enhancement</option>
+                                            <option value="Restoration" <?php echo ($formValues['category'] ?? '') === 'Restoration' ? 'selected' : ''; ?>>Restoration</option>
                                         </select>
                                     </div>
                                     <div class="col-md-4 mb-3">
                                         <label class="form-label">Number of Associations</label>
                                         <input type="number" name="number_of_associations" id="number_of_associations" class="form-control" min="0"
-                                               value="<?php echo $proponent['number_of_associations'] ?? ''; ?>">
+                                               value="<?php echo $formValues['number_of_associations'] ?? ''; ?>">
                                     </div>                                  
                                 </div>
                                 <div id="associations-container">
@@ -395,17 +442,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     <div class="col-md-4 mb-3">
                                         <label class="form-label">Total Beneficiaries <span class="text-danger">*</span></label>
                                         <input type="number" name="total_beneficiaries" id="total_beneficiaries" class="form-control" min="1" required
-                                               value="<?php echo $proponent['total_beneficiaries'] ?? ''; ?>">
+                                               value="<?php echo $formValues['total_beneficiaries'] ?? ''; ?>">
                                     </div>
                                     <div class="col-md-4 mb-3">
                                         <label class="form-label">Male Beneficiaries</label>
                                         <input type="number" name="male_beneficiaries" id="male_beneficiaries" class="form-control" min="0"
-                                               value="<?php echo $proponent['male_beneficiaries'] ?? ''; ?>">
+                                               value="<?php echo $formValues['male_beneficiaries'] ?? ''; ?>">
                                     </div>
                                     <div class="col-md-4 mb-3">
                                         <label class="form-label">Female Beneficiaries</label>
                                         <input type="number" name="female_beneficiaries" id="female_beneficiaries" class="form-control" min="0"
-                                               value="<?php echo $proponent['female_beneficiaries'] ?? ''; ?>">
+                                               value="<?php echo $formValues['female_beneficiaries'] ?? ''; ?>">
                                     </div>
                                 </div>
                                 <div class="row">
@@ -417,7 +464,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     <div class="col-md-6 mb-3">
                                         <label class="form-label">Recipient Barangays/ACPs</label>
                                         <input type="text" name="recipient_barangays" class="form-control"
-                                               value="<?php echo htmlspecialchars($proponent['recipient_barangays'] ?? ''); ?>">
+                                               value="<?php echo htmlspecialchars($formValues['recipient_barangays'] ?? ''); ?>">
                                     </div>
                                 </div>
                                 <div class="row">
@@ -466,40 +513,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     <div class="col-md-4 mb-3">
                                         <label class="form-label">DILP Application - Date Received</label>
                                         <input type="date" name="letter_of_intent_date" class="form-control"
-                                               value="<?php echo $proponent['letter_of_intent_date'] ?? ''; ?>">
+                                               value="<?php echo $formValues['letter_of_intent_date'] ?? ''; ?>">
                                     </div>
                                     <div class="col-md-4 mb-3">
                                         <label class="form-label">Date Forwarded to NIR for RPMT</label>
                                         <input type="date" name="date_forwarded_to_ro6" class="form-control"
-                                               value="<?php echo $proponent['date_forwarded_to_ro6'] ?? ''; ?>">
+                                               value="<?php echo $formValues['date_forwarded_to_ro6'] ?? ''; ?>">
                                     </div>
                                     <div class="col-md-4 mb-3" style="display: none;">
                                         <label class="form-label">Date Complied by Proponent/ACP</label>
                                         <input type="date" name="date_complied_by_proponent" class="form-control"
-                                               value="<?php echo $proponent['date_complied_by_proponent'] ?? ''; ?>">
+                                               value="<?php echo $formValues['date_complied_by_proponent'] ?? ''; ?>">
                                     </div>
                                 </div>
                                 <div class="row">
                                     <div class="col-md-12 mb-3">
                                         <label class="form-label">RPMT Findings</label>
-                                        <textarea name="rpmt_findings" class="form-control" rows="2"><?php echo htmlspecialchars($proponent['rpmt_findings'] ?? ''); ?></textarea>
+                                        <textarea name="rpmt_findings" class="form-control" rows="2"><?php echo htmlspecialchars($formValues['rpmt_findings'] ?? ''); ?></textarea>
                                     </div>
                                 </div>
                                 <div class="row">
                                     <div class="col-md-4 mb-3">
                                         <label class="form-label">Date Complied by Proponent</label>
                                         <input type="date" name="date_complied_by_proponent_nofo" class="form-control"
-                                               value="<?php echo $proponent['date_complied_by_proponent_nofo'] ?? ''; ?>">
+                                               value="<?php echo $formValues['date_complied_by_proponent_nofo'] ?? ''; ?>">
                                     </div>
                                     <div class="col-md-4 mb-3">
-                                        <label class="form-label">Date Forwarded to NOFO</label>
+                                        <label class="form-label"><?php echo htmlspecialchars(Auth::getForwardedToOfficeLabel($formProvince)); ?></label>
                                         <input type="date" name="date_forwarded_to_nofo" class="form-control"
-                                               value="<?php echo $proponent['date_forwarded_to_nofo'] ?? ''; ?>">
+                                               value="<?php echo $formValues['date_forwarded_to_nofo'] ?? ''; ?>">
                                     </div>
                                     <div class="col-md-4 mb-3">
                                         <label class="form-label">Date Approved</label>
                                         <input type="date" name="date_approved" class="form-control"
-                                               value="<?php echo $proponent['date_approved'] ?? ''; ?>">
+                                               value="<?php echo $formValues['date_approved'] ?? ''; ?>">
                                     </div>
                                 </div>
                             </div>
@@ -579,37 +626,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     <div class="col-md-4 mb-3">
                                         <label class="form-label">Date of Check Release</label>
                                         <input type="date" name="date_check_release" class="form-control"
-                                               value="<?php echo $proponent['date_check_release'] ?? ''; ?>">
+                                               value="<?php echo $formValues['date_check_release'] ?? ''; ?>">
                                     </div>
                                     <div class="col-md-4 mb-3">
                                         <label class="form-label">Check Number</label>
                                         <input type="text" name="check_number" class="form-control"
-                                               value="<?php echo htmlspecialchars($proponent['check_number'] ?? ''); ?>">
+                                               value="<?php echo htmlspecialchars($formValues['check_number'] ?? ''); ?>">
                                     </div>
                                     <div class="col-md-4 mb-3">
                                         <label class="form-label">Check Date Issued</label>
                                         <input type="date" name="check_date_issued" class="form-control"
-                                               value="<?php echo $proponent['check_date_issued'] ?? ''; ?>">
+                                               value="<?php echo $formValues['check_date_issued'] ?? ''; ?>">
                                     </div>
                                 </div>
                                 <div class="row">
                                     <div class="col-md-4 mb-3">
                                         <label class="form-label">Official Receipt (OR) Number</label>
                                         <input type="text" name="or_number" class="form-control"
-                                               value="<?php echo htmlspecialchars($proponent['or_number'] ?? ''); ?>">
+                                               value="<?php echo htmlspecialchars($formValues['or_number'] ?? ''); ?>">
                                     </div>
                                     <div class="col-md-4 mb-3">
                                         <label class="form-label">OR Date Issued</label>
                                         <input type="date" name="or_date_issued" class="form-control"
-                                               value="<?php echo $proponent['or_date_issued'] ?? ''; ?>">
+                                               value="<?php echo $formValues['or_date_issued'] ?? ''; ?>">
                                     </div>
                                     <div class="col-md-4 mb-3">
                                         <label class="form-label">Source of Funds</label>
                                         <select name="source_of_funds" class="form-select">
                                             <option value="">Select Source</option>
-                                            <option value="GAA" <?php echo (isset($proponent['source_of_funds']) && $proponent['source_of_funds'] === 'GAA') ? 'selected' : ''; ?>>GAA (General Appropriation Act)</option>
-                                            <option value="Centrally Managed Fund" <?php echo (isset($proponent['source_of_funds']) && $proponent['source_of_funds'] === 'Centrally Managed Fund') ? 'selected' : ''; ?>>Centrally Managed Fund/Central Office</option>
-                                            <option value="Other" <?php echo (isset($proponent['source_of_funds']) && $proponent['source_of_funds'] === 'Other') ? 'selected' : ''; ?>>Other</option>
+                                            <option value="GAA" <?php echo (isset($formValues['source_of_funds']) && $formValues['source_of_funds'] === 'GAA') ? 'selected' : ''; ?>>GAA (General Appropriation Act)</option>
+                                            <option value="Centrally Managed Fund" <?php echo (isset($formValues['source_of_funds']) && $formValues['source_of_funds'] === 'Centrally Managed Fund') ? 'selected' : ''; ?>>Centrally Managed Fund/Central Office</option>
+                                            <option value="Other" <?php echo (isset($formValues['source_of_funds']) && $formValues['source_of_funds'] === 'Other') ? 'selected' : ''; ?>>Other</option>
                                         </select>
                                     </div>
                                 </div>
@@ -628,23 +675,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     <div class="col-md-3 mb-3">
                                         <label class="form-label">Date of Turn-over</label>
                                         <input type="date" name="date_turnover" id="date_turnover" class="form-control"
-                                               value="<?php echo $proponent['date_turnover'] ?? ''; ?>">
+                                               value="<?php echo $formValues['date_turnover'] ?? ''; ?>">
                                         <small class="text-muted">Triggers liquidation deadline and monitoring date</small>
                                     </div>
                                     <div class="col-md-3 mb-3">
                                         <label class="form-label">Date Implemented</label>
                                         <input type="date" name="date_implemented" class="form-control"
-                                               value="<?php echo $proponent['date_implemented'] ?? ''; ?>">
+                                               value="<?php echo $formValues['date_implemented'] ?? ''; ?>">
                                     </div>
                                     <div class="col-md-3 mb-3">
                                         <label class="form-label">Date Liquidated</label>
                                         <input type="date" name="date_liquidated" class="form-control"
-                                               value="<?php echo $proponent['date_liquidated'] ?? ''; ?>">
+                                               value="<?php echo $formValues['date_liquidated'] ?? ''; ?>">
                                     </div>
                                     <div class="col-md-3 mb-3">
                                         <label class="form-label">Date of Monitoring</label>
                                         <input type="date" name="date_monitoring" id="date_monitoring" class="form-control"
-                                               value="<?php echo $proponent['date_monitoring'] ?? ''; ?>">
+                                               value="<?php echo $formValues['date_monitoring'] ?? ''; ?>">
                                     </div>
                                 </div>
                             </div>
@@ -697,14 +744,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                         <label class="form-label">Latitude</label>
                                         <input type="text" name="latitude" id="latitude" class="form-control"
                                                placeholder="e.g., 10.5"
-                                               value="<?php echo $proponent['latitude'] ?? ''; ?>">
+                                               value="<?php echo $formValues['latitude'] ?? ''; ?>">
                                         <small class="text-muted">Decimal degrees format</small>
                                     </div>
                                     <div class="col-md-6 mb-3">
                                         <label class="form-label">Longitude</label>
                                         <input type="text" name="longitude" id="longitude" class="form-control"
                                                placeholder="e.g., 123.0"
-                                               value="<?php echo $proponent['longitude'] ?? ''; ?>">
+                                               value="<?php echo $formValues['longitude'] ?? ''; ?>">
                                         <small class="text-muted">Decimal degrees format</small>
                                     </div>
                                 </div>
@@ -716,23 +763,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     <div class="col-md-6 mb-3">
                                         <label class="form-label">Current Status <span class="text-danger">*</span></label>
                                         <select name="status" class="form-select" required>
-                                            <option value="pending" <?php echo ($proponent['status'] ?? 'pending') === 'pending' ? 'selected' : ''; ?>>Pending</option>
-                                            <option value="approved" <?php echo ($proponent['status'] ?? '') === 'approved' ? 'selected' : ''; ?>>Approved</option>
-                                            <option value="implemented" <?php echo ($proponent['status'] ?? '') === 'implemented' ? 'selected' : ''; ?>>Implemented</option>
-                                            <option value="liquidated" <?php echo ($proponent['status'] ?? '') === 'liquidated' ? 'selected' : ''; ?>>Liquidated</option>
-                                            <option value="monitored" <?php echo ($proponent['status'] ?? '') === 'monitored' ? 'selected' : ''; ?>>Monitored</option>
+                                            <option value="pending" <?php echo ($formValues['status'] ?? 'pending') === 'pending' ? 'selected' : ''; ?>>Pending</option>
+                                            <option value="approved" <?php echo ($formValues['status'] ?? '') === 'approved' ? 'selected' : ''; ?>>Approved</option>
+                                            <option value="implemented" <?php echo ($formValues['status'] ?? '') === 'implemented' ? 'selected' : ''; ?>>Implemented</option>
+                                            <option value="liquidated" <?php echo ($formValues['status'] ?? '') === 'liquidated' ? 'selected' : ''; ?>>Liquidated</option>
+                                            <option value="monitored" <?php echo ($formValues['status'] ?? '') === 'monitored' ? 'selected' : ''; ?>>Monitored</option>
                                         </select>
                                     </div>
                                     <div class="col-md-12 mb-3">
                                         <label class="form-label">Noted Findings/Comments</label>
-                                        <textarea name="noted_findings" class="form-control" rows="3"><?php echo htmlspecialchars($proponent['noted_findings'] ?? ''); ?></textarea>
+                                        <textarea name="noted_findings" class="form-control" rows="3"><?php echo htmlspecialchars($formValues['noted_findings'] ?? ''); ?></textarea>
                                     </div>
                                 </div>
                             </div>
 
-                            <div class="d-flex gap-2">
+                            <div class="d-flex gap-2 flex-wrap">
                                 <button type="submit" class="btn btn-primary">
                                     <i class="bi bi-save"></i> <?php echo $isEdit ? 'Update' : 'Save'; ?> Proponent
+                                </button>
+                                <button type="button" id="btn-clear-form" class="btn btn-outline-warning">
+                                    <i class="bi bi-eraser"></i> Clear Form
                                 </button>
                                 <a href="proponents.php" class="btn btn-secondary">
                                     <i class="bi bi-x-circle"></i> Cancel
@@ -748,6 +798,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <?php include 'includes/notification-script.php'; ?>
     <script src="assets/js/location-autofill.js"></script>
+    <script src="assets/js/form-autosave.js"></script>
+    <script>DILPAutoSave.init({ storageKey: 'dilp_proponent_form' });</script>
     <script>
         const existingBeneficiaryNames = <?php echo json_encode($formBeneficiaryNames); ?>;
 
@@ -884,6 +936,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Run on page load for edit mode
         renderBeneficiaryNameFields();
         updateLiquidationAndMonitoringPreview();
+
+        // Reset dynamic generators when the Clear Form button is pressed
+        document.addEventListener('dilp:form-cleared', function () {
+            // Wipe the existingBeneficiaryNames so a fresh empty render occurs
+            try { existingBeneficiaryNames.length = 0; } catch (_) { /* const-array is mutable */ }
+            renderBeneficiaryNameFields();
+            updateLiquidationAndMonitoringPreview();
+        });
         
         const numAssociationsInput = document.getElementById('number_of_associations');
         const associationsContainer = document.getElementById('associations-container');

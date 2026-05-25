@@ -13,6 +13,27 @@ class Beneficiary {
 
     public function __construct() {
         $this->db = Database::getInstance()->getConnection();
+        $this->ensureProponentIdColumn();
+    }
+
+    /**
+     * Ensures the proponent_id column exists in the beneficiaries table.
+     * Auto-creates it if missing (safe for first-run without migration).
+     */
+    private function ensureProponentIdColumn(): void {
+        try {
+            $stmt = $this->db->query("SHOW COLUMNS FROM beneficiaries LIKE 'proponent_id'");
+            if ($stmt->rowCount() === 0) {
+                $this->db->exec(
+                    "ALTER TABLE beneficiaries ADD COLUMN proponent_id INT(11) UNSIGNED NULL DEFAULT NULL AFTER province"
+                );
+                $this->db->exec(
+                    "ALTER TABLE beneficiaries ADD INDEX idx_beneficiaries_proponent_id (proponent_id)"
+                );
+            }
+        } catch (PDOException $e) {
+            error_log('[Beneficiary] Failed to ensure proponent_id column: ' . $e->getMessage());
+        }
     }
 
     // =========================================================
@@ -54,11 +75,12 @@ class Beneficiary {
 
         $sql = "INSERT INTO beneficiaries (
             last_name, first_name, middle_name, suffix, gender, barangay, municipality, province,
-            contact_number, project_name, type_of_worker, type_of_beneficiaries, amount_worth, noted_findings,
+            proponent_id, contact_number, project_name, type_of_worker, type_of_beneficiaries,
+            amount_worth, noted_findings,
             date_complied_by_proponent, date_forwarded_to_ro6, rpmt_findings, date_approved,
             date_forwarded_to_nofo, date_turnover, date_monitoring, latitude, longitude,
             status, source_of_funds, created_by, updated_by
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         try {
             $stmt = $this->db->prepare($sql);
@@ -70,6 +92,7 @@ class Beneficiary {
             $result = $stmt->execute([
                 $data['last_name'], $data['first_name'], $data['middle_name'], $data['suffix'],
                 $data['gender'], $data['barangay'], $data['municipality'], $province,
+                !empty($data['proponent_id']) ? (int) $data['proponent_id'] : null,
                 $data['contact_number'], $data['project_name'], $data['type_of_worker'],
                 $data['type_of_beneficiaries'] ?? null,
                 $data['amount_worth'], $data['noted_findings'], $data['date_complied_by_proponent'],
@@ -111,7 +134,7 @@ class Beneficiary {
             date_complied_by_proponent = ?, date_forwarded_to_ro6 = ?, rpmt_findings = ?,
             date_approved = ?, date_forwarded_to_nofo = ?, date_turnover = ?,
             date_monitoring = ?, latitude = ?, longitude = ?, status = ?,
-            source_of_funds = ?, updated_by = ?
+            source_of_funds = ?, proponent_id = ?, updated_by = ?
         WHERE id = ?" . $pSql;
 
         try {
@@ -131,6 +154,7 @@ class Beneficiary {
                 $data['date_forwarded_to_nofo'], $data['date_turnover'], $data['date_monitoring'],
                 $data['latitude'], $data['longitude'], $data['status'],
                 $data['source_of_funds'] ?? null,
+                !empty($data['proponent_id']) ? (int) $data['proponent_id'] : null,
                 $_SESSION['user_id'] ?? null, $id,
             ], $pParams));
 
@@ -265,8 +289,11 @@ class Beneficiary {
         }
 
         if (!empty($filters['search'])) {
-            $sql     .= " AND (CONCAT(first_name, ' ', last_name) LIKE ? OR project_name LIKE ?)";
+            $sql     .= " AND (CONCAT(first_name, ' ', last_name) LIKE ? OR project_name LIKE ?"
+                       . " OR EXISTS (SELECT 1 FROM proponents lp WHERE lp.id = beneficiaries.proponent_id"
+                       . "   AND (lp.proponent_name LIKE ? OR lp.project_title LIKE ?)))";
             $term     = '%' . $filters['search'] . '%';
+            $params[] = $term; $params[] = $term;
             $params[] = $term; $params[] = $term;
         }
 

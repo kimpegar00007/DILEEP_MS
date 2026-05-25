@@ -298,6 +298,40 @@ class Auth {
     }
 
     // =========================================================
+    // Province-to-office label helpers
+    // =========================================================
+
+    // Maps province to its field office abbreviation
+    private const PROVINCE_OFFICE_MAP = [
+        'Negros Occidental' => 'NOCFO',
+        'Negros Oriental'   => 'NORFO',
+        'Siquijor'          => 'SFO',
+    ];
+
+    /**
+     * Returns the field office abbreviation for a given province.
+     * Falls back to 'NOFO' if province is unknown or null.
+     */
+    public static function getOfficeForProvince(?string $province): string {
+        return self::PROVINCE_OFFICE_MAP[$province] ?? 'NOFO';
+    }
+
+    /**
+     * Returns the "Date Forwarded to {office}" label for a given province.
+     */
+    public static function getForwardedToOfficeLabel(?string $province): string {
+        $office = self::getOfficeForProvince($province);
+        return "Date Forwarded of Approved Proposal to {$office}";
+    }
+
+    /**
+     * Returns the "Date Forwarded to NIR" label for RPMT evaluation.
+     */
+    public static function getForwardedToRoLabel(): string {
+        return 'Date Forwarded to NIR for RPMT Evaluation';
+    }
+
+    // =========================================================
     // Activity logging
     // =========================================================
 

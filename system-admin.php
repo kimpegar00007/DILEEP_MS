@@ -260,6 +260,28 @@ try {
                     </div>
                 </div>
 
+                <!-- System Backup -->
+                <div class="admin-card">
+                    <div class="row align-items-center">
+                        <div class="col-md-2 text-center">
+                            <div class="admin-card-icon" style="background: linear-gradient(135deg, #17a2b8, #138496); color: white; margin: 0 auto;">
+                                <i class="bi bi-cloud-arrow-down"></i>
+                            </div>
+                        </div>
+                        <div class="col-md-7">
+                            <h5 class="mb-2">System Backup</h5>
+                            <p class="text-muted mb-0">
+                                Download a full database backup or upload it to Google Drive. Manage backup settings and restore points.
+                            </p>
+                        </div>
+                        <div class="col-md-3 text-end">
+                            <a href="settings.php#backup" class="btn btn-primary">
+                                <i class="bi bi-shield-check"></i> Manage Backups
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Danger Zone -->
                 <div class="admin-card">
                     <div class="danger-zone">
