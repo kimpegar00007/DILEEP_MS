@@ -397,14 +397,7 @@ if (!$isSuperAdmin && $sessionProvince) {
             
             var statusOptions = {
                 'beneficiaries': <?php echo json_encode($beneficiaryStatusOptions); ?>,
-                'proponents': <?php echo json_encode($proponentStatusOptions); ?>,
-                'cqpr': {
-                    'pending': 'Pending',
-                    'approved': 'Approved',
-                    'implemented': 'Implemented',
-                    'liquidated': 'Liquidated',
-                    'monitored': 'Monitored'
-                }
+                'proponents': <?php echo json_encode($proponentStatusOptions); ?>
             };
 
             function rebuildStatusOptions(reportType, selected) {
@@ -432,7 +425,7 @@ if (!$isSuperAdmin && $sessionProvince) {
                 } else if (val === 'cqpr') {
                     $('#municipalityFilter').hide();
                     $('#districtFilter').hide();
-                    $('select[name="status"]').closest('.col-md-2').show();
+                    $('select[name="status"]').closest('.col-md-2').hide();
                 }
                 rebuildStatusOptions(val, '');
             });
@@ -445,6 +438,7 @@ if (!$isSuperAdmin && $sessionProvince) {
             } else if (currentType === 'cqpr') {
                 $('#municipalityFilter').hide();
                 $('#districtFilter').hide();
+                $('select[name="status"]').closest('.col-md-2').hide();
             }
             rebuildStatusOptions($('#reportType').val(), '<?php echo addslashes($selectedStatus); ?>');
         });

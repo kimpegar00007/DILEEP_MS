@@ -22,16 +22,13 @@ if ($isSuperAdmin) {
     $provinceFilter = $sessionProvince;
 }
 
-// Get unified search parameter
-$unifiedSearch = $_GET['unified_search'] ?? '';
-
 // Get filters from query string
 $beneficiaryFilters = [
     'province'     => $provinceFilter,
     'municipality' => $_GET['municipality'] ?? '',
     'barangay'     => $_GET['barangay'] ?? '',
     'status'       => $_GET['status'] ?? '',
-    'search'       => $unifiedSearch ?: ($_GET['search'] ?? '')
+    'search'       => $_GET['search'] ?? ''
 ];
 
 $proponentFilters = [
@@ -40,17 +37,12 @@ $proponentFilters = [
     'district'      => $_GET['district'] ?? '',
     'status'        => $_GET['status'] ?? '',
     'category'      => $_GET['category'] ?? '',
-    'search'        => $unifiedSearch ?: ($_GET['search'] ?? '')
+    'search'        => $_GET['search'] ?? ''
 ];
 
-// Get data - if unified search is active, get both; otherwise get based on current view
-if (!empty($unifiedSearch)) {
-    $beneficiaries = $beneficiaryModel->getAll($beneficiaryFilters);
-    $proponents = $proponentModel->getAll($proponentFilters);
-} else {
-    $beneficiaries = $currentView === 'beneficiaries' ? $beneficiaryModel->getAll($beneficiaryFilters) : [];
-    $proponents = $currentView === 'proponents' ? $proponentModel->getAll($proponentFilters) : [];
-}
+// Get data
+$beneficiaries = $beneficiaryModel->getAll($beneficiaryFilters);
+$proponents = $proponentModel->getAll($proponentFilters);
 
 // Get unique values for filters — scope by province for non-super-admin
 $db = Database::getInstance()->getConnection();
@@ -383,7 +375,7 @@ if (!in_array($currentView, ['beneficiaries', 'proponents'])) {
             <main class="col-md-10 ms-sm-auto px-md-4 py-4" id="mainContent" role="main">
                 <!-- Unified Header -->
                 <div class="unified-header">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div class="d-flex justify-content-between align-items-center">
                         <div>
                             <h1 class="mb-2">Beneficiaries & Proponents</h1>
                             <p class="mb-0 opacity-90">Manage individual beneficiaries and group proponents in one unified interface</p>
@@ -408,38 +400,6 @@ if (!in_array($currentView, ['beneficiaries', 'proponents'])) {
                                 </a>
                                 <?php endif; ?>
                             </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Unified Search Bar -->
-                    <div class="card mb-3" style="background: linear-gradient(135deg, rgba(27,122,61,0.05), rgba(27,122,61,0.02)); border: 1px solid rgba(27,122,61,0.1);">
-                        <div class="card-body py-3">
-                            <form method="GET" action="" class="row g-2 align-items-center">
-                                <div class="col-md-10">
-                                    <div class="input-group">
-                                        <span class="input-group-text bg-white">
-                                            <i class="bi bi-search"></i>
-                                        </span>
-                                        <input type="text" name="unified_search" class="form-control" 
-                                               placeholder="Search across all beneficiaries and proponents (name, project, control #, location...)"
-                                               value="<?php echo htmlspecialchars($unifiedSearch); ?>">
-                                    </div>
-                                    <small class="text-muted">
-                                        <i class="bi bi-info-circle"></i> 
-                                        Searches: Names, Projects, Control Numbers, Municipalities, Districts, Barangays
-                                    </small>
-                                </div>
-                                <div class="col-md-2 d-flex gap-2">
-                                    <button type="submit" class="btn btn-primary flex-fill">
-                                        <i class="bi bi-search"></i> Search All
-                                    </button>
-                                    <?php if (!empty($unifiedSearch)): ?>
-                                    <a href="unified-beneficiaries-proponents.php" class="btn btn-secondary">
-                                        <i class="bi bi-x-circle"></i>
-                                    </a>
-                                    <?php endif; ?>
-                                </div>
-                            </form>
                         </div>
                     </div>
                 </div>
@@ -610,123 +570,20 @@ if (!in_array($currentView, ['beneficiaries', 'proponents'])) {
                 <?php
                 // Pagination setup — 12 cards per page
                 define('CARDS_PER_PAGE', 12);
-                $currentPageNum = max(1, intval($_GET['page'] ?? 1));
-                
-                // If unified search is active, combine both datasets
-                if (!empty($unifiedSearch)) {
-                    // Tag each item with its type
-                    $combinedData = [];
-                    foreach ($beneficiaries as $ben) {
-                        $ben['_entity_type'] = 'beneficiary';
-                        $combinedData[] = $ben;
-                    }
-                    foreach ($proponents as $prop) {
-                        $prop['_entity_type'] = 'proponent';
-                        $combinedData[] = $prop;
-                    }
-                    $activeDataset = $combinedData;
-                } else {
-                    $activeDataset = $currentView === 'beneficiaries' ? $beneficiaries : $proponents;
-                }
-                
+                $currentPage    = max(1, intval($_GET['page'] ?? 1));
+                $activeDataset  = $currentView === 'beneficiaries' ? $beneficiaries : $proponents;
                 $totalItems     = count($activeDataset);
                 $totalPages     = max(1, (int) ceil($totalItems / CARDS_PER_PAGE));
-                $currentPageNum = min($currentPageNum, $totalPages);
-                $offset         = ($currentPageNum - 1) * CARDS_PER_PAGE;
+                $currentPage    = min($currentPage, $totalPages);
+                $offset         = ($currentPage - 1) * CARDS_PER_PAGE;
                 $pageItems      = array_slice($activeDataset, $offset, CARDS_PER_PAGE);
+                
+                // Debug: Uncomment to troubleshoot pagination
+                // error_log("Pagination Debug - View: {$currentView}, Total: {$totalItems}, Pages: {$totalPages}, Current: {$currentPage}, Offset: {$offset}, Showing: " . count($pageItems));
                 ?>
                 <div id="cardsContainer">
                     <?php if (!empty($pageItems)): ?>
-                    <?php if (!empty($unifiedSearch)): ?>
-                        <!-- Unified Search Results -->
-                        <div class="alert alert-info mb-3">
-                            <i class="bi bi-search"></i> 
-                            <strong>Search Results:</strong> Found <?php echo $totalItems; ?> results 
-                            (<?php echo count($beneficiaries); ?> beneficiaries, <?php echo count($proponents); ?> proponents)
-                        </div>
-                        <div class="cards-grid" id="unifiedCards">
-                            <?php foreach ($pageItems as $item): ?>
-                                <?php if ($item['_entity_type'] === 'beneficiary'): ?>
-                                    <div class="entity-card" data-type="beneficiary" data-id="<?php echo $item['id']; ?>">
-                                        <div class="card-header">
-                                            <div>
-                                                <div class="card-title">
-                                                    <span class="badge bg-primary me-2" style="font-size: 0.7rem;">
-                                                        <i class="bi bi-person"></i> Individual
-                                                    </span>
-                                                    <?php echo htmlspecialchars($item['first_name'] . ' ' .
-                                                              ($item['middle_name'] ? substr($item['middle_name'], 0, 1) . '. ' : '') .
-                                                              $item['last_name'] .
-                                                              ($item['suffix'] ? ' ' . $item['suffix'] : '')); ?>
-                                                </div>
-                                                <div class="card-subtitle">
-                                                    <i class="bi bi-geo-alt"></i> <?php echo htmlspecialchars($item['barangay'] . ', ' . $item['municipality']); ?>
-                                                </div>
-                                            </div>
-                                            <span class="badge bg-<?php
-                                                $statusColors = ['pending' => 'secondary', 'approved' => 'primary', 'implemented' => 'success', 'monitored' => 'info'];
-                                                echo $statusColors[$item['status']] ?? 'secondary';
-                                            ?> badge-status">
-                                                <?php echo ucfirst($item['status']); ?>
-                                            </span>
-                                        </div>
-                                        <div class="card-content">
-                                            <div class="info-row">
-                                                <i class="bi bi-briefcase"></i>
-                                                <span><?php echo htmlspecialchars($item['project_name']); ?></span>
-                                            </div>
-                                            <div class="info-row">
-                                                <i class="bi bi-person"></i>
-                                                <span><?php echo htmlspecialchars($item['gender']); ?></span>
-                                            </div>
-                                        </div>
-                                        <div class="card-footer">
-                                            <div class="amount">₱<?php echo number_format($item['amount_worth'], 2); ?></div>
-                                            <div><i class="bi bi-arrow-right"></i></div>
-                                        </div>
-                                    </div>
-                                <?php else: ?>
-                                    <div class="entity-card" data-type="proponent" data-id="<?php echo $item['id']; ?>">
-                                        <div class="card-header">
-                                            <div>
-                                                <div class="card-title">
-                                                    <span class="badge bg-success me-2" style="font-size: 0.7rem;">
-                                                        <i class="bi bi-people"></i> Group
-                                                    </span>
-                                                    <?php echo htmlspecialchars($item['proponent_name']); ?>
-                                                </div>
-                                                <div class="card-subtitle">
-                                                    <i class="bi bi-briefcase"></i> <?php echo htmlspecialchars($item['project_title']); ?>
-                                                </div>
-                                            </div>
-                                            <span class="badge bg-<?php
-                                                $statusColors = ['pending' => 'secondary', 'approved' => 'primary', 'implemented' => 'success', 'liquidated' => 'warning', 'monitored' => 'info'];
-                                                echo $statusColors[$item['status']] ?? 'secondary';
-                                            ?> badge-status">
-                                                <?php echo ucfirst($item['status']); ?>
-                                            </span>
-                                        </div>
-                                        <div class="card-content">
-                                            <div class="info-row">
-                                                <i class="bi bi-people"></i>
-                                                <span><?php echo number_format($item['total_beneficiaries']); ?> beneficiaries</span>
-                                            </div>
-                                            <?php if ($item['control_number']): ?>
-                                            <div class="info-row">
-                                                <i class="bi bi-hash"></i>
-                                                <span><?php echo htmlspecialchars($item['control_number']); ?></span>
-                                            </div>
-                                            <?php endif; ?>
-                                        </div>
-                                        <div class="card-footer">
-                                            <div class="amount">₱<?php echo number_format($item['amount'], 2); ?></div>
-                                            <div><i class="bi bi-arrow-right"></i></div>
-                                        </div>
-                                    </div>
-                                <?php endif; ?>
-                            <?php endforeach; ?>
-                        </div>
-                    <?php elseif ($currentView === 'beneficiaries'): ?>
+                    <?php if ($currentView === 'beneficiaries'): ?>
                         <div class="cards-grid" id="beneficiaryCards">
                             <?php foreach ($pageItems as $beneficiary): ?>
                             <div class="entity-card" data-type="beneficiary" data-id="<?php echo $beneficiary['id']; ?>">
@@ -847,22 +704,22 @@ if (!in_array($currentView, ['beneficiaries', 'proponents'])) {
                             Showing <?php echo $offset + 1; ?>–<?php echo min($offset + CARDS_PER_PAGE, $totalItems); ?> of <?php echo $totalItems; ?> records
                         </small>
                         <ul class="pagination pagination-sm mb-0">
-                            <li class="page-item <?php echo $currentPageNum <= 1 ? 'disabled' : ''; ?>">
-                                <a class="page-link" href="?<?php echo $baseQuery; ?>page=<?php echo $currentPageNum - 1; ?>">
+                            <li class="page-item <?php echo $currentPage <= 1 ? 'disabled' : ''; ?>">
+                                <a class="page-link" href="?<?php echo $baseQuery; ?>page=<?php echo $currentPage - 1; ?>">
                                     <i class="bi bi-chevron-left"></i>
                                 </a>
                             </li>
                             <?php for ($p = 1; $p <= $totalPages; $p++): ?>
-                            <?php if ($p === 1 || $p === $totalPages || abs($p - $currentPageNum) <= 2): ?>
-                            <li class="page-item <?php echo $p === $currentPageNum ? 'active' : ''; ?>">
+                            <?php if ($p === 1 || $p === $totalPages || abs($p - $currentPage) <= 2): ?>
+                            <li class="page-item <?php echo $p === $currentPage ? 'active' : ''; ?>">
                                 <a class="page-link" href="?<?php echo $baseQuery; ?>page=<?php echo $p; ?>"><?php echo $p; ?></a>
                             </li>
-                            <?php elseif (abs($p - $currentPageNum) === 3): ?>
+                            <?php elseif (abs($p - $currentPage) === 3): ?>
                             <li class="page-item disabled"><span class="page-link">…</span></li>
                             <?php endif; ?>
                             <?php endfor; ?>
-                            <li class="page-item <?php echo $currentPageNum >= $totalPages ? 'disabled' : ''; ?>">
-                                <a class="page-link" href="?<?php echo $baseQuery; ?>page=<?php echo $currentPageNum + 1; ?>">
+                            <li class="page-item <?php echo $currentPage >= $totalPages ? 'disabled' : ''; ?>">
+                                <a class="page-link" href="?<?php echo $baseQuery; ?>page=<?php echo $currentPage + 1; ?>">
                                     <i class="bi bi-chevron-right"></i>
                                 </a>
                             </li>
