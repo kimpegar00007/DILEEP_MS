@@ -78,10 +78,16 @@ $proponents = $stmt->fetchAll(PDO::FETCH_ASSOC);
 $beneficiaryParams = $params;
 
 // Get beneficiaries data (Individual projects)
+// LEFT JOIN proponents so the "Name of Implementor" column can append
+// " / PROPONENT NAME" when the beneficiary is linked to a group proponent.
 $beneficiariesSql = "SELECT 
     b.id,
     b.project_name as name_nature_of_project,
-    CONCAT(b.first_name, ' ', b.last_name) as name_of_implementor,
+    CASE
+        WHEN p.proponent_name IS NOT NULL AND p.proponent_name <> ''
+            THEN CONCAT(b.first_name, ' ', b.last_name, ' / ', p.proponent_name)
+        ELSE CONCAT(b.first_name, ' ', b.last_name)
+    END as name_of_implementor,
     b.barangay,
     b.municipality as city_municipality,
     b.province,
@@ -99,7 +105,8 @@ $beneficiariesSql = "SELECT
     b.status as project_status,
     'beneficiary' as source_table
 FROM beneficiaries b
-WHERE b.status IN {$beneficiaryStatusList}" . $dateCondition . $provinceCondition . "
+LEFT JOIN proponents p ON p.id = b.proponent_id
+WHERE b.status IN {$beneficiaryStatusList}" . str_replace('province', 'b.province', $provinceCondition) . str_replace('date_approved', 'b.date_approved', $dateCondition) . "
 ORDER BY b.date_approved DESC";
 
 $stmt = $db->prepare($beneficiariesSql);

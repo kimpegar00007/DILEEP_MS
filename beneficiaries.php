@@ -9,6 +9,7 @@ $auth->requireLogin();
 
 $sessionProvince = $auth->getProvince();
 $isSuperAdmin    = $auth->isSuperAdmin();
+$isCrossProvince = $auth->isCrossProvince(); // super_admin OR regional_director
 
 // Check if user selected "Group" type - redirect to proponents page
 if (isset($_GET['type']) && $_GET['type'] === 'group') {
@@ -18,9 +19,9 @@ if (isset($_GET['type']) && $_GET['type'] === 'group') {
 
 $beneficiaryModel = new Beneficiary();
 
-// Province filter: super_admin can choose freely; provincial users are locked
+// Province filter: cross-province roles (super_admin, regional_director) can choose freely; provincial users are locked
 $provinceFilter = '';
-if ($isSuperAdmin) {
+if ($isCrossProvince) {
     $provinceFilter = $_GET['province'] ?? '';
 } elseif ($sessionProvince) {
     $provinceFilter = $sessionProvince;
@@ -97,7 +98,7 @@ if ($provinceFilter) {
                             </div>
                             <div class="col-md-2">
                                 <label class="form-label">Province</label>
-                                <?php if ($isSuperAdmin): ?>
+                                <?php if ($isCrossProvince): ?>
                                 <select name="province" class="form-select">
                                     <option value="">All Provinces</option>
                                     <?php foreach (\Auth::PROVINCES as $prov): ?>

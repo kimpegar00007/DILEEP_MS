@@ -10,6 +10,7 @@ $auth->requireLogin();
 
 $sessionProvince = $auth->getProvince();
 $isSuperAdmin    = $auth->isSuperAdmin();
+$isCrossProvince = $auth->isCrossProvince(); // super_admin OR regional_director
 
 $beneficiaryModel = new Beneficiary();
 $proponentModel = new Proponent();
@@ -22,9 +23,9 @@ $district = $_GET['district'] ?? '';
 $status = $_GET['status'] ?? '';
 $selectedStatus = $status; // keep backward-compatible variable name
 
-// Province filter: super_admin can choose freely; provincial users are locked
+// Province filter: cross-province roles (super_admin, regional_director) can choose freely; provincial users are locked
 $provinceFilter = '';
-if ($isSuperAdmin) {
+if ($isCrossProvince) {
     $provinceFilter = $_GET['province'] ?? '';
 } elseif ($sessionProvince) {
     $provinceFilter = $sessionProvince;
@@ -110,8 +111,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['generate'])) {
 }
 
 $db = Database::getInstance()->getConnection();
-// Scope dropdown lists by province for non-super-admin users
-if (!$isSuperAdmin && $sessionProvince) {
+// Scope dropdown lists by province for provincial users (not cross-province roles)
+if (!$isCrossProvince && $sessionProvince) {
     $stmt = $db->prepare("SELECT DISTINCT municipality FROM beneficiaries WHERE province = ? ORDER BY municipality");
     $stmt->execute([$sessionProvince]);
     $municipalities = $stmt->fetchAll(PDO::FETCH_COLUMN);
@@ -177,7 +178,7 @@ if (!$isSuperAdmin && $sessionProvince) {
 
                             <div class="col-md-2">
                                 <label class="form-label">Province</label>
-                                <?php if ($isSuperAdmin): ?>
+                                <?php if ($isCrossProvince): ?>
                                 <select name="province" id="provinceFilter" class="form-select">
                                     <option value="">All Provinces</option>
                                     <?php foreach (Auth::PROVINCES as $prov): ?>

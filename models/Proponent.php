@@ -75,11 +75,24 @@ class Proponent {
     // =========================================================
 
     /**
-     * Province is always sourced from the session — never from form input.
+     * Province sourcing:
+     *  - Provincial users: always taken from the session (immutable; cannot
+     *    assign records to another province).
+     *  - Cross-province roles (super_admin, regional_director): taken from
+     *    validated form input ($data['province']) because they have no
+     *    session-bound province. Caller MUST validate that the value is one
+     *    of Auth::PROVINCES before invoking create().
      */
     public function create($data) {
         $this->lastError = '';
-        $province        = $_SESSION['province'] ?? null;
+        $role            = $_SESSION['role']     ?? '';
+        $sessionProvince = $_SESSION['province'] ?? null;
+
+        if (in_array($role, self::CROSS_PROVINCE_ROLES, true)) {
+            $province = !empty($data['province']) ? $data['province'] : null;
+        } else {
+            $province = $sessionProvince;
+        }
 
         try {
             $data['liquidation_deadline'] = $this->calculateLiquidationDeadline(

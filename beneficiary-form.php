@@ -15,9 +15,10 @@ $success = '';
 $beneficiary = null;
 $isEdit = false;
 
-// Province logic: provincial users have province locked; super_admin picks freely
+// Province logic: provincial users have province locked; cross-province roles (super_admin, regional_director) pick freely
 $sessionProvince = $auth->getProvince();
 $isSuperAdmin    = $auth->isSuperAdmin();
+$isCrossProvince = $auth->isCrossProvince();
 
 // Beneficiary and worker type options (updated May 2026)
 $beneficiaryTypeOptions = [
@@ -94,9 +95,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($data['gender']))       $errors[] = 'Gender is required';
     if (empty($data['barangay']))     $errors[] = 'Barangay is required';
     if (empty($data['municipality'])) $errors[] = 'Municipality is required';
-    if (empty($data['province']))     $errors[] = 'Province is required';
+    if (empty($data['province'])) {
+        $errors[] = 'Province is required';
+    } elseif (!in_array($data['province'], Auth::PROVINCES, true)) {
+        // Hard guard: reject any province value not in the canonical enum.
+        // Applies uniformly to provincial users and cross-province roles.
+        $errors[] = 'Invalid province selected';
+    }
     if (empty($data['project_name'])) $errors[] = 'Project name is required';
     if ($data['amount_worth'] <= 0)   $errors[] = 'Amount must be greater than zero';
+    if (empty($data['proponent_id'])) $errors[] = 'Linked proponent is required. Search and select an existing proponent, or use "Create new proponent" if none exists yet.';
 
     $provinceRanges = [
         'Negros Occidental' => ['lat' => [9.0, 12.0], 'lng' => [122.0, 124.0]],
@@ -155,7 +163,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $formProvince = '';
 if ($isEdit && $beneficiary) {
     $formProvince = $beneficiary['province'] ?? '';
-} elseif (!$isSuperAdmin && $sessionProvince) {
+} elseif (!$isCrossProvince && $sessionProvince) {
     $formProvince = $sessionProvince;
 }
 
@@ -270,7 +278,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     <!-- Province -->
                                     <div class="col-md-3 mb-3">
                                         <label class="form-label">Province <span class="text-danger">*</span></label>
-                                        <?php if (!$isSuperAdmin && $sessionProvince): ?>
+                                        <?php if (!$isCrossProvince && $sessionProvince): ?>
                                             <!-- Locked: provincial user -->
                                             <input type="hidden" name="province" value="<?php echo htmlspecialchars($sessionProvince); ?>">
                                             <input type="text" class="form-control bg-light" value="<?php echo htmlspecialchars($sessionProvince); ?>" disabled>
@@ -279,7 +287,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                                 Province is set to your assigned area and cannot be changed.
                                             </div>
                                         <?php else: ?>
-                                            <!-- Super-admin: free pick -->
+                                            <!-- Cross-province role (super_admin, regional_director): free pick -->
                                             <select name="province" id="province" class="form-select" required>
                                                 <option value="">Select Province</option>
                                             </select>
@@ -341,11 +349,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                                 <div class="row">
                                     <div class="col-md-12 mb-3">
-                                        <label class="form-label" for="proponent_search"><i class="bi bi-link-45deg"></i> Linked Proponent (Optional)</label>
+                                        <label class="form-label" for="proponent_search">
+                                            <i class="bi bi-link-45deg"></i> Linked Proponent <span class="text-danger">*</span>
+                                        </label>
                                         <?php
+                                        // Resolve previously selected proponent (edit, POST-failure, or restore flow).
+                                        $linkedProponentId    = '';
                                         $linkedProponentLabel = '';
-                                        $linkedProponentId    = $beneficiary['proponent_id'] ?? '';
-                                        if (!empty($linkedProponentId)) {
+
+                                        if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['proponent_id'])) {
+                                            $linkedProponentId = (int) $_POST['proponent_id'];
+                                        } elseif (!empty($beneficiary['proponent_id'])) {
+                                            $linkedProponentId = (int) $beneficiary['proponent_id'];
+                                        }
+
+                                        if ($linkedProponentId) {
                                             $linkedProponent = (new Proponent())->findById($linkedProponentId);
                                             if ($linkedProponent) {
                                                 $linkedProponentLabel = $linkedProponent['proponent_name'] . ' — ' . $linkedProponent['project_title'];
@@ -363,7 +381,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                                        class="form-control"
                                                        autocomplete="off"
                                                        placeholder="Type to search proponents (min 2 characters)..."
-                                                       value="<?php echo htmlspecialchars($linkedProponentLabel); ?>">
+                                                       value="<?php echo htmlspecialchars($linkedProponentLabel); ?>"
+                                                       aria-required="true">
                                                 <button type="button" id="proponent_clear_btn" class="btn btn-outline-secondary" title="Clear linked proponent">
                                                     <i class="bi bi-x-lg"></i>
                                                 </button>
@@ -372,7 +391,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                                  class="list-group position-absolute w-100 shadow-sm"
                                                  style="z-index: 1050; max-height: 260px; overflow-y: auto; display: none; top: 100%;"></div>
                                         </div>
-                                        <small class="text-muted">Search and select an existing proponent to link this beneficiary to a group project.</small>
+                                        <small class="text-muted">
+                                            A proponent is required. Search and select an existing one,
+                                            or use the &quot;Create new proponent&quot; button shown in the dropdown when no match is found.
+                                        </small>
                                     </div>
                                 </div>
 
@@ -556,13 +578,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'use strict';
 
         const IS_SUPER_ADMIN     = <?php echo $isSuperAdmin ? 'true' : 'false'; ?>;
+        const IS_CROSS_PROVINCE  = <?php echo $isCrossProvince ? 'true' : 'false'; ?>;
         const SESSION_PROVINCE   = <?php echo json_encode($sessionProvince); ?>;
         const FORM_PROVINCE      = <?php echo json_encode($formProvince); ?>;
         const SAVED_MUNICIPALITY = <?php echo json_encode($beneficiary['municipality'] ?? ''); ?>;
         const SAVED_BARANGAY     = <?php echo json_encode($beneficiary['barangay'] ?? ''); ?>;
 
         // ── Bootstrap location autofill ────────────────────────────────────
-        if (IS_SUPER_ADMIN) {
+        if (IS_CROSS_PROVINCE) {
             DILPLocation.initLocationAutoFill({
                 provinceSelect:        '#province',
                 municipalitySelect:    '#municipality',
@@ -662,7 +685,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // ── Auto-geocode ───────────────────────────────────────────────────
         async function _autoGeocode() {
-            const province     = IS_SUPER_ADMIN
+            const province     = IS_CROSS_PROVINCE
                 ? (document.getElementById('province')?.value || '')
                 : SESSION_PROVINCE;
             const municipality = document.getElementById('municipality')?.value || '';
@@ -705,8 +728,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             _autoGeocode();
         });
 
-        // For super-admin, the DILPLocation lib already wires auto-geocode via barangay change.
+        // For cross-province roles, the DILPLocation lib already wires auto-geocode via barangay change.
         // For locked-province, we wire it inside _loadBarangays above.
+
+        // ── Beneficiary-form draft snapshot helpers (used by the proponent
+        //    "create new" detour). Snapshots every form field into
+        //    sessionStorage so the user returns to a fully-restored form.
+        const DRAFT_KEY = 'dilp_beneficiary_draft';
+
+        function _snapshotBeneficiaryForm(extra) {
+            const form = document.querySelector('form[method="POST"]');
+            if (!form) return;
+            const snapshot = { values: {}, checkboxes: {}, extra: extra || {} };
+            // Capture every named input/select/textarea (single + multi values)
+            const data = new FormData(form);
+            data.forEach(function (val, key) {
+                if (key.endsWith('[]')) {
+                    if (!snapshot.checkboxes[key]) snapshot.checkboxes[key] = [];
+                    snapshot.checkboxes[key].push(val);
+                } else {
+                    snapshot.values[key] = val;
+                }
+            });
+            // Also persist the visible proponent search label so the user
+            // sees their previous query when they return.
+            const searchEl = document.getElementById('proponent_search');
+            if (searchEl) snapshot.values.__proponent_search = searchEl.value;
+            try {
+                sessionStorage.setItem(DRAFT_KEY, JSON.stringify(snapshot));
+            } catch (e) {
+                console.warn('Failed to snapshot beneficiary draft:', e);
+            }
+        }
 
         // ── Proponent combobox (searchable dropdown with visible results) ──
         (function initProponentCombobox() {
@@ -723,6 +776,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             function showDropdown() { dropdown.style.display = 'block'; }
             function hideDropdown() { dropdown.style.display = 'none'; }
 
+            function _appendCreateCTA() {
+                // Inline "Create new proponent" button shown after the empty-state
+                // message or below any results. Snapshots the in-progress
+                // beneficiary form, then redirects to proponent-form.php with
+                // a return marker so the new proponent ID is auto-linked back.
+                const wrap = document.createElement('div');
+                wrap.className = 'list-group-item d-flex justify-content-between align-items-center bg-light';
+                const span = document.createElement('span');
+                span.className = 'text-muted small';
+                span.textContent = 'Cannot find the right proponent?';
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'btn btn-sm btn-primary';
+                btn.innerHTML = '<i class="bi bi-plus-circle"></i> Create new proponent';
+                btn.addEventListener('mousedown', function (e) {
+                    e.preventDefault();
+                    _snapshotBeneficiaryForm({ source: 'proponent_create_cta' });
+                    window.location.href = 'proponent-form.php?return=beneficiary-form';
+                });
+                wrap.appendChild(span);
+                wrap.appendChild(btn);
+                dropdown.appendChild(wrap);
+            }
+
             function renderItems(items) {
                 dropdown.innerHTML = '';
                 if (!items || items.length === 0) {
@@ -730,6 +807,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     empty.className = 'list-group-item text-muted small';
                     empty.textContent = 'No matching proponents found.';
                     dropdown.appendChild(empty);
+                    _appendCreateCTA();
                     showDropdown();
                     return;
                 }
@@ -748,6 +826,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     });
                     dropdown.appendChild(a);
                 });
+                _appendCreateCTA();
                 showDropdown();
             }
 
@@ -813,6 +892,87 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 lastQuery = null;
                 hideDropdown();
             });
+        })();
+
+        // ── Restore beneficiary draft after returning from proponent-form ──
+        //    Triggered when the URL carries ?restore=1 (optionally with
+        //    link_proponent_id=<id>). Reads the snapshot from sessionStorage,
+        //    re-applies every value/checkbox, clears the storage key, and
+        //    (if a new proponent ID is supplied) resolves its label via the
+        //    same API used by the combobox so the user sees the linkage.
+        (async function restoreDraftIfRequested() {
+            const params = new URLSearchParams(window.location.search);
+            if (params.get('restore') !== '1') return;
+
+            let snapshot = null;
+            try {
+                const raw = sessionStorage.getItem(DRAFT_KEY);
+                if (raw) snapshot = JSON.parse(raw);
+            } catch (e) {
+                console.warn('Failed to read beneficiary draft:', e);
+            }
+
+            if (snapshot) {
+                const form = document.querySelector('form[method="POST"]');
+                if (form) {
+                    // Restore scalar values
+                    Object.keys(snapshot.values || {}).forEach(function (name) {
+                        if (name.startsWith('__')) return; // skip internal-only keys
+                        const el = form.elements[name];
+                        if (!el) return;
+                        // Skip hidden proponent_id here — handled below by the
+                        // explicit link_proponent_id query param so a freshly
+                        // created proponent supersedes any stale snapshot value.
+                        if (name === 'proponent_id') return;
+                        if (el.length && el.tagName !== 'SELECT') {
+                            // RadioNodeList (e.g. radios). Set by value.
+                            for (let i = 0; i < el.length; i++) {
+                                if (el[i].value === snapshot.values[name]) el[i].checked = true;
+                            }
+                        } else {
+                            el.value = snapshot.values[name];
+                        }
+                    });
+                    // Restore checkbox arrays
+                    Object.keys(snapshot.checkboxes || {}).forEach(function (name) {
+                        const wanted = new Set(snapshot.checkboxes[name]);
+                        form.querySelectorAll('input[type="checkbox"][name="' + name + '"]').forEach(function (cb) {
+                            cb.checked = wanted.has(cb.value);
+                        });
+                    });
+                    // Restore the visible proponent search label so users can re-search
+                    const searchEl = document.getElementById('proponent_search');
+                    if (searchEl && snapshot.values && snapshot.values.__proponent_search) {
+                        searchEl.value = snapshot.values.__proponent_search;
+                    }
+                }
+                sessionStorage.removeItem(DRAFT_KEY);
+            } else {
+                console.warn('No beneficiary draft found in sessionStorage; rendering empty form.');
+            }
+
+            // Auto-link the freshly created proponent if its ID was passed back.
+            // The label is supplied directly by proponent-form.php so we don't
+            // depend on the proponent-search API to find it among many results.
+            const newProponentId    = params.get('link_proponent_id');
+            const newProponentLabel = params.get('link_proponent_label') || '';
+            if (newProponentId && /^\d+$/.test(newProponentId)) {
+                const hiddenInputEl = document.getElementById('proponent_id');
+                const searchInputEl = document.getElementById('proponent_search');
+                if (hiddenInputEl) hiddenInputEl.value = newProponentId;
+                if (searchInputEl) {
+                    searchInputEl.value = newProponentLabel || ('Proponent #' + newProponentId);
+                }
+            }
+
+            // Clean the URL so a page refresh does not re-trigger the restore flow.
+            if (window.history && window.history.replaceState) {
+                const url = new URL(window.location.href);
+                url.searchParams.delete('restore');
+                url.searchParams.delete('link_proponent_id');
+                url.searchParams.delete('link_proponent_label');
+                window.history.replaceState({}, document.title, url.pathname + (url.search ? url.search : ''));
+            }
         })();
 
     })();

@@ -10,13 +10,14 @@ $auth->requireLogin();
 
 $sessionProvince = $auth->getProvince();
 $isSuperAdmin    = $auth->isSuperAdmin();
+$isCrossProvince = $auth->isCrossProvince(); // super_admin OR regional_director
 
 $beneficiaryModel = new Beneficiary();
 $proponentModel = new Proponent();
 
-// Province filter: super_admin can choose freely; provincial users are locked to session province
+// Province filter: cross-province roles (super_admin, regional_director) can choose freely; provincial users are locked to session province
 $provinceFilter = '';
-if ($isSuperAdmin) {
+if ($isCrossProvince) {
     $provinceFilter = $_GET['province'] ?? '';
 } elseif ($sessionProvince) {
     $provinceFilter = $sessionProvince;
@@ -44,9 +45,9 @@ $proponentFilters = [
 $beneficiaries = $beneficiaryModel->getAll($beneficiaryFilters);
 $proponents = $proponentModel->getAll($proponentFilters);
 
-// Get unique values for filters — scope by province for non-super-admin
+// Get unique values for filters — scope by province for non-cross-province roles
 $db = Database::getInstance()->getConnection();
-if ($isSuperAdmin && $provinceFilter) {
+if ($isCrossProvince && $provinceFilter) {
     $municipalities = $db->prepare("SELECT DISTINCT municipality FROM beneficiaries WHERE province = ? ORDER BY municipality");
     $municipalities->execute([$provinceFilter]);
     $municipalities = $municipalities->fetchAll(PDO::FETCH_COLUMN);
@@ -58,7 +59,7 @@ if ($isSuperAdmin && $provinceFilter) {
     $districts = $db->prepare("SELECT DISTINCT district FROM proponents WHERE district IS NOT NULL AND province = ? ORDER BY district");
     $districts->execute([$provinceFilter]);
     $districts = $districts->fetchAll(PDO::FETCH_COLUMN);
-} elseif (!$isSuperAdmin && $sessionProvince) {
+} elseif (!$isCrossProvince && $sessionProvince) {
     $municipalities = $db->prepare("SELECT DISTINCT municipality FROM beneficiaries WHERE province = ? ORDER BY municipality");
     $municipalities->execute([$sessionProvince]);
     $municipalities = $municipalities->fetchAll(PDO::FETCH_COLUMN);
@@ -411,7 +412,7 @@ if (!in_array($currentView, ['beneficiaries', 'proponents'])) {
                         <input type="hidden" name="view" value="beneficiaries">
                         <div class="col-md-2">
                             <label class="form-label">Province</label>
-                            <?php if ($isSuperAdmin): ?>
+                            <?php if ($isCrossProvince): ?>
                             <select name="province" class="form-select">
                                 <option value="">All Provinces</option>
                                 <?php foreach (\Auth::PROVINCES as $prov): ?>
@@ -489,7 +490,7 @@ if (!in_array($currentView, ['beneficiaries', 'proponents'])) {
                         <input type="hidden" name="view" value="proponents">
                         <div class="col-md-2">
                             <label class="form-label">Province</label>
-                            <?php if ($isSuperAdmin): ?>
+                            <?php if ($isCrossProvince): ?>
                             <select name="province" class="form-select">
                                 <option value="">All Provinces</option>
                                 <?php foreach (\Auth::PROVINCES as $prov): ?>

@@ -10,6 +10,14 @@ $auth->requireRole(['admin', 'encoder']);
 
 $sessionProvince = $auth->getProvince();
 $isSuperAdmin    = $auth->isSuperAdmin();
+$isCrossProvince = $auth->isCrossProvince();
+
+// Return-flow flag — when the user landed here from the beneficiary form via
+// the "Create new proponent" detour, we round-trip back with the new ID so it
+// can be auto-linked. Accepted on both GET (initial nav) and POST (form submit)
+// so the flag survives the round-trip without relying on the referrer.
+$returnTo = $_GET['return'] ?? $_POST['return'] ?? '';
+$isBeneficiaryReturn = ($returnTo === 'beneficiary-form');
 
 $proponentModel = new Proponent();
 $errors = [];
@@ -106,7 +114,7 @@ if (isset($_GET['id'])) {
 $formProvince = '';
 if ($isEdit && $proponent) {
     $formProvince = $proponent['province'] ?? '';
-} elseif (!$isSuperAdmin && $sessionProvince) {
+} elseif (!$isCrossProvince && $sessionProvince) {
     $formProvince = $sessionProvince;
 }
 
@@ -171,7 +179,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($data['amount'] <= 0) $errors[] = 'Amount must be greater than zero';
     if ($data['total_beneficiaries'] <= 0) $errors[] = 'Total beneficiaries must be greater than zero';
     if (empty($data['category'])) $errors[] = 'Category is required';
-    
+    if (empty($data['province'])) {
+        $errors[] = 'Province is required';
+    } elseif (!in_array($data['province'], Auth::PROVINCES, true)) {
+        // Hard guard: reject any province value not in the canonical enum.
+        // Applies uniformly to provincial users and cross-province roles.
+        $errors[] = 'Invalid province selected';
+    }
+
     if ($data['male_beneficiaries'] + $data['female_beneficiaries'] > $data['total_beneficiaries']) {
         $errors[] = 'Male + Female beneficiaries cannot exceed total beneficiaries';
     }
@@ -227,6 +242,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $id = $proponentModel->create($data);
                 if ($id) {
                     $proponentModel->saveAssociations($id, $data['association_names'], $data['association_addresses']);
+
+                    // If the user reached this form via the beneficiary "create
+                    // new proponent" detour, return them to the beneficiary form
+                    // with the new ID + a pre-built label so it can auto-link.
+                    if ($isBeneficiaryReturn) {
+                        $label = trim(($data['proponent_name'] ?? '') . ' — ' . ($data['project_title'] ?? ''));
+                        $qs = http_build_query([
+                            'restore'              => '1',
+                            'link_proponent_id'    => $id,
+                            'link_proponent_label' => $label,
+                        ]);
+                        header('Location: beneficiary-form.php?' . $qs);
+                        exit;
+                    }
+
                     header('Location: proponents.php?success=created');
                     exit;
                 } else {
@@ -300,8 +330,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <main class="col-md-10 ms-sm-auto px-md-4 py-4" id="mainContent" role="main">
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <h2><i class="bi bi-people"></i> <?php echo $isEdit ? 'Edit' : 'Add New'; ?> Proponent</h2>
-                    <a href="unified-beneficiaries-proponents.php" class="btn btn-secondary">
-                        <i class="bi bi-arrow-left"></i> Back to List
+                    <a href="<?php echo $isBeneficiaryReturn ? 'beneficiary-form.php?restore=1' : 'unified-beneficiaries-proponents.php'; ?>" class="btn btn-secondary">
+                        <i class="bi bi-arrow-left"></i> <?php echo $isBeneficiaryReturn ? 'Back to Beneficiary Form' : 'Back to List'; ?>
                     </a>
                 </div>
 
@@ -324,9 +354,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
                 <?php endif; ?>
 
+                <?php if ($isBeneficiaryReturn): ?>
+                <div class="alert alert-info d-flex align-items-center gap-2 mb-3">
+                    <i class="bi bi-info-circle-fill"></i>
+                    <div>
+                        <strong>Detour from Beneficiary form.</strong>
+                        Save this proponent to return automatically and link it to the beneficiary you were creating.
+                        Press Cancel to return without saving — your previous beneficiary entries are preserved.
+                    </div>
+                </div>
+                <?php endif; ?>
+
                 <div class="card">
                     <div class="card-body">
                         <form method="POST" action="">
+                            <?php if ($isBeneficiaryReturn): ?>
+                            <input type="hidden" name="return" value="beneficiary-form">
+                            <?php endif; ?>
                             <div class="form-section">
                                 <h5><i class="bi bi-info-circle"></i> Basic Information</h5>
                                 <div class="row">
@@ -705,7 +749,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 <div class="row">
                                     <div class="col-md-3 mb-3">
                                         <label class="form-label">Province</label>
-                                        <?php if ($isSuperAdmin): ?>
+                                        <?php if ($isCrossProvince): ?>
                                             <select name="province" id="geo_province" class="form-select">
                                                 <option value="">Select Province</option>
                                             </select>
@@ -784,7 +828,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 <button type="button" id="btn-clear-form" class="btn btn-outline-warning">
                                     <i class="bi bi-eraser"></i> Clear Form
                                 </button>
-                                <a href="proponents.php" class="btn btn-secondary">
+                                <a href="<?php echo $isBeneficiaryReturn ? 'beneficiary-form.php?restore=1' : 'proponents.php'; ?>" class="btn btn-secondary">
                                     <i class="bi bi-x-circle"></i> Cancel
                                 </a>
                             </div>
@@ -996,13 +1040,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // ── Province / location bootstrap ──────────────────────────────────
         const IS_SUPER_ADMIN     = <?php echo $isSuperAdmin ? 'true' : 'false'; ?>;
+        const IS_CROSS_PROVINCE  = <?php echo $isCrossProvince ? 'true' : 'false'; ?>;
         const SESSION_PROVINCE   = <?php echo json_encode($sessionProvince ?? ''); ?>;
         const FORM_PROVINCE      = <?php echo json_encode($formProvince); ?>;
         const SAVED_MUNICIPALITY = <?php echo json_encode($proponent['municipality'] ?? ''); ?>;
         const SAVED_BARANGAY     = <?php echo json_encode($proponent['barangay'] ?? ''); ?>;
 
-        if (IS_SUPER_ADMIN) {
-            // Super-admin: full free province selection via shared DILPLocation lib
+        if (IS_CROSS_PROVINCE) {
+            // Cross-province roles (super_admin, regional_director): free province selection via shared DILPLocation lib
             DILPLocation.initLocationAutoFill({
                 provinceSelect:     '#geo_province',
                 municipalitySelect: '#geo_municipality',

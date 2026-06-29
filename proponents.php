@@ -9,12 +9,13 @@ $auth->requireLogin();
 
 $sessionProvince = $auth->getProvince();
 $isSuperAdmin    = $auth->isSuperAdmin();
+$isCrossProvince = $auth->isCrossProvince(); // super_admin OR regional_director
 
 $proponentModel = new Proponent();
 
-// Province filter: super_admin can choose freely; provincial users are locked
+// Province filter: cross-province roles (super_admin, regional_director) can choose freely; provincial users are locked
 $provinceFilter = '';
-if ($isSuperAdmin) {
+if ($isCrossProvince) {
     $provinceFilter = $_GET['province'] ?? '';
 } elseif ($sessionProvince) {
     $provinceFilter = $sessionProvince;
@@ -75,7 +76,7 @@ if ($provinceFilter) {
                         <form method="GET" action="" class="row g-3">
                             <div class="col-md-2">
                                 <label class="form-label">Province</label>
-                                <?php if ($isSuperAdmin): ?>
+                                <?php if ($isCrossProvince): ?>
                                 <select name="province" class="form-select">
                                     <option value="">All Provinces</option>
                                     <?php foreach (\Auth::PROVINCES as $prov): ?>
