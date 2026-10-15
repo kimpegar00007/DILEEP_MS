@@ -5,7 +5,8 @@ require_once __DIR__ . '/../includes/Auth.php';
 
 $auth = new Auth();
 $auth->requireLogin();
-$auth->requireRole('admin');
+// The linked Drive account receives full-database backups: super_admin only.
+$auth->requireRole('super_admin');
 
 $action = $_GET['action'] ?? '';
 $db = Database::getInstance()->getConnection();

@@ -96,15 +96,42 @@ class FieldworkSchedule {
     // =========================================================
 
     /**
-     * Province is always sourced from the session — never from form input.
-     * Cross-province roles (super_admin, regional_director) store NULL province.
+     * Works out the province an activity belongs to, from the assigned user.
+     *
+     * - Provincial users: always their session province, and the assignee must be an
+     *   active user of that same province.
+     * - Cross-province roles: the assignee's province, so the assignee's office can see it.
+     *   NULL only when the assignee is cross-province too (then only cross-province roles see it).
+     *
+     * Returns [true, province] or [false, error message].
      */
+    private function resolveProvinceForAssignee(int $assignedUserId): array {
+        $stmt = $this->db->prepare("SELECT province FROM users WHERE id = ? AND is_active = 1");
+        $stmt->execute([$assignedUserId]);
+        $assignee = $stmt->fetch();
+        if (!$assignee) {
+            return [false, 'Assigned user not found or inactive'];
+        }
+
+        $role = $_SESSION['role'] ?? '';
+        if (in_array($role, self::CROSS_PROVINCE_ROLES, true)) {
+            return [true, $assignee['province']];
+        }
+
+        $sessionProvince = $_SESSION['province'] ?? null;
+        if ($sessionProvince === null || $assignee['province'] !== $sessionProvince) {
+            return [false, 'You can only assign activities to users in your province'];
+        }
+        return [true, $sessionProvince];
+    }
+
     public function create($data) {
         $this->lastError = '';
-        $role            = $_SESSION['role'] ?? '';
-        $province        = in_array($role, self::CROSS_PROVINCE_ROLES, true)
-                           ? null
-                           : ($_SESSION['province'] ?? null);
+        [$ok, $province] = $this->resolveProvinceForAssignee((int) $data['assigned_user_id']);
+        if (!$ok) {
+            $this->lastError = $province;
+            return false;
+        }
 
         try {
             $sql = "INSERT INTO fieldwork_schedule (
@@ -168,17 +195,23 @@ class FieldworkSchedule {
     }
 
     /**
-     * Province excluded from SET — immutable after creation.
+     * Province follows the assigned user (see resolveProvinceForAssignee()); for
+     * provincial users that is always their own province, so it never changes.
      * Province scope on WHERE prevents cross-province writes.
      * Editing a record clears manual_override so auto-update resumes normally.
      */
     public function update($id, $data) {
         $this->lastError = '';
         [$pSql, $pParams] = $this->provinceScope();
+        [$ok, $province] = $this->resolveProvinceForAssignee((int) $data['assigned_user_id']);
+        if (!$ok) {
+            $this->lastError = $province;
+            return false;
+        }
 
         try {
             $sql = "UPDATE fieldwork_schedule SET
-                title = ?, description = ?, location = ?, assigned_user_id = ?,
+                title = ?, description = ?, location = ?, assigned_user_id = ?, province = ?,
                 start_date = ?, end_date = ?, status = ?, manual_override = 0
             WHERE id = ?" . $pSql;
 
@@ -196,6 +229,7 @@ class FieldworkSchedule {
                 trim($data['description'] ?? ''),
                 trim($data['location']    ?? ''),
                 (int) $data['assigned_user_id'],
+                $province,
                 $data['start_date'],
                 !empty($data['end_date']) ? $data['end_date'] : null,
                 $status,

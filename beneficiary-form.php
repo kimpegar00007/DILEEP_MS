@@ -104,7 +104,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     if (empty($data['project_name'])) $errors[] = 'Project name is required';
     if ($data['amount_worth'] <= 0)   $errors[] = 'Amount must be greater than zero';
-    if (empty($data['proponent_id'])) $errors[] = 'Linked proponent is required. Search and select an existing proponent, or use "Create new proponent" if none exists yet.';
+    if (empty($data['proponent_id'])) {
+        $errors[] = 'Linked proponent is required. Search and select an existing proponent, or use "Create new proponent" if none exists yet.';
+    } else {
+        // The proponent must exist, be visible to this user (findById is province-scoped),
+        // and be in the same province as the beneficiary.
+        $linkedProponent      = (new Proponent())->findById($data['proponent_id']);
+        $beneficiaryProvince  = $isEdit ? ($beneficiary['province'] ?? null)
+                              : ($isCrossProvince ? $data['province'] : $sessionProvince);
+        if (!$linkedProponent) {
+            $errors[] = 'The selected proponent was not found. Search and select it again.';
+        } elseif ($beneficiaryProvince && $linkedProponent['province'] !== $beneficiaryProvince) {
+            $errors[] = 'The selected proponent belongs to ' . $linkedProponent['province'] . ', but this beneficiary is in ' . $beneficiaryProvince . '. Pick a proponent from the same province.';
+        }
+    }
 
     $provinceRanges = [
         'Negros Occidental' => ['lat' => [9.0, 12.0], 'lng' => [122.0, 124.0]],

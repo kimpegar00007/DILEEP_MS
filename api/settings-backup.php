@@ -5,7 +5,8 @@ require_once __DIR__ . '/../includes/Auth.php';
 
 $auth = new Auth();
 $auth->requireLogin();
-$auth->requireRole('admin');
+// Full-database dump (every province, users, system_settings): super_admin only.
+$auth->requireRole('super_admin');
 
 $action = $_GET['action'] ?? '';
 

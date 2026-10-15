@@ -238,6 +238,12 @@ function requireEditPermission($role) {
         echo json_encode(['success' => false, 'error' => 'You do not have permission to perform this action']);
         exit;
     }
+    // Writes only over POST, so a plain link or <img> cannot change or delete activities.
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        http_response_code(405);
+        echo json_encode(['success' => false, 'error' => 'This action requires POST']);
+        exit;
+    }
 }
 
 /**

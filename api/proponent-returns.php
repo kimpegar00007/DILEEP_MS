@@ -13,6 +13,13 @@ if (!$auth->isLoggedIn()) {
     exit;
 }
 
+// Returns are edited from proponent-form.php, which is admin/encoder only.
+if (!$auth->hasRole(['admin', 'encoder'])) {
+    http_response_code(403);
+    echo json_encode(['success' => false, 'message' => 'You do not have permission to change returns']);
+    exit;
+}
+
 $proponentModel = new Proponent();
 $method = $_SERVER['REQUEST_METHOD'];
 
@@ -36,6 +43,13 @@ if ($method === 'POST') {
         exit;
     }
     
+    // findById() is province-scoped: a proponent outside the user's province is "not found".
+    if (!$proponentModel->findById($proponentId)) {
+        http_response_code(404);
+        echo json_encode(['success' => false, 'message' => 'Proponent not found']);
+        exit;
+    }
+
     $result = $proponentModel->addReturn($proponentId, $returnDate, $reason, $_SESSION['user_id']);
     
     if ($result) {
@@ -54,6 +68,17 @@ if ($method === 'POST') {
         exit;
     }
     
+    // The return must belong to a proponent the user can see (province scope).
+    $db = Database::getInstance()->getConnection();
+    $stmt = $db->prepare("SELECT proponent_id FROM proponent_returns WHERE id = ?");
+    $stmt->execute([$returnId]);
+    $returnProponentId = $stmt->fetchColumn();
+    if (!$returnProponentId || !$proponentModel->findById($returnProponentId)) {
+        http_response_code(404);
+        echo json_encode(['success' => false, 'message' => 'Return entry not found']);
+        exit;
+    }
+
     $result = $proponentModel->deleteReturn($returnId);
     
     if ($result) {

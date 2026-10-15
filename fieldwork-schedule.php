@@ -14,7 +14,8 @@ $stats = $model->getStatistics();
 $users = $model->getAllUsers();
 $overdueActivities = $model->getOverdueActivities();
 $userRole = $_SESSION['role'] ?? 'user';
-$canEdit = in_array($userRole, ['admin', 'encoder']);
+// hasRole() also passes super_admin and regional_director, matching the API's write check.
+$canEdit = $auth->hasRole(['admin', 'encoder']);
 
 // Philippine holidays (static list for calendar display)
 $philippineHolidays = json_encode([

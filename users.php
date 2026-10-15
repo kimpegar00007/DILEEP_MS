@@ -28,6 +28,19 @@ function userProvinceScope(bool $isSuperAdmin, ?string $province): array {
     return [' AND province = ?', [$province]];
 }
 
+// Provincial roles need a province (otherwise they see nothing); cross-province
+// roles must not have one (otherwise the session would treat them as provincial).
+function roleProvinceError(string $role, ?string $province): ?string {
+    $crossProvinceRoles = ['super_admin', 'regional_director'];
+    if (in_array($role, $crossProvinceRoles, true) && $province !== null) {
+        return 'Super admins and regional directors cover all provinces: leave Province empty';
+    }
+    if (!in_array($role, $crossProvinceRoles, true) && $province === null) {
+        return 'Admin, encoder and user accounts must be assigned a province';
+    }
+    return null;
+}
+
 // -----------------------------------------------------------------------
 // POST handling
 // -----------------------------------------------------------------------
@@ -68,6 +81,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (strlen($password) < 8) $errors[] = 'Password must be at least 8 characters';
         if ($password !== $confirmPassword) $errors[] = 'Passwords do not match';
         if (!in_array($role, $allowedRoles, true)) $errors[] = 'Invalid role';
+        elseif ($comboError = roleProvinceError($role, $newProvince)) $errors[] = $comboError;
 
         $stmt = $db->prepare("SELECT COUNT(*) FROM users WHERE username = ?");
         $stmt->execute([$username]);
@@ -133,6 +147,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (empty($email))    $errors[] = 'Email is required';
         if (empty($fullName)) $errors[] = 'Full name is required';
         if (!in_array($role, $allowedRoles, true)) $errors[] = 'Invalid role';
+        elseif ($isSuperAdmin && ($comboError = roleProvinceError($role, $updProvince))) $errors[] = $comboError;
+
+        // Don't let the signed-in super admin lock themselves out.
+        if ($userId === (int) $_SESSION['user_id'] && ($role !== ($_SESSION['role'] ?? '') || !$isActive)) {
+            $errors[] = 'You cannot change your own role or deactivate your own account';
+        }
 
         $stmt = $db->prepare("SELECT COUNT(*) FROM users WHERE email = ? AND id != ?");
         $stmt->execute([$email, $userId]);

@@ -37,6 +37,21 @@ try {
     $sql = "SELECT * FROM `$table` WHERE 1=1";
     $params = [];
 
+    // Province scope: provincial admins export only their own province;
+    // cross-province roles export everything or one chosen province.
+    if ($auth->isCrossProvince()) {
+        $exportProvince = $_GET['province'] ?? '';
+        if ($exportProvince !== '' && in_array($exportProvince, Auth::PROVINCES, true)) {
+            $sql .= " AND province = ?";
+            $params[] = $exportProvince;
+        }
+    } elseif ($auth->getProvince() !== null) {
+        $sql .= " AND province = ?";
+        $params[] = $auth->getProvince();
+    } else {
+        $sql .= " AND 1 = 0";
+    }
+
     if ($dateFrom) {
         $sql .= " AND DATE(created_at) >= ?";
         $params[] = $dateFrom;

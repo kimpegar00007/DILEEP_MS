@@ -6,7 +6,9 @@ require_once __DIR__ . '/../includes/Auth.php';
 header('Content-Type: application/json');
 
 $auth = new Auth();
-if (!$auth->isLoggedIn() || !$auth->hasRole('admin')) {
+// Uploads a full-database dump (every province, users, tokens): super_admin only.
+if (!$auth->isLoggedIn() || !$auth->isSuperAdmin()) {
+    http_response_code(403);
     echo json_encode(['success' => false, 'message' => 'Unauthorized access.']);
     exit;
 }

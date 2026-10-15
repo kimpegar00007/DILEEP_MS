@@ -328,8 +328,9 @@ class Proponent {
         $sql    = "SELECT * FROM proponents WHERE 1=1" . $pSql;
         $params = $pParams;
 
-        // Province override: super_admin can filter by a specific province via filters
-        if (!empty($filters['province']) && ($_SESSION['role'] ?? '') === 'super_admin') {
+        // Province override: cross-province roles (super_admin, regional_director) can
+        // narrow to one province via filters; provincial users are already scoped above.
+        if (!empty($filters['province']) && in_array($_SESSION['role'] ?? '', self::CROSS_PROVINCE_ROLES, true)) {
             $sql     .= " AND province = ?";
             $params[] = $filters['province'];
         }

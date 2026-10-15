@@ -18,9 +18,19 @@ $filters = [
     'search' => $_GET['search'] ?? ''
 ];
 
+// Province scope: provincial admins see activity by users of their own province.
+// (activity_logs has no reliable record province, so scope by the acting user.)
+if ($auth->isCrossProvince()) {
+    [$userScopeSql, $userScopeParams] = ['', []];
+} elseif ($auth->getProvince() !== null) {
+    [$userScopeSql, $userScopeParams] = [' AND u.province = ?', [$auth->getProvince()]];
+} else {
+    [$userScopeSql, $userScopeParams] = [' AND 1 = 0', []];
+}
+
 $query = "SELECT al.*, u.username, u.full_name FROM activity_logs al 
-          LEFT JOIN users u ON al.user_id = u.id WHERE 1=1";
-$params = [];
+          LEFT JOIN users u ON al.user_id = u.id WHERE 1=1" . $userScopeSql;
+$params = $userScopeParams;
 
 if (!empty($filters['action'])) {
     $query .= " AND al.action = ?";
@@ -67,7 +77,8 @@ $actions = $stmt->fetchAll(PDO::FETCH_COLUMN);
 $stmt = $db->query("SELECT DISTINCT table_name FROM activity_logs ORDER BY table_name");
 $tables = $stmt->fetchAll(PDO::FETCH_COLUMN);
 
-$stmt = $db->query("SELECT id, username, full_name FROM users ORDER BY full_name");
+$stmt = $db->prepare("SELECT u.id, u.username, u.full_name FROM users u WHERE 1=1" . $userScopeSql . " ORDER BY u.full_name");
+$stmt->execute($userScopeParams);
 $users = $stmt->fetchAll();
 ?>
 <!DOCTYPE html>

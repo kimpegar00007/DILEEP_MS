@@ -27,6 +27,12 @@ if (!$proponent) {
 $errors = [];
 $success = '';
 
+// Beneficiaries linked to this proponent (beneficiaries.proponent_id has no FK,
+// so they are unlinked explicitly when the proponent is deleted).
+$stmt = $db->prepare("SELECT COUNT(*) FROM beneficiaries WHERE proponent_id = ?");
+$stmt->execute([$proponentId]);
+$linkedBeneficiaryCount = (int) $stmt->fetchColumn();
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $confirmDelete = $_POST['confirm_delete'] ?? '';
     
@@ -36,6 +42,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
     if (empty($errors)) {
         try {
+            $db->beginTransaction();
+            $db->prepare("UPDATE beneficiaries SET proponent_id = NULL WHERE proponent_id = ?")
+               ->execute([$proponentId]);
             $stmt = $db->prepare("DELETE FROM proponents WHERE id = ?");
             if ($stmt->execute([$proponentId])) {
                 $logStmt = $db->prepare(
@@ -45,17 +54,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $logStmt->execute([
                     $_SESSION['user_id'],
                     $proponentId,
-                    "Deleted proponent: " . $proponent['proponent_name'],
+                    "Deleted proponent: " . $proponent['proponent_name']
+                        . ($linkedBeneficiaryCount ? " (unlinked {$linkedBeneficiaryCount} beneficiaries)" : ''),
                     $_SERVER['REMOTE_ADDR'] ?? 'unknown'
                 ]);
-                
+                $db->commit();
+
                 header('Location: proponents.php?deleted=1');
                 exit;
             } else {
+                $db->rollBack();
                 $errors[] = 'Failed to delete proponent';
             }
         } catch (Exception $e) {
-            $errors[] = 'Database error: ' . $e->getMessage();
+            if ($db->inTransaction()) {
+                $db->rollBack();
+            }
+            error_log('[proponent-delete] ' . $e->getMessage());
+            $errors[] = 'Database error while deleting the proponent. Nothing was changed.';
         }
     }
 }
@@ -128,6 +144,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <li>This action cannot be undone</li>
                         <li>All associated data will be permanently deleted</li>
                         <li>This deletion will be logged in the activity logs</li>
+                        <?php if ($linkedBeneficiaryCount > 0): ?>
+                        <li><strong><?php echo number_format($linkedBeneficiaryCount); ?> linked beneficiar<?php echo $linkedBeneficiaryCount === 1 ? 'y' : 'ies'; ?></strong> will be kept but unlinked; they will need a new proponent the next time they are edited</li>
+                        <?php endif; ?>
                         <li>Only administrators can delete proponents</li>
                     </ul>
                 </div>

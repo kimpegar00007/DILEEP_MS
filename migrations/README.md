@@ -46,13 +46,16 @@ mysql -u root -p dilp_monitoring < production_schema_migration.sql
 | `phase9_beneficiary_types_and_orgchart_province.sql` | Add beneficiary types | Extend beneficiary categorization |
 | `add_province_fields.sql` | Add province columns | Legacy province field addition |
 | `province_migration.sql` | Province data migration | Migrate existing province data |
+| `add_proponent_id_to_beneficiaries.sql` | Link beneficiaries to proponents | After fresh install / on older DBs |
+| `expand_proponent_beneficiary_columns.sql` | Widen beneficiary name columns (JSON) | After fresh install / on older DBs |
+| `backfill_fieldwork_province.sql` | Give NULL-province fieldwork the assignee's province | Once, after deploying the Oct 2026 fieldwork fix |
 
 ### 📊 Data Imports
 
 | Script | Purpose | When to Use |
 |--------|---------|-------------|
-| `import_production_data_may2026.sql` | Import May 2026 data | Restore May 2026 snapshot |
-| `import_production_with_structure_may2026.sql` | Structure + May 2026 data | Complete May 2026 restore |
+| `import_production_data_may2026.sql` | Import May 2026 data | Restore May 2026 snapshot (local only, not in git: contains real records) |
+| `import_production_with_structure_may2026.sql` | Structure + May 2026 data | Complete May 2026 restore (local only, not in git) |
 
 ### 🏗️ Legacy/Archive
 

@@ -29,9 +29,24 @@ try {
 $googleClientId = getenv('GOOGLE_CLIENT_ID') ?: ($_ENV['GOOGLE_CLIENT_ID'] ?? '');
 $googleConfigured = !empty($googleClientId);
 
+// Province scope for counts, export and import (provincial admins see only their province)
+$sessionProvince = $auth->getProvince();
+$isCrossProvince = $auth->isCrossProvince();
+if ($isCrossProvince) {
+    [$countScopeSql, $countScopeParams] = ['', []];
+} elseif ($sessionProvince !== null) {
+    [$countScopeSql, $countScopeParams] = [' WHERE province = ?', [$sessionProvince]];
+} else {
+    [$countScopeSql, $countScopeParams] = [' WHERE 1 = 0', []];
+}
+
 // Get record counts for display
-$beneficiaryCount = $db->query("SELECT COUNT(*) FROM beneficiaries")->fetchColumn();
-$proponentCount = $db->query("SELECT COUNT(*) FROM proponents")->fetchColumn();
+$stmt = $db->prepare("SELECT COUNT(*) FROM beneficiaries" . $countScopeSql);
+$stmt->execute($countScopeParams);
+$beneficiaryCount = $stmt->fetchColumn();
+$stmt = $db->prepare("SELECT COUNT(*) FROM proponents" . $countScopeSql);
+$stmt->execute($countScopeParams);
+$proponentCount = $stmt->fetchColumn();
 
 // Get table list for backup info
 $tablesStmt = $db->query("SHOW TABLES");
@@ -162,6 +177,27 @@ $tableCount = $tablesStmt->rowCount();
             <main class="col-md-10 ms-sm-auto px-md-4 py-4" id="mainContent" role="main">
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <h2><i class="bi bi-gear"></i> Settings</h2>
+                </div>
+
+                <!-- Province for export/import -->
+                <div class="settings-section py-3">
+                    <?php if ($isCrossProvince): ?>
+                    <div class="row g-2 align-items-center">
+                        <div class="col-auto"><label for="settingsProvince" class="form-label mb-0"><i class="bi bi-geo-alt"></i> Province</label></div>
+                        <div class="col-auto">
+                            <select id="settingsProvince" class="form-select form-select-sm">
+                                <option value="">All provinces (export) / use the CSV's province column (import)</option>
+                                <?php foreach (Auth::PROVINCES as $prov): ?>
+                                <option value="<?php echo htmlspecialchars($prov); ?>"><?php echo htmlspecialchars($prov); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="col-12 col-lg"><small class="text-muted">Export: limits the CSV to one province. Import: used for rows whose <code>province</code> column is empty.</small></div>
+                    </div>
+                    <?php else: ?>
+                    <input type="hidden" id="settingsProvince" value="<?php echo htmlspecialchars((string) $sessionProvince); ?>">
+                    <span class="text-muted"><i class="bi bi-lock"></i> Export and import are limited to your assigned province: <strong><?php echo htmlspecialchars((string) $sessionProvince); ?></strong></span>
+                    <?php endif; ?>
                 </div>
 
                 <!-- Tabs Navigation -->
@@ -432,6 +468,7 @@ $tableCount = $tablesStmt->rowCount();
                                         <tr><td><code>gender</code></td><td>Text</td><td><span class="badge bg-danger">required</span></td><td><code>Male</code> or <code>Female</code></td></tr>
                                         <tr><td><code>barangay</code></td><td>Text</td><td><span class="badge bg-danger">required</span></td><td></td></tr>
                                         <tr><td><code>municipality</code></td><td>Text</td><td><span class="badge bg-danger">required</span></td><td></td></tr>
+                                        <tr><td><code>province</code></td><td>Text</td><td><span class="badge bg-secondary">optional</span></td><td><code>Negros Occidental</code>, <code>Negros Oriental</code> or <code>Siquijor</code>. Provincial accounts always import into their own province.</td></tr>
                                         <tr><td><code>contact_number</code></td><td>Text</td><td><span class="badge bg-secondary">optional</span></td><td></td></tr>
                                         <tr><td><code>project_name</code></td><td>Text</td><td><span class="badge bg-danger">required</span></td><td>Name of the livelihood project</td></tr>
                                         <tr><td><code>type_of_worker</code></td><td>Text</td><td><span class="badge bg-secondary">optional</span></td><td></td></tr>
@@ -466,9 +503,10 @@ $tableCount = $tablesStmt->rowCount();
                                         <tr><th>Column Name</th><th>Type</th><th>Required?</th><th>Notes / Allowed Values</th></tr>
                                     </thead>
                                     <tbody style="font-size:.82rem;">
-                                        <tr><td><code>proponent_type</code></td><td>Text</td><td><span class="badge bg-danger">required</span></td><td><code>LGU-associated</code> or <code>Non-LGU-associated</code></td></tr>
+                                        <tr><td><code>proponent_type</code></td><td>Text</td><td><span class="badge bg-danger">required</span></td><td><code>LGU-associated</code>, <code>Non-LGU-associated</code>, <code>By Administration</code> or <code>Others</code></td></tr>
                                         <tr><td><code>proponent_name</code></td><td>Text</td><td><span class="badge bg-danger">required</span></td><td>Name of the proponent / association</td></tr>
                                         <tr><td><code>project_title</code></td><td>Text</td><td><span class="badge bg-danger">required</span></td><td></td></tr>
+                                        <tr><td><code>province</code></td><td>Text</td><td><span class="badge bg-secondary">optional</span></td><td><code>Negros Occidental</code>, <code>Negros Oriental</code> or <code>Siquijor</code>. Provincial accounts always import into their own province.</td></tr>
                                         <tr><td><code>district</code></td><td>Text</td><td><span class="badge bg-secondary">optional</span></td><td></td></tr>
                                         <tr><td><code>municipality</code></td><td>Text</td><td><span class="badge bg-secondary">optional</span></td><td></td></tr>
                                         <tr><td><code>amount</code></td><td>Number</td><td><span class="badge bg-danger">required</span></td><td>Numeric only, e.g. <code>250000</code></td></tr>
@@ -480,7 +518,7 @@ $tableCount = $tablesStmt->rowCount();
                                         <tr><td><code>status</code></td><td>Text</td><td><span class="badge bg-secondary">optional</span></td><td><code>pending</code>, <code>approved</code>, <code>implemented</code>, <code>liquidated</code>, <code>monitored</code></td></tr>
                                         <tr><td><code>source_of_funds</code></td><td>Text</td><td><span class="badge bg-secondary">optional</span></td><td></td></tr>
                                         <tr><td><code>date_approved</code></td><td>Date</td><td><span class="badge bg-secondary">optional</span></td><td>Format: <code>YYYY-MM-DD</code></td></tr>
-                                        <tr><td><code>liquidation_deadline</code></td><td>Date</td><td><span class="badge bg-secondary">optional</span></td><td>Format: <code>YYYY-MM-DD</code></td></tr>
+                                        <tr><td><code>liquidation_deadline</code></td><td>Date</td><td><span class="badge bg-secondary">optional</span></td><td>Format: <code>YYYY-MM-DD</code>. If empty, computed from <code>date_turnover</code> (+10 days LGU-associated, +60 days otherwise)</td></tr>
                                         <tr><td><code>noted_findings</code></td><td>Text</td><td><span class="badge bg-secondary">optional</span></td><td></td></tr>
                                         <tr><td><code>latitude</code></td><td>Number</td><td><span class="badge bg-secondary">optional</span></td><td>Decimal degrees</td></tr>
                                         <tr><td><code>longitude</code></td><td>Number</td><td><span class="badge bg-secondary">optional</span></td><td>Decimal degrees</td></tr>
@@ -531,6 +569,8 @@ $tableCount = $tablesStmt->rowCount();
             var url = 'api/settings-export.php?table=' + encodeURIComponent(table);
             if (dateFrom) url += '&date_from=' + encodeURIComponent(dateFrom);
             if (dateTo) url += '&date_to=' + encodeURIComponent(dateTo);
+            var exportProvince = (document.getElementById('settingsProvince') || {}).value || '';
+            if (exportProvince) url += '&province=' + encodeURIComponent(exportProvince);
 
             window.location.href = url;
             setTimeout(function() {
@@ -684,6 +724,7 @@ $tableCount = $tablesStmt->rowCount();
             var formData = new FormData();
             formData.append('file', file);
             formData.append('table', table);
+            formData.append('province', (document.getElementById('settingsProvince') || {}).value || '');
 
             fetch('api/settings-import.php', {
                 method: 'POST',

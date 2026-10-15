@@ -7,6 +7,7 @@ header('Content-Type: application/json');
 
 $auth = new Auth();
 if (!$auth->isLoggedIn() || !$auth->hasRole('admin')) {
+    http_response_code(403);
     echo json_encode(['success' => false, 'message' => 'Unauthorized access.']);
     exit;
 }
@@ -16,6 +17,21 @@ $allowedTables = ['beneficiaries', 'proponents'];
 
 if (!in_array($table, $allowedTables, true)) {
     echo json_encode(['success' => false, 'message' => 'Invalid target table.']);
+    exit;
+}
+
+// Province: provincial admins import into their own province only. Cross-province
+// roles give a province per row (CSV "province" column) or a default from the form.
+$importIsCrossProvince = $auth->isCrossProvince();
+$sessionProvince       = $auth->getProvince();
+$defaultProvince       = trim($_POST['province'] ?? '');
+
+if (!$importIsCrossProvince && $sessionProvince === null) {
+    echo json_encode(['success' => false, 'message' => 'Your account has no assigned province, so it cannot import records. Ask a super admin to set your province.']);
+    exit;
+}
+if ($importIsCrossProvince && $defaultProvince !== '' && !in_array($defaultProvince, Auth::PROVINCES, true)) {
+    echo json_encode(['success' => false, 'message' => 'Invalid default province selected.']);
     exit;
 }
 
@@ -64,7 +80,7 @@ if (!in_array($mimeType, $allowedMimes, true)) {
 $columnDefs = [
     'beneficiaries' => [
         'required' => ['last_name', 'first_name', 'gender', 'barangay', 'municipality', 'project_name', 'amount_worth'],
-        'optional' => ['middle_name', 'suffix', 'contact_number', 'type_of_worker', 'noted_findings',
+        'optional' => ['province', 'middle_name', 'suffix', 'contact_number', 'type_of_worker', 'noted_findings',
                        'date_complied_by_proponent', 'date_forwarded_to_ro6', 'rpmt_findings', 'date_approved',
                        'date_forwarded_to_nofo', 'date_turnover', 'date_monitoring', 'latitude', 'longitude', 'status'],
         'defaults' => ['status' => 'pending'],
@@ -78,7 +94,7 @@ $columnDefs = [
     ],
     'proponents' => [
         'required' => ['proponent_type', 'proponent_name', 'project_title', 'amount', 'total_beneficiaries', 'category'],
-        'optional' => ['date_received', 'noted_findings', 'control_number', 'number_of_copies', 'date_copies_received',
+        'optional' => ['province', 'date_received', 'noted_findings', 'control_number', 'number_of_copies', 'date_copies_received',
                        'district', 'number_of_associations', 'male_beneficiaries', 'female_beneficiaries',
                        'type_of_beneficiaries', 'recipient_barangays', 'letter_of_intent_date',
                        'date_forwarded_to_ro6', 'rpmt_findings', 'date_complied_by_proponent',
@@ -94,7 +110,7 @@ $columnDefs = [
         'numeric_columns' => ['amount', 'number_of_copies', 'number_of_associations', 'total_beneficiaries',
                               'male_beneficiaries', 'female_beneficiaries', 'latitude', 'longitude'],
         'enum_columns' => [
-            'proponent_type' => ['LGU-associated', 'Non-LGU-associated'],
+            'proponent_type' => ['LGU-associated', 'Non-LGU-associated', 'By Administration', 'Others'],
             'category' => ['Formation', 'Enhancement', 'Restoration'],
             'status' => ['pending', 'approved', 'implemented', 'liquidated', 'monitored']
         ]
@@ -145,6 +161,13 @@ if (!empty($missingCols)) {
 // Determine which columns to import (intersection of CSV headers and known columns)
 $allKnownCols = array_merge($def['required'], $def['optional']);
 $importCols = array_values(array_intersect($headers, $allKnownCols));
+// Always write province; for proponents also write the computed liquidation deadline.
+if (!in_array('province', $importCols, true)) {
+    $importCols[] = 'province';
+}
+if ($table === 'proponents' && !in_array('liquidation_deadline', $importCols, true)) {
+    $importCols[] = 'liquidation_deadline';
+}
 
 // Read and validate all rows
 $rows = [];
@@ -198,6 +221,30 @@ while (($csvRow = fgetcsv($handle)) !== false) {
                 $rowData[$col] = $parsed->format('Y-m-d');
             }
         }
+    }
+
+    // Province (see the rule at the top of this file)
+    $rowProvince = $rowData['province'] ?? '';
+    if ($importIsCrossProvince) {
+        if ($rowProvince === '') {
+            $rowProvince = $defaultProvince;
+        }
+        if (!in_array($rowProvince, Auth::PROVINCES, true)) {
+            $rowErrors[] = "Row $lineNum: 'province' must be one of: " . implode(', ', Auth::PROVINCES) . " (or choose a default province before importing).";
+        }
+    } elseif ($rowProvince !== '' && $rowProvince !== $sessionProvince) {
+        $rowErrors[] = "Row $lineNum: province '$rowProvince' is outside your assigned province ($sessionProvince).";
+    } else {
+        $rowProvince = $sessionProvince;
+    }
+    $rowData['province'] = $rowProvince;
+
+    // Liquidation deadline = turnover + 10 days (LGU-associated) or + 60 days (other types),
+    // same rule as Proponent::calculateLiquidationDeadline(). A value in the CSV wins.
+    if ($table === 'proponents' && empty($rowData['liquidation_deadline']) && !empty($rowData['date_turnover']) && empty($rowErrors)) {
+        $deadline = new DateTime($rowData['date_turnover']);
+        $deadline->modify('+' . (($rowData['proponent_type'] ?? '') === 'LGU-associated' ? 10 : 60) . ' days');
+        $rowData['liquidation_deadline'] = $deadline->format('Y-m-d');
     }
 
     if (!empty($rowErrors)) {
