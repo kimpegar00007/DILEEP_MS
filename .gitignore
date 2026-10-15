@@ -17,3 +17,11 @@ yarn-error.log
 /.fleet
 /.idea
 /.vscode
+
+# Database dumps with real beneficiary data or password hashes: keep local, never commit
+/--
+/backups/
+/dilp-system-database/
+/sql-database/
+/migrations/import_production_*.sql
+*.sql.gz

@@ -45,6 +45,7 @@ jobs:
             .env
             .env*
             .htaccess
+            .htaccess.*
             .editorconfig
             backups/**
             debug/**

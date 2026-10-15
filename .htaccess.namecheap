@@ -26,17 +26,20 @@ DirectoryIndex index.php index.html
     Deny from all
 </FilesMatch>
 
-# Protect backup and migration files
-<FilesMatch "(migration|backup|migrate).*\.(sql|php)$">
+# Protect one-off ops/diagnostic scripts if they ever get uploaded.
+# (Do not match on "backup": api/settings-backup.php and
+# api/settings-gdrive-backup.php are real endpoints.)
+<FilesMatch "^(migrate-database-online|run-migrations|fix-login|fix-mariadb-permissions|test_login)\.php$">
     Order allow,deny
     Deny from all
 </FilesMatch>
 
-# Protect config directory (allow only PHP to access)
-<DirectoryMatch "^/.*/config/">
-    Order allow,deny
-    Deny from all
-</DirectoryMatch>
+# Block folders that must never be served. <Directory*> is not allowed in
+# .htaccess (it causes a 500), so use mod_rewrite instead.
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule ^(config|debug|fixes|migrations|backups|docs|sql-database|dilp-system-database|inspirations)(/|$) - [F,L]
+</IfModule>
 
 # =====================================================
 # FORCE HTTPS (Uncomment after SSL is installed)
