@@ -10,7 +10,27 @@ header('Content-Type: application/json');
 
 try {
     $db = Database::getInstance()->getConnection();
-    
+
+    // =========================================================
+    // Province scope (same rule as the models' provinceScope()):
+    // cross-province roles see everything, provincial users see
+    // their own province, a provincial user with no province sees nothing.
+    // =========================================================
+    $sessionProvince = $auth->getProvince();
+    if ($auth->isCrossProvince()) {
+        $pScopeSql  = '';
+        $fwScopeSql = '';
+        $scopeParams = [];
+    } elseif ($sessionProvince === null) {
+        $pScopeSql  = ' AND 1 = 0';
+        $fwScopeSql = ' AND 1 = 0';
+        $scopeParams = [];
+    } else {
+        $pScopeSql  = ' AND province = ?';
+        $fwScopeSql = ' AND fs.province = ?';
+        $scopeParams = [$sessionProvince];
+    }
+
     $notifications = [];
     
     // Get overdue liquidations
@@ -26,9 +46,11 @@ try {
             WHERE liquidation_deadline IS NOT NULL 
                 AND date_liquidated IS NULL 
                 AND liquidation_deadline < CURDATE()
+            {$pScopeSql}
             ORDER BY liquidation_deadline ASC";
     
-    $stmt = $db->query($sql);
+    $stmt = $db->prepare($sql);
+    $stmt->execute($scopeParams);
     $overdueLiquidations = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
     foreach ($overdueLiquidations as $item) {
@@ -62,9 +84,11 @@ try {
                 AND date_liquidated IS NULL 
                 AND liquidation_deadline >= CURDATE()
                 AND liquidation_deadline <= DATE_ADD(CURDATE(), INTERVAL 14 DAY)
+            {$pScopeSql}
             ORDER BY liquidation_deadline ASC";
     
-    $stmt = $db->query($sql);
+    $stmt = $db->prepare($sql);
+    $stmt->execute($scopeParams);
     $upcomingLiquidations = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
     foreach ($upcomingLiquidations as $item) {
@@ -97,10 +121,12 @@ try {
                 AND date_monitoring IS NULL 
                 AND DATE_ADD(date_turnover, INTERVAL 30 DAY) >= CURDATE()
                 AND DATE_ADD(date_turnover, INTERVAL 30 DAY) <= DATE_ADD(CURDATE(), INTERVAL 7 DAY)
+            {$pScopeSql}
             ORDER BY date_turnover ASC
             LIMIT 20";
     
-    $stmt = $db->query($sql);
+    $stmt = $db->prepare($sql);
+    $stmt->execute($scopeParams);
     $upcomingBeneficiaryMonitoring = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
     foreach ($upcomingBeneficiaryMonitoring as $item) {
@@ -132,10 +158,12 @@ try {
             WHERE date_turnover IS NOT NULL 
                 AND date_monitoring IS NULL 
                 AND DATE_ADD(date_turnover, INTERVAL 30 DAY) < CURDATE()
+            {$pScopeSql}
             ORDER BY date_turnover ASC
             LIMIT 20";
     
-    $stmt = $db->query($sql);
+    $stmt = $db->prepare($sql);
+    $stmt->execute($scopeParams);
     $overdueMonitoring = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
     foreach ($overdueMonitoring as $item) {
@@ -168,10 +196,12 @@ try {
                 AND date_monitoring >= CURDATE()
                 AND date_monitoring <= DATE_ADD(CURDATE(), INTERVAL 14 DAY)
                 AND status != 'monitored'
+            {$pScopeSql}
             ORDER BY date_monitoring ASC
             LIMIT 20";
     
-    $stmt = $db->query($sql);
+    $stmt = $db->prepare($sql);
+    $stmt->execute($scopeParams);
     $upcomingProponentMonitoring = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
     foreach ($upcomingProponentMonitoring as $item) {
@@ -202,10 +232,12 @@ try {
             WHERE date_monitoring IS NOT NULL 
                 AND date_monitoring < CURDATE()
                 AND status != 'monitored'
+            {$pScopeSql}
             ORDER BY date_monitoring ASC
             LIMIT 20";
     
-    $stmt = $db->query($sql);
+    $stmt = $db->prepare($sql);
+    $stmt->execute($scopeParams);
     $overdueProponentMonitoring = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
     foreach ($overdueProponentMonitoring as $item) {
@@ -239,10 +271,12 @@ try {
                 LEFT JOIN users u ON fs.assigned_user_id = u.id
                 WHERE fs.status IN ('pending', 'ongoing')
                 AND fs.start_date = CURDATE()
+                {$fwScopeSql}
                 ORDER BY fs.start_date ASC
                 LIMIT 20";
 
-        $stmt = $db->query($sql);
+        $stmt = $db->prepare($sql);
+        $stmt->execute($scopeParams);
         $todayFieldwork = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         foreach ($todayFieldwork as $item) {
@@ -274,10 +308,12 @@ try {
                 LEFT JOIN users u ON fs.assigned_user_id = u.id
                 WHERE fs.status = 'pending'
                 AND DATEDIFF(fs.start_date, CURDATE()) = 1
+                {$fwScopeSql}
                 ORDER BY fs.start_date ASC
                 LIMIT 20";
 
-        $stmt = $db->query($sql);
+        $stmt = $db->prepare($sql);
+        $stmt->execute($scopeParams);
         $tomorrowFieldwork = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         foreach ($tomorrowFieldwork as $item) {
@@ -310,10 +346,12 @@ try {
                 LEFT JOIN users u ON fs.assigned_user_id = u.id
                 WHERE fs.status = 'pending'
                 AND DATEDIFF(fs.start_date, CURDATE()) BETWEEN 2 AND 3
+                {$fwScopeSql}
                 ORDER BY fs.start_date ASC
                 LIMIT 20";
 
-        $stmt = $db->query($sql);
+        $stmt = $db->prepare($sql);
+        $stmt->execute($scopeParams);
         $upcomingFieldwork = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         foreach ($upcomingFieldwork as $item) {
@@ -347,10 +385,12 @@ try {
                 LEFT JOIN users u ON fs.assigned_user_id = u.id
                 WHERE fs.status NOT IN ('completed', 'missed')
                 AND COALESCE(fs.end_date, fs.start_date) < CURDATE()
+                {$fwScopeSql}
                 ORDER BY fs.start_date ASC
                 LIMIT 20";
 
-        $stmt = $db->query($sql);
+        $stmt = $db->prepare($sql);
+        $stmt->execute($scopeParams);
         $overdueFieldwork = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         foreach ($overdueFieldwork as $item) {
@@ -389,7 +429,7 @@ try {
     http_response_code(500);
     echo json_encode([
         'success' => false,
-        'error' => 'Failed to fetch notifications',
-        'message' => $e->getMessage()
+        'error' => 'Failed to fetch notifications'
     ]);
+    error_log('[Notifications] ' . $e->getMessage());
 }

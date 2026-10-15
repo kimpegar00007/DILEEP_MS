@@ -736,7 +736,7 @@ usort($categoryChartData, function($a, $b) { return $b['count'] - $a['count']; }
         ];
 
         // 1. Municipality Distribution Chart (Horizontal Bar)
-        const municipalityData = <?php echo json_encode($beneficiaryMunicipalityData); ?>;
+        const municipalityData = <?php echo json_encode($beneficiaryMunicipalityData, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
         window.municipalityChart = null;
         if (municipalityData && municipalityData.length > 0) {
             const municipalityCtx = document.getElementById('municipalityChart').getContext('2d');
@@ -777,7 +777,7 @@ usort($categoryChartData, function($a, $b) { return $b['count'] - $a['count']; }
         }
 
         // 2. District Distribution Chart (Doughnut)
-        const districtData = <?php echo json_encode($proponentDistrictData); ?>;
+        const districtData = <?php echo json_encode($proponentDistrictData, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
         window.districtChart = null;
         if (districtData && districtData.length > 0) {
             const districtCtx = document.getElementById('districtChart').getContext('2d');
@@ -818,7 +818,7 @@ usort($categoryChartData, function($a, $b) { return $b['count'] - $a['count']; }
         }
 
         // 3. Worker Type Distribution Chart (Combined: Beneficiaries + Proponents)
-        const workerTypeData = <?php echo json_encode($workerTypeChartData); ?>;
+        const workerTypeData = <?php echo json_encode($workerTypeChartData, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
         window.workerTypeChart = null;
         if (workerTypeData && workerTypeData.length > 0) {
             const projectTypeCtx = document.getElementById('projectTypeChart').getContext('2d');
@@ -859,7 +859,7 @@ usort($categoryChartData, function($a, $b) { return $b['count'] - $a['count']; }
         }
 
         // 4. Funding Source Breakdown Chart (Combined: Beneficiaries + Proponents)
-        const fundingData = <?php echo json_encode($fundingChartData); ?>;
+        const fundingData = <?php echo json_encode($fundingChartData, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
         window.fundingChart = null;
         if (fundingData && fundingData.length > 0) {
             const fundingCtx = document.getElementById('fundingChart').getContext('2d');
@@ -928,7 +928,7 @@ usort($categoryChartData, function($a, $b) { return $b['count'] - $a['count']; }
         }
 
         // 5. Category Distribution Chart (Combined: Beneficiaries + Proponents)
-        const categoryData = <?php echo json_encode($categoryChartData); ?>;
+        const categoryData = <?php echo json_encode($categoryChartData, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
         window.categoryChart = null;
         if (categoryData && categoryData.length > 0) {
             const categoryCtx = document.getElementById('categoryChart').getContext('2d');
@@ -969,8 +969,8 @@ usort($categoryChartData, function($a, $b) { return $b['count'] - $a['count']; }
         }
 
         // 6. Monthly Trends Chart (Line)
-        const beneficiaryTrends = <?php echo json_encode($beneficiaryMonthlyTrends); ?>;
-        const proponentTrends = <?php echo json_encode($proponentMonthlyTrends); ?>;
+        const beneficiaryTrends = <?php echo json_encode($beneficiaryMonthlyTrends, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
+        const proponentTrends = <?php echo json_encode($proponentMonthlyTrends, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
         window.trendsChart = null;
 
         if ((beneficiaryTrends && beneficiaryTrends.length > 0) || (proponentTrends && proponentTrends.length > 0)) {
@@ -1043,10 +1043,10 @@ usort($categoryChartData, function($a, $b) { return $b['count'] - $a['count']; }
     </script>
     <script>
         // Province center config (mirrors PHP $provinceCenters)
-        var PROVINCE_CENTERS = <?php echo json_encode($provinceCenters); ?>;
+        var PROVINCE_CENTERS = <?php echo json_encode($provinceCenters, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
 
         // Auto-center on logged-in user's province; super_admin sees regional overview
-        var MAP_CENTER  = <?php echo json_encode(array_values($mapCenter)); ?>;
+        var MAP_CENTER  = <?php echo json_encode(array_values($mapCenter), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
         var map = L.map('map').setView([MAP_CENTER[0], MAP_CENTER[1]], MAP_CENTER[2]);
 
         // Add OpenStreetMap tile layer
@@ -1075,7 +1075,7 @@ usort($categoryChartData, function($a, $b) { return $b['count'] - $a['count']; }
         });
 
         // Add markers from PHP data
-        var mapData = <?php echo json_encode($mapData); ?>;
+        var mapData = <?php echo json_encode($mapData, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
         
         console.log('Total map data items:', mapData.length);
         
@@ -1092,16 +1092,16 @@ usort($categoryChartData, function($a, $b) { return $b['count'] - $a['count']; }
                 try {
                     var icon = item.type === 'beneficiary' ? beneficiaryIcon : proponentIcon;
                     var popupContent = '<div style="min-width: 200px;">' +
-                        '<h6 class="mb-2">' + item.name + '</h6>' +
-                        '<p class="mb-1"><strong>Project:</strong> ' + (item.project_title || item.project_name) + '</p>' +
-                        '<p class="mb-1"><strong>Location:</strong> ' + (item.barangay ? item.barangay + ', ' : '') + (item.municipality || item.district) + '</p>' +
+                        '<h6 class="mb-2">' + escapeMapHtml(item.name) + '</h6>' +
+                        '<p class="mb-1"><strong>Project:</strong> ' + escapeMapHtml(item.project_title || item.project_name) + '</p>' +
+                        '<p class="mb-1"><strong>Location:</strong> ' + escapeMapHtml((item.barangay ? item.barangay + ', ' : '') + (item.municipality || item.district || '')) + '</p>' +
                         '<p class="mb-1"><strong>Amount:</strong> ₱' + parseFloat(item.amount_worth || item.amount).toLocaleString('en-PH', {minimumFractionDigits: 2}) + '</p>';
                     
                     if (item.type === 'proponent') {
-                        popupContent += '<p class="mb-1"><strong>Beneficiaries:</strong> ' + item.total_beneficiaries + '</p>';
+                        popupContent += '<p class="mb-1"><strong>Beneficiaries:</strong> ' + escapeMapHtml(item.total_beneficiaries) + '</p>';
                     }
                     
-                    popupContent += '<p class="mb-0"><span class="badge bg-' + getStatusColor(item.status) + '">' + capitalizeFirst(item.status) + '</span></p>' +
+                    popupContent += '<p class="mb-0"><span class="badge bg-' + getStatusColor(item.status) + '">' + escapeMapHtml(capitalizeFirst(item.status || '')) + '</span></p>' +
                         '</div>';
                     
                     L.marker([lat, lng], {icon: icon})
@@ -1135,6 +1135,16 @@ usort($categoryChartData, function($a, $b) { return $b['count'] - $a['count']; }
 
         function capitalizeFirst(str) {
             return str.charAt(0).toUpperCase() + str.slice(1);
+        }
+
+        // Popup content is HTML built from user-entered names and locations.
+        function escapeMapHtml(value) {
+            return String(value ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
         }
     </script>
     <script>
@@ -1472,7 +1482,7 @@ usort($categoryChartData, function($a, $b) { return $b['count'] - $a['count']; }
     // Cross-province users: no auto-filter on load (they see all by default).
     (function autoLoadProvinceFilter() {
         const isCrossProvince = <?php echo $isCrossProvince ? 'true' : 'false'; ?>;
-        const sessionProvince = <?php echo json_encode($sessionProvince); ?>;
+        const sessionProvince = <?php echo json_encode($sessionProvince, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
 
         if (!isCrossProvince && sessionProvince) {
             // Province-scoped user — silently trigger the filter so charts

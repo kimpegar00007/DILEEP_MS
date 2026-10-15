@@ -6,25 +6,27 @@ $cqprDateTo = $dateTo;
 $regionalOffice = $_GET['regional_office'] ?? 'NIR';
 $cqprStatus = $_GET['status'] ?? '';
 
+// Conditions use a {t} token for the table alias, swapped in per query below.
+// Do not str_replace column names: that also rewrites the :named placeholders.
 $dateCondition = '';
 $params = [];
 
 if ($cqprDateFrom && $cqprDateTo) {
-    $dateCondition = " AND date_approved BETWEEN :date_from AND :date_to";
+    $dateCondition = " AND {t}.date_approved BETWEEN :date_from AND :date_to";
     $params[':date_from'] = $cqprDateFrom;
     $params[':date_to'] = $cqprDateTo;
 } elseif ($cqprDateFrom) {
-    $dateCondition = " AND date_approved >= :date_from";
+    $dateCondition = " AND {t}.date_approved >= :date_from";
     $params[':date_from'] = $cqprDateFrom;
 } elseif ($cqprDateTo) {
-    $dateCondition = " AND date_approved <= :date_to";
+    $dateCondition = " AND {t}.date_approved <= :date_to";
     $params[':date_to'] = $cqprDateTo;
 }
 
 // Province filter from report form
 $provinceCondition = '';
 if (!empty($provinceFilter)) {
-    $provinceCondition = " AND province = :province";
+    $provinceCondition = " AND {t}.province = :province";
     $params[':province'] = $provinceFilter;
 }
 
@@ -64,7 +66,7 @@ $proponentsSql = "SELECT
     p.status as project_status,
     'proponent' as source_table
 FROM proponents p
-WHERE p.status IN {$proponentStatusList}" . $dateCondition . $provinceCondition . "
+WHERE p.status IN {$proponentStatusList}" . str_replace('{t}', 'p', $dateCondition . $provinceCondition) . "
 ORDER BY p.date_approved DESC";
 
 $stmt = $db->prepare($proponentsSql);
@@ -106,7 +108,7 @@ $beneficiariesSql = "SELECT
     'beneficiary' as source_table
 FROM beneficiaries b
 LEFT JOIN proponents p ON p.id = b.proponent_id
-WHERE b.status IN {$beneficiaryStatusList}" . str_replace('province', 'b.province', $provinceCondition) . str_replace('date_approved', 'b.date_approved', $dateCondition) . "
+WHERE b.status IN {$beneficiaryStatusList}" . str_replace('{t}', 'b', $provinceCondition . $dateCondition) . "
 ORDER BY b.date_approved DESC";
 
 $stmt = $db->prepare($beneficiariesSql);

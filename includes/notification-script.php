@@ -2,6 +2,17 @@
 // Notification System
 let notificationData = [];
 
+// Notification text carries user-entered names (proponents, beneficiaries,
+// fieldwork titles), so escape everything before it goes into innerHTML.
+function escapeNotificationHtml(value) {
+    return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
 function fetchNotifications() {
     fetch('api/get-notifications.php')
         .then(response => response.json())
@@ -63,7 +74,7 @@ function createNotificationHTML(notification) {
     if (notification.type === 'liquidation' || notification.type === 'upcoming_liquidation') {
         actionButtons = `
             <div class="notification-actions">
-                <a href="proponent-view.php?id=${notification.proponent_id}" class="btn btn-sm btn-outline-primary">
+                <a href="proponent-view.php?id=${encodeURIComponent(notification.proponent_id)}" class="btn btn-sm btn-outline-primary">
                     <i class="bi bi-eye"></i> View Details
                 </a>
             </div>
@@ -80,7 +91,7 @@ function createNotificationHTML(notification) {
         if (notification.beneficiary_id) {
             actionButtons = `
                 <div class="notification-actions">
-                    <a href="beneficiary-view.php?id=${notification.beneficiary_id}" class="btn btn-sm btn-outline-primary">
+                    <a href="beneficiary-view.php?id=${encodeURIComponent(notification.beneficiary_id)}" class="btn btn-sm btn-outline-primary">
                         <i class="bi bi-eye"></i> View Details
                     </a>
                 </div>
@@ -88,7 +99,7 @@ function createNotificationHTML(notification) {
         } else if (notification.proponent_id) {
             actionButtons = `
                 <div class="notification-actions">
-                    <a href="proponent-view.php?id=${notification.proponent_id}" class="btn btn-sm btn-outline-primary">
+                    <a href="proponent-view.php?id=${encodeURIComponent(notification.proponent_id)}" class="btn btn-sm btn-outline-primary">
                         <i class="bi bi-eye"></i> View Details
                     </a>
                 </div>
@@ -97,13 +108,13 @@ function createNotificationHTML(notification) {
     }
     
     return `
-        <div class="notification-item ${severityClass}">
+        <div class="notification-item ${escapeNotificationHtml(severityClass)}">
             <div class="notification-title">
-                <span class="badge ${severityBadge} me-2">${notification.title}</span>
+                <span class="badge ${severityBadge} me-2">${escapeNotificationHtml(notification.title)}</span>
             </div>
-            <div class="notification-message">${notification.message}</div>
+            <div class="notification-message">${escapeNotificationHtml(notification.message)}</div>
             <div class="notification-details">
-                <i class="bi bi-clock"></i> ${notification.details}
+                <i class="bi bi-clock"></i> ${escapeNotificationHtml(notification.details)}
             </div>
             ${actionButtons}
         </div>
