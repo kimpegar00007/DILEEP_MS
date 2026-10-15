@@ -2,22 +2,29 @@
 session_start();
 header('Content-Type: application/json; charset=utf-8');
 
-// Only allow admin and super_admin to toggle maintenance mode.
-// Checked against raw session role because Auth is not loaded here yet.
-if (!isset($_SESSION['role']) || !in_array($_SESSION['role'], ['admin', 'super_admin'], true)) {
+require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../includes/Auth.php';
+
+// The toggle lives on system-admin.php, which is super_admin only.
+// Going through Auth also re-checks that the account is still active.
+$auth = new Auth();
+if (!$auth->isLoggedIn() || !$auth->isSuperAdmin()) {
+    http_response_code(403);
     echo json_encode(['success' => false, 'message' => 'Unauthorized']);
-    http_response_code(401);
     exit;
 }
-
-require_once __DIR__ . '/../config/database.php';
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    http_response_code(405);
+    echo json_encode(['success' => false, 'message' => 'POST required']);
+    exit;
+}
 
 $db = Database::getInstance()->getConnection();
 
 $value = isset($_POST['value']) && ($_POST['value'] === '1' || $_POST['value'] === '0') ? $_POST['value'] : null;
 if ($value === null) {
-    echo json_encode(['success' => false, 'message' => 'Invalid value']);
     http_response_code(400);
+    echo json_encode(['success' => false, 'message' => 'Invalid value']);
     exit;
 }
 
@@ -32,20 +39,19 @@ try {
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
     $db->exec($createSQL);
 
-    // Try update first
-    $stmt = $db->prepare("UPDATE system_settings SET setting_value = ? WHERE setting_key = 'maintenance_mode'");
+    // Upsert (an UPDATE that sets the same value reports 0 rows, so don't branch on rowCount)
+    $stmt = $db->prepare(
+        "INSERT INTO system_settings (setting_key, setting_value) VALUES ('maintenance_mode', ?)
+         ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)"
+    );
     $stmt->execute([$value]);
-
-    if ($stmt->rowCount() === 0) {
-        // Insert new
-        $ins = $db->prepare("INSERT INTO system_settings (setting_key, setting_value) VALUES ('maintenance_mode', ?)");
-        $ins->execute([$value]);
-    }
+    $auth->logActivity($_SESSION['user_id'], 'update', 'system_settings', 0,
+        'Maintenance mode ' . ($value === '1' ? 'enabled' : 'disabled'));
 
     echo json_encode(['success' => true, 'message' => $value === '1' ? 'Maintenance mode enabled' : 'Maintenance mode disabled']);
 } catch (PDOException $e) {
     // Return a safe message to the client; log the real message to error log
     error_log('toggle-maintenance DB error: ' . $e->getMessage());
-    echo json_encode(['success' => false, 'message' => 'Database error while updating maintenance mode. Please check server logs.']);
     http_response_code(500);
+    echo json_encode(['success' => false, 'message' => 'Database error while updating maintenance mode. Please check server logs.']);
 }

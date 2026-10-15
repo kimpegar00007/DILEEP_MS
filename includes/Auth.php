@@ -21,6 +21,13 @@ class Auth {
     // regional_director sees all provinces but is NOT a super_admin
     private const CROSS_PROVINCE_ROLES = ['super_admin', 'regional_director'];
 
+    // Login throttling: this many failed attempts from one IP within the window blocks further tries.
+    public const LOGIN_MAX_FAILURES   = 10;
+    public const LOGIN_WINDOW_MINUTES = 15;
+
+    // Session user re-checked against the DB once per request (see isLoggedIn()).
+    private static $sessionChecked = false;
+
     public function __construct() {
         $this->db = Database::getInstance()->getConnection();
     }
@@ -28,6 +35,24 @@ class Auth {
     // =========================================================
     // Authentication
     // =========================================================
+
+    /**
+     * True when this IP has too many recent failed logins (counted from activity_logs).
+     */
+    public function isLoginThrottled(): bool {
+        try {
+            $stmt = $this->db->prepare(
+                "SELECT COUNT(*) FROM activity_logs
+                 WHERE action = 'login_failed' AND ip_address = ?
+                 AND created_at >= DATE_SUB(NOW(), INTERVAL " . (int) self::LOGIN_WINDOW_MINUTES . " MINUTE)"
+            );
+            $stmt->execute([$_SERVER['REMOTE_ADDR'] ?? 'unknown']);
+            return (int) $stmt->fetchColumn() >= self::LOGIN_MAX_FAILURES;
+        } catch (PDOException $e) {
+            error_log('[Auth::isLoginThrottled] ' . $e->getMessage());
+            return false;
+        }
+    }
 
     public function login($username, $password) {
         $stmt = $this->db->prepare(
@@ -38,6 +63,9 @@ class Auth {
         $user = $stmt->fetch();
 
         if ($user && password_verify($password, $user['password'])) {
+            // New session ID on login (prevents session fixation).
+            session_regenerate_id(true);
+            unset($_SESSION['csrf_token']); // fresh CSRF token for the new session
             $_SESSION['user_id']   = $user['id'];
             $_SESSION['username']  = $user['username'];
             $_SESSION['role']      = $user['role'];
@@ -46,9 +74,11 @@ class Auth {
             $_SESSION['full_name'] = $user['full_name'];
 
             $this->logActivity($user['id'], 'login', 'users', $user['id'], 'User logged in');
+            self::$sessionChecked = true;
             return true;
         }
 
+        $this->logActivity(null, 'login_failed', 'users', 0, 'Failed login for username: ' . mb_substr((string) $username, 0, 100));
         return false;
     }
 
@@ -65,7 +95,81 @@ class Auth {
     }
 
     public function isLoggedIn() {
-        return isset($_SESSION['user_id']);
+        if (!isset($_SESSION['user_id'])) {
+            return false;
+        }
+
+        // Once per request, reload role/province from the DB so deactivated users are
+        // signed out and role or province changes apply without a new login.
+        if (!self::$sessionChecked) {
+            self::$sessionChecked = true;
+            try {
+                $stmt = $this->db->prepare(
+                    "SELECT role, province, full_name FROM users WHERE id = ? AND is_active = 1"
+                );
+                $stmt->execute([$_SESSION['user_id']]);
+                $row = $stmt->fetch();
+                if (!$row) {
+                    $_SESSION = [];
+                    session_destroy();
+                    return false;
+                }
+                $_SESSION['role']      = $row['role'];
+                $_SESSION['province']  = $row['province'];
+                $_SESSION['full_name'] = $row['full_name'];
+            } catch (PDOException $e) {
+                // Keep the session on a DB error rather than locking everyone out.
+                error_log('[Auth::isLoggedIn] Session re-check failed: ' . $e->getMessage());
+            }
+
+            // Every page and API checks login first, so this covers all signed-in writes.
+            $this->enforceCsrf();
+        }
+
+        return true;
+    }
+
+    // =========================================================
+    // CSRF protection
+    // =========================================================
+    // One token per session. includes/navbar.php prints it in a <meta> tag and adds it
+    // to every POST form (hidden "csrf_token" field) and every non-GET fetch()
+    // (X-CSRF-Token header), so pages need no per-form changes.
+
+    public static function csrfToken(): string {
+        if (empty($_SESSION['csrf_token'])) {
+            $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+        }
+        return $_SESSION['csrf_token'];
+    }
+
+    private function enforceCsrf(): void {
+        $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+        if (in_array($method, ['GET', 'HEAD', 'OPTIONS'], true)) {
+            return;
+        }
+
+        $sent     = $_POST['csrf_token'] ?? ($_SERVER['HTTP_X_CSRF_TOKEN'] ?? '');
+        $expected = $_SESSION['csrf_token'] ?? '';
+        if ($expected !== '' && is_string($sent) && hash_equals($expected, $sent)) {
+            return;
+        }
+
+        error_log('[Auth] CSRF check failed for ' . ($_SERVER['REQUEST_URI'] ?? '?') . ' user ' . ($_SESSION['user_id'] ?? '?'));
+        http_response_code(403);
+        $message = 'Your session security token is missing or out of date. Reload the page and try again.';
+        $isApi   = strpos($_SERVER['SCRIPT_NAME'] ?? '', '/api/') !== false;
+        if ($isApi) {
+            header('Content-Type: application/json');
+            echo json_encode(['success' => false, 'message' => $message, 'error' => $message]);
+        } else {
+            echo '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Request blocked</title>'
+               . '<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"></head>'
+               . '<body class="bg-light"><div class="container py-5" style="max-width:640px"><div class="alert alert-warning">'
+               . htmlspecialchars($message) . '</div><a class="btn btn-primary" href="javascript:history.back()">Go back</a> '
+               . '<a class="btn btn-outline-secondary" href="index.php">Dashboard</a></div></body></html>';
+        }
+        exit;
     }
 
     // =========================================================
@@ -225,9 +329,24 @@ class Auth {
     // Access enforcement
     // =========================================================
 
+    /**
+     * Path to a root-level page relative to the running script, so redirects from
+     * api/*.php go to ../login.php instead of api/login.php.
+     */
+    private static function appPath(string $page): string {
+        $root      = realpath(dirname(__DIR__));
+        $scriptDir = realpath(dirname($_SERVER['SCRIPT_FILENAME'] ?? ''));
+        if (!$root || !$scriptDir || strpos($scriptDir, $root) !== 0) {
+            return $page;
+        }
+        $sub   = trim(substr($scriptDir, strlen($root)), DIRECTORY_SEPARATOR);
+        $depth = $sub === '' ? 0 : substr_count($sub, DIRECTORY_SEPARATOR) + 1;
+        return str_repeat('../', $depth) . $page;
+    }
+
     public function requireLogin() {
         if (!$this->isLoggedIn()) {
-            header('Location: login.php');
+            header('Location: ' . self::appPath('login.php'));
             exit;
         }
 
@@ -237,7 +356,7 @@ class Auth {
         try {
             if ($this->isMaintenanceModeEnabled()) {
                 if (!$this->hasRole('admin')) {
-                    header('Location: maintenance.php');
+                    header('Location: ' . self::appPath('maintenance.php'));
                     exit;
                 }
             }
@@ -250,7 +369,7 @@ class Auth {
         $this->requireLogin();
 
         if (!$this->hasRole($roles)) {
-            header('Location: unauthorized.php');
+            header('Location: ' . self::appPath('unauthorized.php'));
             exit;
         }
     }

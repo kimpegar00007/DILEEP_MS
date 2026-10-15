@@ -19,6 +19,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
     if (empty($username) || empty($password)) {
         $error = 'Please enter both username and password.';
+    } elseif ($auth->isLoginThrottled()) {
+        $error = 'Too many failed sign-in attempts. Please wait ' . Auth::LOGIN_WINDOW_MINUTES . ' minutes and try again.';
     } else {
         if ($auth->login($username, $password)) {
             header('Location: index.php');

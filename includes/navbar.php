@@ -5,6 +5,49 @@ $_navRole     = $_SESSION['role']     ?? '';
 $_navProvince = $_SESSION['province'] ?? null;
 $_navIsSuperAdmin = ($_navRole === 'super_admin');
 ?>
+<!-- CSRF: token for every POST form and non-GET fetch (checked in Auth::isLoggedIn) -->
+<meta name="csrf-token" content="<?php echo htmlspecialchars(Auth::csrfToken()); ?>">
+<script>
+(function () {
+    var token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+    function addTokenToForm(form) {
+        if (!form || (form.method || '').toLowerCase() !== 'post') return;
+        var input = form.querySelector('input[name="csrf_token"]');
+        if (!input) {
+            input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'csrf_token';
+            form.appendChild(input);
+        }
+        input.value = token;
+    }
+
+    // Normal submits (capture phase, before page handlers) and programmatic form.submit()
+    document.addEventListener('submit', function (e) { addTokenToForm(e.target); }, true);
+    var nativeSubmit = HTMLFormElement.prototype.submit;
+    HTMLFormElement.prototype.submit = function () { addTokenToForm(this); return nativeSubmit.call(this); };
+    document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('form').forEach(addTokenToForm);
+    });
+
+    // Same-origin fetch() calls that change data get the X-CSRF-Token header
+    var nativeFetch = window.fetch;
+    window.fetch = function (input, init) {
+        init = init || {};
+        var method = (init.method || (input && input.method) || 'GET').toUpperCase();
+        var url = typeof input === 'string' ? input : (input && input.url) || '';
+        var sameOrigin = new URL(url, window.location.href).origin === window.location.origin;
+        if (sameOrigin && ['GET', 'HEAD', 'OPTIONS'].indexOf(method) === -1) {
+            var headers = new Headers(init.headers || (input && input.headers) || {});
+            headers.set('X-CSRF-Token', token);
+            init = Object.assign({}, init, { headers: headers });
+        }
+        return nativeFetch.call(this, input, init);
+    };
+})();
+</script>
+
 <!-- Skip to Content - Accessibility -->
 <a href="#mainContent" class="skip-to-content">Skip to main content</a>
 

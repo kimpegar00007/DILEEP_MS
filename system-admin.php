@@ -20,14 +20,14 @@ $beneficiaryCount = $db->query("SELECT COUNT(*) FROM beneficiaries")->fetchColum
 $proponentCount = $db->query("SELECT COUNT(*) FROM proponents")->fetchColumn();
 
 // Get database size
-$dbName = 'dilp_monitoring';
+// DATABASE() = the connected schema (e.g. the cPanel-prefixed name on Namecheap)
 $stmt = $db->prepare("
     SELECT 
         ROUND(SUM(data_length + index_length) / 1024 / 1024, 2) AS size_mb
     FROM information_schema.TABLES 
-    WHERE table_schema = ?
+    WHERE table_schema = DATABASE()
 ");
-$stmt->execute([$dbName]);
+$stmt->execute();
 $dbSize = $stmt->fetchColumn() ?: 0;
 
 // Get maintenance mode status

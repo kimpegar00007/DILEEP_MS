@@ -2,7 +2,7 @@
 header('Content-Type: application/json');
 header('Cache-Control: public, max-age=86400');
 
-$action = filter_input(INPUT_GET, 'action', FILTER_SANITIZE_STRING);
+$action = trim((string) filter_input(INPUT_GET, 'action', FILTER_UNSAFE_RAW));
 
 if (empty($action)) {
     http_response_code(400);
@@ -34,7 +34,7 @@ try {
             break;
             
         case 'cities':
-            $provinceCode = filter_input(INPUT_GET, 'province_code', FILTER_SANITIZE_STRING);
+            $provinceCode = trim((string) filter_input(INPUT_GET, 'province_code', FILTER_UNSAFE_RAW));
             
             if (empty($provinceCode)) {
                 http_response_code(400);
@@ -72,7 +72,7 @@ try {
             break;
             
         case 'barangays':
-            $cityCode = filter_input(INPUT_GET, 'city_code', FILTER_SANITIZE_STRING);
+            $cityCode = trim((string) filter_input(INPUT_GET, 'city_code', FILTER_UNSAFE_RAW));
             
             if (empty($cityCode)) {
                 http_response_code(400);

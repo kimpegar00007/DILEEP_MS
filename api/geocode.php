@@ -1,6 +1,17 @@
 <?php
+session_start();
 header('Content-Type: application/json');
-header('Access-Control-Allow-Origin: *');
+
+require_once dirname(__DIR__) . '/config/database.php';
+require_once dirname(__DIR__) . '/includes/Auth.php';
+
+// Only signed-in users (the beneficiary/proponent forms) may use this Nominatim proxy.
+$auth = new Auth();
+if (!$auth->isLoggedIn()) {
+    http_response_code(401);
+    echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+    exit;
+}
 
 $barangay = filter_input(INPUT_GET, 'barangay', FILTER_SANITIZE_FULL_SPECIAL_CHARS);
 $municipality = filter_input(INPUT_GET, 'municipality', FILTER_SANITIZE_FULL_SPECIAL_CHARS);
