@@ -1,0 +1,57 @@
+name: Deploy to production
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+
+      - name: PHP syntax check
+        run: find . -name '*.php' -not -path './inspirations/*' -print0 | xargs -0 -n1 php -l > /dev/null
+
+      - name: Upload changed files via FTPS
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          protocol: ftps
+          port: ${{ secrets.FTP_PORT || 21 }}
+          server-dir: ${{ secrets.FTP_SERVER_DIR }}
+          state-name: .ftp-deploy-sync-state.json
+          exclude: |
+            **/.git*/**
+            **/.git*
+            .github/**
+            .claude/**
+            .DS_Store
+            **/.DS_Store
+            --
+            .env
+            .env*
+            .htaccess
+            .editorconfig
+            backups/**
+            debug/**
+            docs/**
+            fixes/**
+            inspirations/**
+            migrations/**
+            sql-database/**
+            dilp-system-database/**
+            test_login.php
