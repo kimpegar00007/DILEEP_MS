@@ -102,6 +102,18 @@ DirectoryIndex index.php index.html
 </IfModule>
 
 # =====================================================
+# SESSION COOKIE (Namecheap's LiteSpeed ignores .user.ini; it does read these)
+# =====================================================
+
+<IfModule LiteSpeed>
+    php_flag session.cookie_httponly On
+    php_flag session.cookie_secure On
+    php_flag session.use_strict_mode On
+    php_flag session.use_only_cookies On
+    php_value session.cookie_samesite Lax
+</IfModule>
+
+# =====================================================
 # COMPRESSION (for better performance)
 # =====================================================
 
