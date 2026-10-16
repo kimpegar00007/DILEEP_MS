@@ -365,6 +365,8 @@ class Beneficiary {
             SUM(CASE WHEN status = 'monitored'   THEN 1 ELSE 0 END) as monitored,
             SUM(CASE WHEN gender = 'Male'        THEN 1 ELSE 0 END) as male_count,
             SUM(CASE WHEN gender = 'Female'      THEN 1 ELSE 0 END) as female_count,
+            SUM(CASE WHEN (type_of_beneficiaries LIKE '%Child Labor%' OR type_of_beneficiaries LIKE '%PCL%'
+                        OR type_of_worker LIKE '%Child Labor%' OR type_of_worker LIKE '%PCL%') THEN 1 ELSE 0 END) as pcl_count,
             SUM(amount_worth) as total_amount
         FROM beneficiaries WHERE 1=1" . $pSql;
 

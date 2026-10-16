@@ -216,22 +216,51 @@ usort($categoryChartData, function($a, $b) { return $b['count'] - $a['count']; }
             background: linear-gradient(135deg, #6f42c1 0%, #9b59b6 100%) !important;
         }
 
+        .bg-teal {
+            background: linear-gradient(135deg, #0f766e 0%, #20c997 100%) !important;
+        }
+
+        /* Stat cards: wrap long labels instead of cutting them off */
+        #widget-stats .card-title,
+        #widget-stats .stat-detail { white-space: normal; }
+
+        /* Six stat cards across on xl screens */
         @media (min-width: 1200px) {
-            .col-xl-2-4 {
+            .col-xl-stat {
                 flex: 0 0 auto;
-                width: 20%;
+                width: 16.666667%;
+            }
+
+            #widget-stats .card-body { padding: 1rem; }
+            #widget-stats .stat-text-wrap { margin-right: 0; }
+            #widget-stats .stat-number { font-size: 1.25rem; }
+            /* Peso total scales with the card so nine-digit amounts stay on one line */
+            #widget-stats .stat-number[data-prefix] {
+                font-size: clamp(0.75rem, calc(1.55vw - 6.5px), 1.25rem);
+                white-space: nowrap;
+            }
+        }
+
+        @media (min-width: 1200px) and (max-width: 1599px) {
+            #widget-stats .stat-icon { display: none; }
+        }
+
+        @media (min-width: 1600px) {
+            /* Icon is back, so leave it room */
+            #widget-stats .stat-number[data-prefix] {
+                font-size: clamp(0.75rem, calc(1.55vw - 10px), 1.25rem);
             }
         }
 
         @media (max-width: 1199px) {
-            .col-xl-2-4 {
+            .col-xl-stat {
                 flex: 0 0 auto;
                 width: 33.333333%;
             }
         }
 
         @media (max-width: 767px) {
-            .col-xl-2-4 {
+            .col-xl-stat {
                 flex: 0 0 auto;
                 width: 50%;
             }
@@ -391,7 +420,7 @@ usort($categoryChartData, function($a, $b) { return $b['count'] - $a['count']; }
 
                 <!-- Statistics Cards -->
                 <div class="row g-3 mb-4" id="widget-stats">
-                    <div class="col-sm-6 col-xl-2-4">
+                    <div class="col-sm-6 col-xl-stat">
                         <div class="card stat-card bg-success text-white h-100">
                             <div class="card-body">
                                 <div class="d-flex justify-content-between align-items-start">
@@ -406,7 +435,7 @@ usort($categoryChartData, function($a, $b) { return $b['count'] - $a['count']; }
                         </div>
                     </div>
 
-                    <div class="col-sm-6 col-xl-2-4">
+                    <div class="col-sm-6 col-xl-stat">
                         <div class="card stat-card bg-primary text-white h-100">
                             <div class="card-body">
                                 <div class="d-flex justify-content-between align-items-start">
@@ -421,7 +450,7 @@ usort($categoryChartData, function($a, $b) { return $b['count'] - $a['count']; }
                         </div>
                     </div>
 
-                    <div class="col-sm-6 col-xl-2-4">
+                    <div class="col-sm-6 col-xl-stat">
                         <div class="card stat-card bg-info text-white h-100">
                             <div class="card-body">
                                 <div class="d-flex justify-content-between align-items-start">
@@ -436,7 +465,7 @@ usort($categoryChartData, function($a, $b) { return $b['count'] - $a['count']; }
                         </div>
                     </div>
 
-                    <div class="col-sm-6 col-xl-2-4">
+                    <div class="col-sm-6 col-xl-stat">
                         <div class="card stat-card bg-purple text-white h-100">
                             <div class="card-body">
                                 <div class="d-flex justify-content-between align-items-start">
@@ -451,7 +480,23 @@ usort($categoryChartData, function($a, $b) { return $b['count'] - $a['count']; }
                         </div>
                     </div>
 
-                    <div class="col-sm-6 col-xl-2-4">
+                    <div class="col-sm-6 col-xl-stat">
+                        <div class="card stat-card bg-teal text-white h-100">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div class="stat-text-wrap">
+                                        <h6 class="card-title text-uppercase mb-1">PCL (Parents of Child Laborers)</h6>
+                                        <?php $pclTotal = (int) ($beneficiaryStats['pcl_count'] ?? 0) + (int) ($proponentStats['pcl_count'] ?? 0); ?>
+                                        <h2 class="stat-number mb-0" data-value="<?php echo $pclTotal; ?>" data-decimals="0"><?php echo number_format($pclTotal); ?></h2>
+                                        <small class="stat-detail">Individual: <?php echo number_format($beneficiaryStats['pcl_count'] ?? 0); ?> | Groups: <?php echo number_format($proponentStats['pcl_count'] ?? 0); ?></small>
+                                    </div>
+                                    <i class="bi bi-house-heart stat-icon flex-shrink-0"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-sm-6 col-xl-stat">
                         <div class="card stat-card bg-warning text-dark h-100">
                             <div class="card-body">
                                 <div class="d-flex justify-content-between align-items-start">
@@ -1197,6 +1242,7 @@ usort($categoryChartData, function($a, $b) { return $b['count'] - $a['count']; }
     const dashboardTourSteps = [
         { target: '.stat-card.bg-primary', title: 'Beneficiary Overview', description: 'View total individual beneficiaries with gender breakdown at a glance.' },
         { target: '.stat-card.bg-success', title: 'Proponent Overview', description: 'Track group proponents categorized by LGU and Non-LGU types.' },
+        { target: '.stat-card.bg-teal', title: 'PCL Records', description: 'Count individual beneficiaries and group projects tagged as Parents/Guardians of Child Laborers.' },
         { target: '.stat-card.bg-warning', title: 'Financial Summary', description: 'See the combined total amount for all individual and group projects.' },
         { target: '#widget-status', title: 'Status Overview', description: 'Monitor the status distribution of both individual beneficiaries and group proponents.' },
         { target: '#widget-charts', title: 'Data Visualization', description: 'Interactive charts showing municipality distribution, project types, funding sources, and monthly trends.' },
@@ -1361,6 +1407,13 @@ usort($categoryChartData, function($a, $b) { return $b['count'] - $a['count']; }
                         if (detailEl) detailEl.textContent = `Ongoing: ${Number(fs?.ongoing || 0).toLocaleString()} | Completed: ${Number(fs?.completed || 0).toLocaleString()}`;
                         break;
                     default:
+                        // Handle "PCL (Parents of Child Laborers)" - starts with "PCL"
+                        if (title && title.startsWith('PCL')) {
+                            const benefPcl = Number(bs?.pcl_count || 0);
+                            const propPcl = Number(ps?.pcl_count || 0);
+                            numberEl.textContent = (benefPcl + propPcl).toLocaleString();
+                            if (detailEl) detailEl.textContent = `Individual: ${benefPcl.toLocaleString()} | Groups: ${propPcl.toLocaleString()}`;
+                        }
                         // Handle "Total Amount (Individual + Group Projects)" - starts with "TOTAL AMOUNT"
                         if (title && title.startsWith('TOTAL AMOUNT')) {
                             const totalAmount = (parseFloat(bs?.total_amount) || 0) + (parseFloat(ps?.total_amount) || 0);

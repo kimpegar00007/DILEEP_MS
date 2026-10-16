@@ -476,6 +476,8 @@ class Proponent {
             SUM(total_beneficiaries)  as total_beneficiaries,
             SUM(male_beneficiaries)   as total_male,
             SUM(female_beneficiaries) as total_female,
+            SUM(CASE WHEN (type_of_beneficiaries LIKE '%Child Labor%' OR type_of_beneficiaries LIKE '%PCL%'
+                        OR type_of_workers LIKE '%Child Labor%' OR type_of_workers LIKE '%PCL%') THEN 1 ELSE 0 END) as pcl_count,
             SUM(amount) as total_amount
         FROM proponents WHERE 1=1" . $pSql;
 
