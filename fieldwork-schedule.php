@@ -16,6 +16,8 @@ $overdueActivities = $model->getOverdueActivities();
 $userRole = $_SESSION['role'] ?? 'user';
 // hasRole() also passes super_admin and regional_director, matching the API's write check.
 $canEdit = $auth->hasRole(['admin', 'encoder']);
+// Deletes are admin-only (encoders can edit but not delete).
+$canDelete = $auth->hasRole(['admin']);
 
 // Philippine holidays (static list for calendar display)
 $philippineHolidays = json_encode([
@@ -530,6 +532,7 @@ $philippineHolidays = json_encode([
     <script>
     // Global state
     const CAN_EDIT = <?php echo $canEdit ? 'true' : 'false'; ?>;
+    const CAN_DELETE = <?php echo $canDelete ? 'true' : 'false'; ?>;
     const PH_HOLIDAYS = <?php echo $philippineHolidays; ?>;
     let calendar = null;
     let searchTimeout = null;
@@ -742,13 +745,14 @@ $philippineHolidays = json_encode([
                         </li>
                         <li><hr class="dropdown-divider"></li>
                         ${statusItems}
+                        ${CAN_DELETE ? `
                         <li><hr class="dropdown-divider"></li>
                         <li>
                             <a class="dropdown-item text-danger" href="#"
                                onclick="event.preventDefault(); deleteActivity(${a.id}, '${safeTitle}')">
                                 <i class="bi bi-trash"></i> Delete
                             </a>
-                        </li>
+                        </li>` : ''}
                     </ul>
                 </div>
             </td>`;

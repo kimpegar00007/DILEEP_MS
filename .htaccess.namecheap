@@ -38,16 +38,19 @@ DirectoryIndex index.php index.html
 # .htaccess (it causes a 500), so use mod_rewrite instead.
 <IfModule mod_rewrite.c>
     RewriteEngine On
-    RewriteRule ^(config|debug|fixes|migrations|backups|docs|sql-database|dilp-system-database|inspirations)(/|$) - [F,L]
+    RewriteRule ^(config|debug|fixes|migrations|backups|docs|sql-database|dilp-system-database|inspirations|__MACOSX)(/|$) - [F,L]
 </IfModule>
 
 # =====================================================
-# FORCE HTTPS (Uncomment after SSL is installed)
+# FORCE HTTPS (the session cookie is HTTPS-only, see .user.ini)
 # =====================================================
 
-# RewriteEngine On
-# RewriteCond %{HTTPS} off
-# RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteCond %{HTTPS} off
+    RewriteCond %{REQUEST_URI} !^/\.well-known/
+    RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+</IfModule>
 
 # =====================================================
 # SECURITY HEADERS
@@ -178,6 +181,8 @@ DirectoryIndex index.php index.html
     RewriteRule .* - [F,L]
     
     # Block file injection attempts
+    # (.well-known is exempt: cPanel AutoSSL renews the certificate through it.)
+    RewriteCond %{REQUEST_URI} !^/\.well-known/ [NC]
     RewriteCond %{REQUEST_URI} ^.*/(wp-config\.php|xmlrpc\.php) [NC,OR]
     RewriteCond %{REQUEST_URI} ^.*/(\.|wp-config\.php|readme\.html|license\.txt) [NC]
     RewriteRule .* - [F,L]
@@ -187,7 +192,8 @@ DirectoryIndex index.php index.html
 # LIMIT REQUEST METHODS
 # =====================================================
 
-<LimitExcept GET POST HEAD>
+# DELETE is used by api/proponent-returns.php.
+<LimitExcept GET POST HEAD DELETE>
     Order allow,deny
     Deny from all
 </LimitExcept>

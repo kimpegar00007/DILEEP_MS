@@ -310,6 +310,12 @@ class FieldworkSchedule {
                 return false;
             }
 
+            // Nothing deleted: the activity doesn't exist or is outside the user's province.
+            if ($stmt->rowCount() === 0) {
+                $this->lastError = 'Activity not found';
+                return false;
+            }
+
             $title = $activity ? $activity['title'] : 'ID ' . $id;
             $this->logActivity('delete', $id, 'Deleted fieldwork schedule: ' . $title);
             return true;

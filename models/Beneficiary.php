@@ -284,21 +284,37 @@ class Beneficiary {
             'date_forwarded_to_nofo', 'date_turnover', 'date_monitoring',
         ];
 
-        $dateField = 'date_approved';
+        // With a date field picked, only rows that have that date in range match
+        // ("approved in Q1" means date_approved is in Q1). With no field picked,
+        // rows still missing date_approved fall back to their created_at.
+        $dateField  = 'date_approved';
+        $strictDate = false;
         if (!empty($filters['date_field']) && in_array($filters['date_field'], $allowedDateFields, true)) {
-            $dateField = $filters['date_field'];
+            $dateField  = $filters['date_field'];
+            $strictDate = true;
         }
 
-        if (!empty($filters['date_from']) && !empty($filters['date_to'])) {
-            $sql     .= " AND (({$dateField} IS NOT NULL AND {$dateField} BETWEEN ? AND ?) OR ({$dateField} IS NULL AND DATE(created_at) BETWEEN ? AND ?))";
-            $params[] = $filters['date_from']; $params[] = $filters['date_to'];
-            $params[] = $filters['date_from']; $params[] = $filters['date_to'];
-        } elseif (!empty($filters['date_from'])) {
-            $sql     .= " AND (({$dateField} IS NOT NULL AND {$dateField} >= ?) OR ({$dateField} IS NULL AND DATE(created_at) >= ?))";
-            $params[] = $filters['date_from']; $params[] = $filters['date_from'];
-        } elseif (!empty($filters['date_to'])) {
-            $sql     .= " AND (({$dateField} IS NOT NULL AND {$dateField} <= ?) OR ({$dateField} IS NULL AND DATE(created_at) <= ?))";
-            $params[] = $filters['date_to']; $params[] = $filters['date_to'];
+        if ($strictDate) {
+            if (!empty($filters['date_from'])) {
+                $sql     .= " AND {$dateField} >= ?";
+                $params[] = $filters['date_from'];
+            }
+            if (!empty($filters['date_to'])) {
+                $sql     .= " AND {$dateField} <= ?";
+                $params[] = $filters['date_to'];
+            }
+        } else {
+            if (!empty($filters['date_from']) && !empty($filters['date_to'])) {
+                $sql     .= " AND (({$dateField} IS NOT NULL AND {$dateField} BETWEEN ? AND ?) OR ({$dateField} IS NULL AND DATE(created_at) BETWEEN ? AND ?))";
+                $params[] = $filters['date_from']; $params[] = $filters['date_to'];
+                $params[] = $filters['date_from']; $params[] = $filters['date_to'];
+            } elseif (!empty($filters['date_from'])) {
+                $sql     .= " AND (({$dateField} IS NOT NULL AND {$dateField} >= ?) OR ({$dateField} IS NULL AND DATE(created_at) >= ?))";
+                $params[] = $filters['date_from']; $params[] = $filters['date_from'];
+            } elseif (!empty($filters['date_to'])) {
+                $sql     .= " AND (({$dateField} IS NOT NULL AND {$dateField} <= ?) OR ({$dateField} IS NULL AND DATE(created_at) <= ?))";
+                $params[] = $filters['date_to']; $params[] = $filters['date_to'];
+            }
         }
 
         if (!empty($filters['search'])) {

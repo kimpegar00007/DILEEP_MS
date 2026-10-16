@@ -180,6 +180,13 @@ try {
 
         case 'delete':
             requireEditPermission($userRole);
+            // Deletes are admin-only, like every other delete in the system.
+            // hasRole() also passes super_admin and regional_director.
+            if (!$auth->hasRole(['admin'])) {
+                http_response_code(403);
+                echo json_encode(['success' => false, 'error' => 'Only administrators can delete activities']);
+                break;
+            }
 
             $id = (int) ($_POST['id'] ?? ($_REQUEST['id'] ?? 0));
             if ($id <= 0) {
@@ -192,7 +199,7 @@ try {
             if ($result) {
                 echo json_encode(['success' => true, 'message' => 'Activity deleted successfully']);
             } else {
-                http_response_code(500);
+                http_response_code($model->getLastError() === 'Activity not found' ? 404 : 500);
                 echo json_encode(['success' => false, 'error' => $model->getLastError() ?: 'Failed to delete activity']);
             }
             break;
