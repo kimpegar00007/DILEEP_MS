@@ -484,7 +484,14 @@ const DILP = {
             }, 50);
         },
 
-        start() {
+        start(steps) {
+            if (Array.isArray(steps)) this._steps = steps;
+            // Skip steps whose element is missing or hidden (a widget turned off in
+            // Customize, an empty chart, the sidebar on phones) instead of ending the tour.
+            this._steps = this._steps.filter(step => {
+                const el = document.querySelector(step.target);
+                return el && el.getClientRects().length > 0;
+            });
             if (this._steps.length === 0) return;
             this._active = true;
             this._currentStep = 0;
@@ -586,7 +593,7 @@ const DILP = {
             document.getElementById('tourHighlight').style.display = 'none';
             document.getElementById('tourTooltip').style.display = 'none';
             localStorage.setItem('dilp_tour_completed', 'true');
-            DILP.toast.success('Tour Complete', 'You can restart the tour from your profile settings anytime.');
+            DILP.toast.success('Tour Complete', 'Use the Start Tour button to run it again anytime.');
         }
     },
 

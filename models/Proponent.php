@@ -355,6 +355,14 @@ class Proponent {
             $params[] = $filters['category'];
         }
 
+        // Past the liquidation deadline and not liquidated yet (same rule as the dashboard alert
+        // in Dashboard::getOverdueLiquidations()); "today" is Manila time, not the DB server's.
+        if (!empty($filters['overdue'])) {
+            $sql     .= " AND date_liquidated IS NULL AND liquidation_deadline IS NOT NULL"
+                      . " AND liquidation_deadline < ? AND status NOT IN ('liquidated', 'monitored')";
+            $params[] = (new DateTimeImmutable('today', new DateTimeZone('Asia/Manila')))->format('Y-m-d');
+        }
+
         $allowedDateFields = [
             'letter_of_intent_date', 'date_forwarded_to_ro6', 'date_complied_by_proponent',
             'date_complied_by_proponent_nofo', 'date_forwarded_to_nofo', 'date_approved',
@@ -438,152 +446,6 @@ class Proponent {
 
         $stmt = $this->db->prepare($sql);
         $stmt->execute($params);
-        return $stmt->fetchAll();
-    }
-
-    public function getMapData() {
-        [$pSql, $pParams] = $this->provinceScope();
-
-        $sql = "SELECT id, proponent_name as name, project_title, district, province, amount,
-                CAST(latitude  AS DECIMAL(10,8)) as latitude,
-                CAST(longitude AS DECIMAL(11,8)) as longitude,
-                status, proponent_type, 'proponent' as type, total_beneficiaries
-                FROM proponents
-                WHERE status IN ('approved', 'implemented', 'liquidated', 'monitored')
-                AND latitude  IS NOT NULL AND longitude IS NOT NULL
-                AND latitude  != 0        AND longitude != 0
-                AND latitude  BETWEEN 9.0 AND 12.0
-                AND longitude BETWEEN 122.0 AND 124.0"
-                . $pSql;
-
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute($pParams);
-        return $stmt->fetchAll();
-    }
-
-    public function getStatistics() {
-        [$pSql, $pParams] = $this->provinceScope();
-
-        $sql = "SELECT
-            COUNT(*) as total,
-            SUM(CASE WHEN proponent_type = 'LGU-associated'     THEN 1 ELSE 0 END) as lgu_count,
-            SUM(CASE WHEN proponent_type = 'Non-LGU-associated' THEN 1 ELSE 0 END) as non_lgu_count,
-            SUM(CASE WHEN status = 'pending'     THEN 1 ELSE 0 END) as pending,
-            SUM(CASE WHEN status = 'approved'    THEN 1 ELSE 0 END) as approved,
-            SUM(CASE WHEN status = 'implemented' THEN 1 ELSE 0 END) as implemented,
-            SUM(CASE WHEN status = 'liquidated'  THEN 1 ELSE 0 END) as liquidated,
-            SUM(CASE WHEN status = 'monitored'   THEN 1 ELSE 0 END) as monitored,
-            SUM(total_beneficiaries)  as total_beneficiaries,
-            SUM(male_beneficiaries)   as total_male,
-            SUM(female_beneficiaries) as total_female,
-            SUM(CASE WHEN (type_of_beneficiaries LIKE '%Child Labor%' OR type_of_beneficiaries LIKE '%PCL%'
-                        OR type_of_workers LIKE '%Child Labor%' OR type_of_workers LIKE '%PCL%') THEN 1 ELSE 0 END) as pcl_count,
-            SUM(amount) as total_amount
-        FROM proponents WHERE 1=1" . $pSql;
-
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute($pParams);
-        return $stmt->fetch();
-    }
-
-    public function getOverdueLiquidations() {
-        [$pSql, $pParams] = $this->provinceScope();
-
-        $sql = "SELECT * FROM proponents
-                WHERE date_liquidated IS NULL
-                AND liquidation_deadline < CURDATE()
-                AND status != 'liquidated'"
-                . $pSql .
-               " ORDER BY liquidation_deadline ASC";
-
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute($pParams);
-        return $stmt->fetchAll();
-    }
-
-    public function getDistrictDistribution() {
-        [$pSql, $pParams] = $this->provinceScope();
-
-        $sql = "SELECT district, COUNT(*) as count, SUM(amount) as total_amount
-                FROM proponents
-                WHERE district IS NOT NULL AND district != ''"
-                . $pSql .
-               " GROUP BY district ORDER BY count DESC";
-
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute($pParams);
-        return $stmt->fetchAll();
-    }
-
-    public function getCategoryDistribution() {
-        [$pSql, $pParams] = $this->provinceScope();
-
-        $sql = "SELECT category, COUNT(*) as count
-                FROM proponents
-                WHERE category IS NOT NULL AND category != ''"
-                . $pSql .
-               " GROUP BY category ORDER BY count DESC";
-
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute($pParams);
-        return $stmt->fetchAll();
-    }
-
-    public function getFundingSourceBreakdown() {
-        [$pSql, $pParams] = $this->provinceScope();
-
-        $sql = "SELECT
-                CASE
-                    WHEN source_of_funds IS NULL OR source_of_funds = '' THEN 'Not Specified'
-                    ELSE source_of_funds
-                END as source_of_funds,
-                COUNT(*) as count,
-                SUM(amount) as total_amount
-                FROM proponents
-                WHERE 1=1"
-                . $pSql .
-               " GROUP BY
-                    CASE
-                        WHEN source_of_funds IS NULL OR source_of_funds = '' THEN 'Not Specified'
-                        ELSE source_of_funds
-                    END
-                ORDER BY total_amount DESC";
-
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute($pParams);
-        return $stmt->fetchAll();
-    }
-
-    public function getMonthlyTrends() {
-        [$pSql, $pParams] = $this->provinceScope();
-
-        $sql = "SELECT
-                DATE_FORMAT(date_approved, '%Y-%m') as month,
-                COUNT(*) as count,
-                SUM(amount) as total_amount,
-                SUM(total_beneficiaries) as total_beneficiaries
-                FROM proponents
-                WHERE date_approved IS NOT NULL
-                AND date_approved >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)"
-                . $pSql .
-               " GROUP BY DATE_FORMAT(date_approved, '%Y-%m') ORDER BY month ASC";
-
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute($pParams);
-        return $stmt->fetchAll();
-    }
-
-    public function getWorkerTypeDistribution() {
-        [$pSql, $pParams] = $this->provinceScope();
-
-        $sql = "SELECT type_of_workers as type_of_worker, COUNT(*) as count
-                FROM proponents
-                WHERE type_of_workers IS NOT NULL AND type_of_workers != ''"
-                . $pSql .
-               " GROUP BY type_of_workers ORDER BY count DESC";
-
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute($pParams);
         return $stmt->fetchAll();
     }
 

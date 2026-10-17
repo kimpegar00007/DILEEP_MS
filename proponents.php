@@ -27,7 +27,9 @@ $filters = [
     'district'       => $_GET['district'] ?? '',
     'status'         => $_GET['status'] ?? '',
     'category'       => $_GET['category'] ?? '',
-    'search'         => $_GET['search'] ?? ''
+    'search'         => $_GET['search'] ?? '',
+    // Set by the dashboard's "View all overdue liquidations" link
+    'overdue'        => ($_GET['filter'] ?? '') === 'overdue',
 ];
 
 $proponents = $proponentModel->getAll($filters);
@@ -74,6 +76,9 @@ if ($provinceFilter) {
                 <div class="card filters-card mb-4">
                     <div class="card-body">
                         <form method="GET" action="" class="row g-3">
+                            <?php if ($filters['overdue']): ?>
+                            <input type="hidden" name="filter" value="overdue">
+                            <?php endif; ?>
                             <div class="col-md-2">
                                 <label class="form-label">Province</label>
                                 <?php if ($isCrossProvince): ?>
@@ -144,6 +149,13 @@ if ($provinceFilter) {
                         </form>
                     </div>
                 </div>
+
+                <?php if ($filters['overdue']): ?>
+                <div class="alert alert-danger d-flex justify-content-between align-items-center" role="status">
+                    <span><i class="bi bi-exclamation-triangle-fill"></i> Showing only proponents with overdue liquidations.</span>
+                    <a href="proponents.php" class="alert-link">Show all proponents</a>
+                </div>
+                <?php endif; ?>
 
                 <div class="card">
                     <div class="card-body">

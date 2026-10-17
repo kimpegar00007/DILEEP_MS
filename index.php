@@ -2,9 +2,7 @@
 session_start();
 require_once 'config/database.php';
 require_once 'includes/Auth.php';
-require_once 'models/Beneficiary.php';
-require_once 'models/Proponent.php';
-require_once 'models/FieldworkSchedule.php';
+require_once 'models/Dashboard.php';
 
 $auth = new Auth();
 $auth->requireLogin();
@@ -33,84 +31,16 @@ if ($sessionProvince !== null && isset($provinceCenters[$sessionProvince])) {
     $mapCenter = [10.0, 123.0, 8];
 }
 
-$beneficiaryModel = new Beneficiary();
-$proponentModel = new Proponent();
-$fieldworkModel = new FieldworkSchedule();
+// Every number, chart, map point and the overdue alert come from one place, the same one
+// api/dashboard-stats.php uses when filters are applied (models/Dashboard.php).
+$dashboardModel = new Dashboard();
+$dashboardData  = $dashboardModel->getData();
 
-// Get statistics
-$beneficiaryStats = $beneficiaryModel->getStatistics();
-$proponentStats = $proponentModel->getStatistics();
-$fieldworkStats = $fieldworkModel->getStatistics();
+$beneficiaryStats = $dashboardData['beneficiaryStats'];
+$proponentStats   = $dashboardData['proponentStats'];
+$fieldworkStats   = $dashboardData['fieldworkStats'];
 
-// Get map data
-$beneficiaryMapData = $beneficiaryModel->getMapData();
-$proponentMapData = $proponentModel->getMapData();
-$mapData = array_merge($beneficiaryMapData, $proponentMapData);
-
-// Get overdue liquidations
-$overdueLiquidations = $proponentModel->getOverdueLiquidations();
-
-// Get chart data
-$beneficiaryMunicipalityData = $beneficiaryModel->getMunicipalityDistribution();
-$beneficiaryMonthlyTrends = $beneficiaryModel->getMonthlyTrends();
-$proponentDistrictData = $proponentModel->getDistrictDistribution();
-$proponentMonthlyTrends = $proponentModel->getMonthlyTrends();
-
-// Combined data for Worker Type Distribution (Beneficiaries + Proponents)
-$beneficiaryWorkerData = $beneficiaryModel->getProjectTypeDistribution();
-$proponentWorkerData = $proponentModel->getWorkerTypeDistribution();
-$combinedWorkerTypeData = [];
-foreach (array_merge($beneficiaryWorkerData, $proponentWorkerData) as $item) {
-    $type = $item['type_of_worker'];
-    if (!isset($combinedWorkerTypeData[$type])) {
-        $combinedWorkerTypeData[$type] = 0;
-    }
-    $combinedWorkerTypeData[$type] += (int)$item['count'];
-}
-$workerTypeChartData = [];
-foreach ($combinedWorkerTypeData as $type => $count) {
-    $workerTypeChartData[] = ['type_of_worker' => $type, 'count' => $count];
-}
-usort($workerTypeChartData, function($a, $b) { return $b['count'] - $a['count']; });
-
-// Combined data for Funding Source Breakdown (Beneficiaries + Proponents)
-$beneficiaryFundingData = $beneficiaryModel->getFundingSourceBreakdown();
-$proponentFundingData = $proponentModel->getFundingSourceBreakdown();
-$combinedFundingData = [];
-foreach (array_merge($beneficiaryFundingData, $proponentFundingData) as $item) {
-    $source = $item['source_of_funds'];
-    if (!isset($combinedFundingData[$source])) {
-        $combinedFundingData[$source] = ['count' => 0, 'total_amount' => 0];
-    }
-    $combinedFundingData[$source]['count'] += (int)$item['count'];
-    $combinedFundingData[$source]['total_amount'] += (float)$item['total_amount'];
-}
-$fundingChartData = [];
-foreach ($combinedFundingData as $source => $data) {
-    $fundingChartData[] = [
-        'source_of_funds' => $source,
-        'count' => $data['count'],
-        'total_amount' => $data['total_amount']
-    ];
-}
-usort($fundingChartData, function($a, $b) { return $b['total_amount'] - $a['total_amount']; });
-
-// Combined data for Category Distribution (Proponents only, Beneficiaries don't have category)
-$beneficiaryCategoryData = $beneficiaryModel->getCategoryDistribution();
-$proponentCategoryData = $proponentModel->getCategoryDistribution();
-$combinedCategoryData = [];
-foreach (array_merge($beneficiaryCategoryData, $proponentCategoryData) as $item) {
-    $category = $item['category'];
-    if (!isset($combinedCategoryData[$category])) {
-        $combinedCategoryData[$category] = 0;
-    }
-    $combinedCategoryData[$category] += (int)$item['count'];
-}
-$categoryChartData = [];
-foreach ($combinedCategoryData as $category => $count) {
-    $categoryChartData[] = ['category' => $category, 'count' => $count];
-}
-usort($categoryChartData, function($a, $b) { return $b['count'] - $a['count']; });
+$mapAreaLabel = $sessionProvince ?? 'All Provinces';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -133,9 +63,20 @@ usort($categoryChartData, function($a, $b) { return $b['count'] - $a['count']; }
         .alert-overdue { border-left: 4px solid var(--dole-danger); }
         .leaflet-popup-content-wrapper { border-radius: 8px; }
         
-        .card canvas {
-            max-width: 100%;
-            height: auto !important;
+        .dash-card .card-body { padding: 1.25rem; }
+
+        /* Chart.js sizes the canvas to this box (responsive, no fixed aspect ratio) */
+        .chart-box {
+            position: relative;
+            width: 100%;
+            height: 300px;
+        }
+
+        /* Dimmed while filtered data loads; the old values stay readable */
+        .is-loading {
+            opacity: 0.55;
+            pointer-events: none;
+            transition: opacity 0.2s;
         }
         
         #widget-charts .card-body {
@@ -316,7 +257,7 @@ usort($categoryChartData, function($a, $b) { return $b['count'] - $a['count']; }
                     ?>
                     <h2 id="dashboardGreeting">Hello, <?php echo htmlspecialchars($fullName); ?> — <?php echo $timeGreeting; ?>!</h2>
                     <div class="d-flex gap-2 no-print">
-                        <button class="btn btn-outline-primary btn-sm" id="startTourBtn" onclick="DILP.tour.start()" aria-label="Start guided tour" title="Start a guided tour of the dashboard">
+                        <button class="btn btn-outline-primary btn-sm" id="startTourBtn" aria-label="Start guided tour" title="Start a guided tour of the dashboard">
                             <i class="bi bi-play-circle"></i> Start Tour
                         </button>
                         <div class="dropdown">
@@ -400,11 +341,11 @@ usort($categoryChartData, function($a, $b) { return $b['count'] - $a['count']; }
                             <div class="col-auto">
                                 <div class="form-check mb-0">
                                     <input class="form-check-input" type="checkbox" id="filter-approved-only">
-                                    <label class="form-check-label" for="filter-approved-only">Approved Only</label>
+                                    <label class="form-check-label" for="filter-approved-only" title="Approved, implemented, liquidated and monitored records">Approved &amp; later</label>
                                 </div>
                             </div>
                             <div class="col-auto">
-                                <button type="button" class="btn btn-primary btn-sm" onclick="applyDashboardFilters()">
+                                <button type="button" class="btn btn-primary btn-sm" id="applyFiltersBtn" onclick="applyDashboardFilters()">
                                     <i class="bi bi-check-lg"></i> Apply
                                 </button>
                                 <button type="button" class="btn btn-outline-secondary btn-sm" onclick="resetDashboardFilters()">
@@ -426,8 +367,8 @@ usort($categoryChartData, function($a, $b) { return $b['count'] - $a['count']; }
                                 <div class="d-flex justify-content-between align-items-start">
                                     <div class="stat-text-wrap">
                                         <h6 class="card-title text-uppercase mb-1">Total Proponents</h6>
-                                        <h2 class="stat-number mb-0" data-value="<?php echo (int) $proponentStats['total']; ?>" data-decimals="0"><?php echo number_format($proponentStats['total']); ?></h2>
-                                        <small class="stat-detail">LGU: <?php echo number_format($proponentStats['lgu_count']); ?> | Non-LGU: <?php echo number_format($proponentStats['non_lgu_count']); ?></small>
+                                        <h2 class="stat-number mb-0" data-stat="proponents" data-value="<?php echo (int) $proponentStats['total']; ?>" data-decimals="0"><?php echo number_format($proponentStats['total']); ?></h2>
+                                        <small class="stat-detail" data-stat-detail="proponents">LGU: <?php echo number_format($proponentStats['lgu_count']); ?> | Non-LGU: <?php echo number_format($proponentStats['non_lgu_count']); ?></small>
                                     </div>
                                     <i class="bi bi-people stat-icon flex-shrink-0"></i>
                                 </div>
@@ -441,8 +382,8 @@ usort($categoryChartData, function($a, $b) { return $b['count'] - $a['count']; }
                                 <div class="d-flex justify-content-between align-items-start">
                                     <div class="stat-text-wrap">
                                         <h6 class="card-title text-uppercase mb-1">Total Beneficiaries</h6>
-                                        <h2 class="stat-number mb-0" data-value="<?php echo (int) $beneficiaryStats['total']; ?>" data-decimals="0"><?php echo number_format($beneficiaryStats['total']); ?></h2>
-                                        <small class="stat-detail">Male: <?php echo number_format($beneficiaryStats['male_count']); ?> | Female: <?php echo number_format($beneficiaryStats['female_count']); ?></small>
+                                        <h2 class="stat-number mb-0" data-stat="beneficiaries" data-value="<?php echo (int) $beneficiaryStats['total']; ?>" data-decimals="0"><?php echo number_format($beneficiaryStats['total']); ?></h2>
+                                        <small class="stat-detail" data-stat-detail="beneficiaries">Male: <?php echo number_format($beneficiaryStats['male_count']); ?> | Female: <?php echo number_format($beneficiaryStats['female_count']); ?></small>
                                     </div>
                                     <i class="bi bi-person stat-icon flex-shrink-0"></i>
                                 </div>
@@ -456,8 +397,8 @@ usort($categoryChartData, function($a, $b) { return $b['count'] - $a['count']; }
                                 <div class="d-flex justify-content-between align-items-start">
                                     <div class="stat-text-wrap">
                                         <h6 class="card-title text-uppercase mb-1">Beneficiaries (Groups)</h6>
-                                        <h2 class="stat-number mb-0" data-value="<?php echo (int) ($proponentStats['total_beneficiaries'] ?? 0); ?>" data-decimals="0"><?php echo number_format($proponentStats['total_beneficiaries'] ?? 0); ?></h2>
-                                        <small class="stat-detail">Male: <?php echo number_format($proponentStats['total_male'] ?? 0); ?> | Female: <?php echo number_format($proponentStats['total_female'] ?? 0); ?></small>
+                                        <h2 class="stat-number mb-0" data-stat="groupMembers" data-value="<?php echo (int) ($proponentStats['total_beneficiaries'] ?? 0); ?>" data-decimals="0"><?php echo number_format($proponentStats['total_beneficiaries'] ?? 0); ?></h2>
+                                        <small class="stat-detail" data-stat-detail="groupMembers">Male: <?php echo number_format($proponentStats['total_male'] ?? 0); ?> | Female: <?php echo number_format($proponentStats['total_female'] ?? 0); ?></small>
                                     </div>
                                     <i class="bi bi-people-fill stat-icon flex-shrink-0"></i>
                                 </div>
@@ -471,8 +412,8 @@ usort($categoryChartData, function($a, $b) { return $b['count'] - $a['count']; }
                                 <div class="d-flex justify-content-between align-items-start">
                                     <div class="stat-text-wrap">
                                         <h6 class="card-title text-uppercase mb-1">Fieldwork Schedule</h6>
-                                        <h2 class="stat-number mb-0" data-value="<?php echo (int) $fieldworkStats['total']; ?>" data-decimals="0"><?php echo number_format($fieldworkStats['total']); ?></h2>
-                                        <small class="stat-detail">Ongoing: <?php echo number_format($fieldworkStats['ongoing']); ?> | Completed: <?php echo number_format($fieldworkStats['completed']); ?></small>
+                                        <h2 class="stat-number mb-0" data-stat="fieldwork" data-value="<?php echo (int) $fieldworkStats['total']; ?>" data-decimals="0"><?php echo number_format($fieldworkStats['total']); ?></h2>
+                                        <small class="stat-detail" data-stat-detail="fieldwork">Ongoing: <?php echo number_format($fieldworkStats['ongoing']); ?> | Completed: <?php echo number_format($fieldworkStats['completed']); ?></small>
                                     </div>
                                     <i class="bi bi-calendar-check stat-icon flex-shrink-0"></i>
                                 </div>
@@ -487,8 +428,8 @@ usort($categoryChartData, function($a, $b) { return $b['count'] - $a['count']; }
                                     <div class="stat-text-wrap">
                                         <h6 class="card-title text-uppercase mb-1">PCL (Parents of Child Laborers)</h6>
                                         <?php $pclTotal = (int) ($beneficiaryStats['pcl_count'] ?? 0) + (int) ($proponentStats['pcl_count'] ?? 0); ?>
-                                        <h2 class="stat-number mb-0" data-value="<?php echo $pclTotal; ?>" data-decimals="0"><?php echo number_format($pclTotal); ?></h2>
-                                        <small class="stat-detail">Individual: <?php echo number_format($beneficiaryStats['pcl_count'] ?? 0); ?> | Groups: <?php echo number_format($proponentStats['pcl_count'] ?? 0); ?></small>
+                                        <h2 class="stat-number mb-0" data-stat="pcl" data-value="<?php echo $pclTotal; ?>" data-decimals="0"><?php echo number_format($pclTotal); ?></h2>
+                                        <small class="stat-detail" data-stat-detail="pcl">Individual: <?php echo number_format($beneficiaryStats['pcl_count'] ?? 0); ?> | Groups: <?php echo number_format($proponentStats['pcl_count'] ?? 0); ?></small>
                                     </div>
                                     <i class="bi bi-house-heart stat-icon flex-shrink-0"></i>
                                 </div>
@@ -502,8 +443,8 @@ usort($categoryChartData, function($a, $b) { return $b['count'] - $a['count']; }
                                 <div class="d-flex justify-content-between align-items-start">
                                     <div class="stat-text-wrap">
                                         <h6 class="card-title text-uppercase mb-1">Total Amount (Individual + Group Projects)</h6>
-                                        <?php $totalAmount = floatval($beneficiaryStats['total_amount'] + $proponentStats['total_amount']); ?>
-                                        <h2 class="stat-number mb-0" data-value="<?php echo htmlspecialchars($totalAmount); ?>" data-decimals="2" data-prefix="₱"><?php echo '₱' . number_format($totalAmount, 2); ?></h2>
+                                        <?php $totalAmount = (float) $beneficiaryStats['total_amount'] + (float) $proponentStats['total_amount']; ?>
+                                        <h2 class="stat-number mb-0" data-stat="totalAmount" data-value="<?php echo htmlspecialchars($totalAmount); ?>" data-decimals="2" data-prefix="₱"><?php echo '₱' . number_format($totalAmount, 2); ?></h2>
                                     </div>
                                     <i class="bi bi-cash-stack stat-icon flex-shrink-0"></i>
                                 </div>
@@ -515,26 +456,26 @@ usort($categoryChartData, function($a, $b) { return $b['count'] - $a['count']; }
                 <!-- Project Status Overview -->
                 <div class="row g-3 mb-4" id="widget-status">
                     <div class="col-sm-12 col-md-6">
-                        <div class="card stat-card h-100">
+                        <div class="card dash-card h-100">
                             <div class="card-header bg-white">
                                 <h5 class="mb-0"><i class="bi bi-person"></i> Individual Beneficiaries Status</h5>
                             </div>
                             <div class="card-body d-flex align-items-center">
                                 <div class="row text-center w-100">
                                     <div class="col">
-                                        <h4 class="text-secondary mb-1 stat-count" data-value="<?php echo (int) $beneficiaryStats['pending']; ?>" data-decimals="0"><?php echo number_format($beneficiaryStats['pending']); ?></h4>
+                                        <h4 class="text-secondary mb-1 stat-count" data-stat="beneficiaryStats.pending" data-value="<?php echo (int) $beneficiaryStats['pending']; ?>" data-decimals="0"><?php echo number_format($beneficiaryStats['pending']); ?></h4>
                                         <small class="text-muted">Pending</small>
                                     </div>
                                     <div class="col">
-                                        <h4 class="text-primary mb-1 stat-count" data-value="<?php echo (int) $beneficiaryStats['approved']; ?>" data-decimals="0"><?php echo number_format($beneficiaryStats['approved']); ?></h4>
+                                        <h4 class="text-primary mb-1 stat-count" data-stat="beneficiaryStats.approved" data-value="<?php echo (int) $beneficiaryStats['approved']; ?>" data-decimals="0"><?php echo number_format($beneficiaryStats['approved']); ?></h4>
                                         <small class="text-muted">Approved</small>
                                     </div>
                                     <div class="col">
-                                        <h4 class="text-success mb-1 stat-count" data-value="<?php echo (int) $beneficiaryStats['implemented']; ?>" data-decimals="0"><?php echo number_format($beneficiaryStats['implemented']); ?></h4>
+                                        <h4 class="text-success mb-1 stat-count" data-stat="beneficiaryStats.implemented" data-value="<?php echo (int) $beneficiaryStats['implemented']; ?>" data-decimals="0"><?php echo number_format($beneficiaryStats['implemented']); ?></h4>
                                         <small class="text-muted">Implemented</small>
                                     </div>
                                     <div class="col">
-                                        <h4 class="text-info mb-1 stat-count" data-value="<?php echo (int) $beneficiaryStats['monitored']; ?>" data-decimals="0"><?php echo number_format($beneficiaryStats['monitored']); ?></h4>
+                                        <h4 class="text-info mb-1 stat-count" data-stat="beneficiaryStats.monitored" data-value="<?php echo (int) $beneficiaryStats['monitored']; ?>" data-decimals="0"><?php echo number_format($beneficiaryStats['monitored']); ?></h4>
                                         <small class="text-muted">Monitored</small>
                                     </div>
                                 </div>
@@ -543,30 +484,30 @@ usort($categoryChartData, function($a, $b) { return $b['count'] - $a['count']; }
                     </div>
 
                     <div class="col-sm-12 col-md-6">
-                        <div class="card stat-card h-100">
+                        <div class="card dash-card h-100">
                             <div class="card-header bg-white">
                                 <h5 class="mb-0"><i class="bi bi-people"></i> Group Proponents Status</h5>
                             </div>
                             <div class="card-body d-flex align-items-center">
                                 <div class="row text-center w-100">
                                     <div class="col">
-                                        <h4 class="text-secondary mb-1 stat-count" data-value="<?php echo (int) $proponentStats['pending']; ?>" data-decimals="0"><?php echo number_format($proponentStats['pending']); ?></h4>
+                                        <h4 class="text-secondary mb-1 stat-count" data-stat="proponentStats.pending" data-value="<?php echo (int) $proponentStats['pending']; ?>" data-decimals="0"><?php echo number_format($proponentStats['pending']); ?></h4>
                                         <small class="text-muted">Pending</small>
                                     </div>
                                     <div class="col">
-                                        <h4 class="text-primary mb-1 stat-count" data-value="<?php echo (int) $proponentStats['approved']; ?>" data-decimals="0"><?php echo number_format($proponentStats['approved']); ?></h4>
+                                        <h4 class="text-primary mb-1 stat-count" data-stat="proponentStats.approved" data-value="<?php echo (int) $proponentStats['approved']; ?>" data-decimals="0"><?php echo number_format($proponentStats['approved']); ?></h4>
                                         <small class="text-muted">Approved</small>
                                     </div>
                                     <div class="col">
-                                        <h4 class="text-success mb-1 stat-count" data-value="<?php echo (int) $proponentStats['implemented']; ?>" data-decimals="0"><?php echo number_format($proponentStats['implemented']); ?></h4>
+                                        <h4 class="text-success mb-1 stat-count" data-stat="proponentStats.implemented" data-value="<?php echo (int) $proponentStats['implemented']; ?>" data-decimals="0"><?php echo number_format($proponentStats['implemented']); ?></h4>
                                         <small class="text-muted">Implemented</small>
                                     </div>
                                     <div class="col">
-                                        <h4 class="text-warning mb-1 stat-count" data-value="<?php echo (int) $proponentStats['liquidated']; ?>" data-decimals="0"><?php echo number_format($proponentStats['liquidated']); ?></h4>
+                                        <h4 class="text-warning mb-1 stat-count" data-stat="proponentStats.liquidated" data-value="<?php echo (int) $proponentStats['liquidated']; ?>" data-decimals="0"><?php echo number_format($proponentStats['liquidated']); ?></h4>
                                         <small class="text-muted">Liquidated</small>
                                     </div>
                                     <div class="col">
-                                        <h4 class="text-info mb-1 stat-count" data-value="<?php echo (int) $proponentStats['monitored']; ?>" data-decimals="0"><?php echo number_format($proponentStats['monitored']); ?></h4>
+                                        <h4 class="text-info mb-1 stat-count" data-stat="proponentStats.monitored" data-value="<?php echo (int) $proponentStats['monitored']; ?>" data-decimals="0"><?php echo number_format($proponentStats['monitored']); ?></h4>
                                         <small class="text-muted">Monitored</small>
                                     </div>
                                 </div>
@@ -579,103 +520,91 @@ usort($categoryChartData, function($a, $b) { return $b['count'] - $a['count']; }
                 <div class="row g-3 mb-4" id="widget-charts">
                     <!-- Beneficiary Municipality Distribution -->
                     <div class="col-lg-6">
-                        <div class="card stat-card h-100">
+                        <div class="card dash-card h-100">
                             <div class="card-header bg-white">
                                 <h5 class="mb-0"><i class="bi bi-bar-chart-fill"></i> Top 10 Municipalities (Individual)</h5>
                             </div>
                             <div class="card-body">
-                                <canvas id="municipalityChart" style="max-height: 300px;"></canvas>
+                                <div class="chart-box"><canvas id="municipalityChart"></canvas></div>
+                                <p class="chart-empty text-muted mb-0 d-none" data-empty-for="municipalityChart"><i class="bi bi-inbox"></i> No data for these filters.</p>
                             </div>
                         </div>
                     </div>
 
                     <!-- Proponent District Distribution -->
                     <div class="col-lg-6">
-                        <div class="card stat-card h-100">
+                        <div class="card dash-card h-100">
                             <div class="card-header bg-white">
                                 <h5 class="mb-0"><i class="bi bi-pie-chart-fill"></i> District Distribution (Groups)</h5>
                             </div>
                             <div class="card-body">
-                                <canvas id="districtChart" style="max-height: 300px;"></canvas>
+                                <div class="chart-box"><canvas id="districtChart"></canvas></div>
+                                <p class="chart-empty text-muted mb-0 d-none" data-empty-for="districtChart"><i class="bi bi-inbox"></i> No data for these filters.</p>
                             </div>
                         </div>
                     </div>
 
                     <!-- Worker Type Distribution -->
                     <div class="col-lg-6">
-                        <div class="card stat-card h-100">
+                        <div class="card dash-card h-100">
                             <div class="card-header bg-white">
                                 <h5 class="mb-0"><i class="bi bi-diagram-3-fill"></i> Worker Type Distribution (Combined)</h5>
+                                <small class="text-muted">A record with several worker types counts once under each.</small>
                             </div>
                             <div class="card-body">
-                                <canvas id="projectTypeChart" style="max-height: 300px;"></canvas>
+                                <div class="chart-box"><canvas id="projectTypeChart"></canvas></div>
+                                <p class="chart-empty text-muted mb-0 d-none" data-empty-for="projectTypeChart"><i class="bi bi-inbox"></i> No data for these filters.</p>
                             </div>
                         </div>
                     </div>
 
                     <!-- Funding Source Breakdown -->
                     <div class="col-lg-6">
-                        <div class="card stat-card h-100">
+                        <div class="card dash-card h-100">
                             <div class="card-header bg-white">
                                 <h5 class="mb-0"><i class="bi bi-cash-coin"></i> Funding Source Breakdown (Combined)</h5>
                             </div>
                             <div class="card-body">
-                                <canvas id="fundingChart" style="max-height: 300px;"></canvas>
+                                <div class="chart-box"><canvas id="fundingChart"></canvas></div>
+                                <p class="chart-empty text-muted mb-0 d-none" data-empty-for="fundingChart"><i class="bi bi-inbox"></i> No data for these filters.</p>
                             </div>
                         </div>
                     </div>
 
                     <!-- Category Distribution -->
                     <div class="col-lg-6">
-                        <div class="card stat-card h-100">
+                        <div class="card dash-card h-100">
                             <div class="card-header bg-white">
-                                <h5 class="mb-0"><i class="bi bi-tags-fill"></i> Project Category Distribution (Combined)</h5>
+                                <h5 class="mb-0"><i class="bi bi-tags-fill"></i> Project Category Distribution (Groups)</h5>
                             </div>
                             <div class="card-body">
-                                <canvas id="categoryChart" style="max-height: 300px;"></canvas>
+                                <div class="chart-box"><canvas id="categoryChart"></canvas></div>
+                                <p class="chart-empty text-muted mb-0 d-none" data-empty-for="categoryChart"><i class="bi bi-inbox"></i> No data for these filters.</p>
                             </div>
                         </div>
                     </div>
 
                     <!-- Monthly Trends -->
                     <div class="col-lg-6">
-                        <div class="card stat-card h-100">
+                        <div class="card dash-card h-100">
                             <div class="card-header bg-white">
-                                <h5 class="mb-0"><i class="bi bi-graph-up"></i> Monthly Approval Trends (Last 12 Months)</h5>
+                                <h5 class="mb-0"><i class="bi bi-graph-up"></i> Monthly Approval Trends (<span id="trendsPeriod">Last 12 Months</span>)</h5>
                             </div>
                             <div class="card-body">
-                                <canvas id="trendsChart" style="max-height: 300px;"></canvas>
+                                <div class="chart-box"><canvas id="trendsChart"></canvas></div>
+                                <p class="chart-empty text-muted mb-0 d-none" data-empty-for="trendsChart"><i class="bi bi-inbox"></i> No data for these filters.</p>
                             </div>
                         </div>
                     </div>
                 </div>
 
                 <!-- Overdue Liquidations Alert -->
-                <div id="widget-overdue">
-                <?php if (count($overdueLiquidations) > 0): ?>
-                <div class="alert alert-danger alert-overdue mb-4" role="alert">
-                    <h5 class="alert-heading"><i class="bi bi-exclamation-triangle-fill"></i> Overdue Liquidations</h5>
-                    <p>There are <strong><?php echo count($overdueLiquidations); ?></strong> proponent(s) with overdue liquidation deadlines:</p>
-                    <ul class="mb-0">
-                        <?php foreach (array_slice($overdueLiquidations, 0, 5) as $overdue): ?>
-                        <li>
-                            <strong><?php echo htmlspecialchars($overdue['proponent_name']); ?></strong> - 
-                            Deadline: <?php echo date('F d, Y', strtotime($overdue['liquidation_deadline'])); ?>
-                            (<?php echo abs((strtotime($overdue['liquidation_deadline']) - time()) / 86400); ?> days overdue)
-                        </li>
-                        <?php endforeach; ?>
-                    </ul>
-                    <?php if (count($overdueLiquidations) > 5): ?>
-                    <p class="mt-2 mb-0"><a href="proponents.php?filter=overdue" class="alert-link">View all overdue liquidations</a></p>
-                    <?php endif; ?>
-                </div>
-                <?php endif; ?>
-                </div>
+                <div id="widget-overdue"></div>
 
                 <!-- Map Visualization -->
-                <div class="card stat-card mb-4" id="widget-map">
+                <div class="card dash-card mb-4" id="widget-map">
                     <div class="card-header bg-white">
-                        <h5 class="mb-0"><i class="bi bi-geo-alt-fill"></i> Project Distribution Map - Negros Occidental</h5>
+                        <h5 class="mb-0"><i class="bi bi-geo-alt-fill"></i> Project Distribution Map - <span id="mapAreaLabel"><?php echo htmlspecialchars($mapAreaLabel); ?></span></h5>
                     </div>
                     <div class="card-body p-0">
                         <div id="map"></div>
@@ -706,61 +635,125 @@ usort($categoryChartData, function($a, $b) { return $b['count'] - $a['count']; }
     <?php include 'includes/notification-script.php'; ?>
     <?php include 'includes/ux-utilities.php'; ?>
     <script>
-        // Minimal number counter animation for dashboard stat cards
-        (function() {
-            function formatNumber(value, decimals) {
-                if (decimals && decimals > 0) {
-                    return value.toLocaleString('en-PH', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
-                }
-                return Math.round(value).toLocaleString('en-PH');
+        // =========================================================
+        // Dashboard data: same structure api/dashboard-stats.php returns
+        // =========================================================
+        const DASHBOARD_DATA = <?php echo json_encode($dashboardData, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
+
+        // Province center config (mirrors PHP $provinceCenters)
+        const PROVINCE_CENTERS = <?php echo json_encode($provinceCenters, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
+        // Auto-center on logged-in user's province; cross-province roles see the regional overview
+        const MAP_CENTER = <?php echo json_encode(array_values($mapCenter), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
+
+        function escapeHtml(value) {
+            return String(value ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function formatCount(value) {
+            return Number(value || 0).toLocaleString('en-PH');
+        }
+
+        // =========================================================
+        // Stat counters: animate on first load; a filter update cancels
+        // a running animation so it cannot write the old number back.
+        // =========================================================
+        const DashboardCounters = (function() {
+            function format(value, decimals, prefix) {
+                const text = decimals > 0
+                    ? value.toLocaleString('en-PH', { minimumFractionDigits: decimals, maximumFractionDigits: decimals })
+                    : Math.round(value).toLocaleString('en-PH');
+                return (prefix || '') + text;
             }
 
-            function animateValue(el, start, end, duration, decimals, prefix) {
+            function options(el) {
+                return {
+                    decimals: parseInt(el.getAttribute('data-decimals') || '0', 10),
+                    prefix: el.getAttribute('data-prefix') || ''
+                };
+            }
+
+            function stop(el) {
+                if (el._counterRaf) cancelAnimationFrame(el._counterRaf);
+                el._counterRaf = null;
+            }
+
+            function animate(el) {
+                const { decimals, prefix } = options(el);
+                const target = parseFloat(el.getAttribute('data-value')) || 0;
+                if (!target) {
+                    el.textContent = format(0, decimals, prefix);
+                    return;
+                }
+
+                const duration = 1200 + Math.min(800, Math.abs(target) / 100 * 200); // scale with size
                 const startTime = performance.now();
 
                 function tick(now) {
                     const progress = Math.min((now - startTime) / duration, 1);
-                    // easeOutCubic
-                    const eased = 1 - Math.pow(1 - progress, 3);
-                    const current = start + (end - start) * eased;
-                    el.textContent = (prefix || '') + formatNumber(current, decimals);
-                    if (progress < 1) {
-                        requestAnimationFrame(tick);
-                    }
+                    const eased = 1 - Math.pow(1 - progress, 3); // easeOutCubic
+                    el.textContent = format(target * eased, decimals, prefix);
+                    el._counterRaf = progress < 1 ? requestAnimationFrame(tick) : null;
                 }
 
-                requestAnimationFrame(tick);
+                el._counterRaf = requestAnimationFrame(tick);
             }
 
-            document.addEventListener('DOMContentLoaded', function() {
-                // Include both large stat-number cards and smaller status counts
-                const nodes = document.querySelectorAll('.stat-number[data-value], .stat-count[data-value]');
-                nodes.forEach(function(el) {
-                    const raw = el.getAttribute('data-value');
-                    const decimals = parseInt(el.getAttribute('data-decimals') || '0', 10);
-                    const prefix = el.getAttribute('data-prefix') || '';
+            function set(el, value) {
+                stop(el);
+                const { decimals, prefix } = options(el);
+                const number = parseFloat(value) || 0;
+                el.setAttribute('data-value', String(number));
+                el.textContent = format(number, decimals, prefix);
+            }
 
-                    // Parse numeric value safely
-                    const target = decimals > 0 ? parseFloat(raw) : parseInt(raw, 10) || 0;
-                    // Optionally skip animating zero values
-                    if (!target) {
-                        el.textContent = (prefix || '') + formatNumber(0, decimals);
-                        return;
-                    }
-
-                    // Start from 0 for counts, or 0.00 for amounts
-                    const start = 0;
-                    const duration = 1200 + Math.min(800, Math.abs(target) / 100 * 200); // scale with size
-                    animateValue(el, start, target, duration, decimals, prefix);
-                });
-            });
+            return { animate, set };
         })();
-        // Chart.js Configuration and Initialization
+
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.stat-number[data-value], .stat-count[data-value]').forEach(DashboardCounters.animate);
+        });
+
+        function renderStats(data) {
+            const bs = data.beneficiaryStats || {};
+            const ps = data.proponentStats || {};
+            const fs = data.fieldworkStats || {};
+
+            const cards = {
+                proponents:    [ps.total, `LGU: ${formatCount(ps.lgu_count)} | Non-LGU: ${formatCount(ps.non_lgu_count)}`],
+                beneficiaries: [bs.total, `Male: ${formatCount(bs.male_count)} | Female: ${formatCount(bs.female_count)}`],
+                groupMembers:  [ps.total_beneficiaries, `Male: ${formatCount(ps.total_male)} | Female: ${formatCount(ps.total_female)}`],
+                fieldwork:     [fs.total, `Ongoing: ${formatCount(fs.ongoing)} | Completed: ${formatCount(fs.completed)}`],
+                pcl:           [(bs.pcl_count || 0) + (ps.pcl_count || 0), `Individual: ${formatCount(bs.pcl_count)} | Groups: ${formatCount(ps.pcl_count)}`],
+                totalAmount:   [(parseFloat(bs.total_amount) || 0) + (parseFloat(ps.total_amount) || 0), null]
+            };
+
+            Object.entries(cards).forEach(([key, [value, detail]]) => {
+                const numberEl = document.querySelector(`#widget-stats [data-stat="${key}"]`);
+                if (numberEl) DashboardCounters.set(numberEl, value);
+                const detailEl = document.querySelector(`#widget-stats [data-stat-detail="${key}"]`);
+                if (detailEl && detail !== null) detailEl.textContent = detail;
+            });
+
+            // Status overview: data-stat="beneficiaryStats.pending", "proponentStats.liquidated", ...
+            document.querySelectorAll('#widget-status [data-stat]').forEach(el => {
+                const [group, field] = el.getAttribute('data-stat').split('.');
+                DashboardCounters.set(el, (data[group] || {})[field]);
+            });
+        }
+
+        // =========================================================
+        // Charts: rebuilt from the rows on every render, with an
+        // empty-state message when there is nothing to plot.
+        // =========================================================
         Chart.defaults.font.family = "'Inter', 'Segoe UI', 'Roboto', sans-serif";
         Chart.defaults.responsive = true;
-        Chart.defaults.maintainAspectRatio = true;
+        Chart.defaults.maintainAspectRatio = false;
 
-        // Color palette for charts
         const chartColors = {
             primary: '#0d6efd',
             success: '#198754',
@@ -774,24 +767,63 @@ usort($categoryChartData, function($a, $b) { return $b['count'] - $a['count']; }
             pink: '#d63384'
         };
 
-        const colorPalette = [
-            chartColors.primary, chartColors.success, chartColors.info, 
+        const basePalette = [
+            chartColors.primary, chartColors.success, chartColors.info,
             chartColors.warning, chartColors.danger, chartColors.purple,
             chartColors.orange, chartColors.teal, chartColors.pink, chartColors.secondary
         ];
 
-        // 1. Municipality Distribution Chart (Horizontal Bar)
-        const municipalityData = <?php echo json_encode($beneficiaryMunicipalityData, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
-        window.municipalityChart = null;
-        if (municipalityData && municipalityData.length > 0) {
-            const municipalityCtx = document.getElementById('municipalityChart').getContext('2d');
-            window.municipalityChart = new Chart(municipalityCtx, {
+        // Past the ten base colours, spread extra hues around the wheel so no slice goes grey
+        function paletteFor(count) {
+            return Array.from({ length: count }, (_, i) =>
+                i < basePalette.length ? basePalette[i] : `hsl(${Math.round((i * 137.5) % 360)}, 55%, 50%)`
+            );
+        }
+
+        const fundingColorMap = {
+            'Not Specified': chartColors.secondary,
+            'DOLE': chartColors.primary,
+            'GAA': chartColors.success,
+            'LGU': chartColors.info,
+            'NGO': chartColors.warning,
+            'TUPAD': chartColors.purple,
+            'SPES': chartColors.teal
+        };
+
+        function percentTooltip(context) {
+            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+            const value = context.parsed || 0;
+            const percentage = total ? ((value / total) * 100).toFixed(1) : '0.0';
+            return `${context.label || ''}: ${formatCount(value)} (${percentage}%)`;
+        }
+
+        const dashboardCharts = {};
+
+        function renderChart(canvasId, isEmpty, buildConfig) {
+            const canvas = document.getElementById(canvasId);
+            const emptyEl = document.querySelector(`[data-empty-for="${canvasId}"]`);
+            if (!canvas) return;
+
+            if (dashboardCharts[canvasId]) {
+                dashboardCharts[canvasId].destroy();
+                delete dashboardCharts[canvasId];
+            }
+
+            canvas.parentElement.classList.toggle('d-none', isEmpty);
+            if (emptyEl) emptyEl.classList.toggle('d-none', !isEmpty);
+            if (!isEmpty) dashboardCharts[canvasId] = new Chart(canvas, buildConfig());
+        }
+
+        function renderCharts(data) {
+            // 1. Top municipalities (individual), horizontal bar
+            const municipalities = data.municipalityDistribution || [];
+            renderChart('municipalityChart', municipalities.length === 0, () => ({
                 type: 'bar',
                 data: {
-                    labels: municipalityData.map(item => item.municipality),
+                    labels: municipalities.map(r => r.label),
                     datasets: [{
                         label: 'Number of Beneficiaries',
-                        data: municipalityData.map(item => item.count),
+                        data: municipalities.map(r => r.count),
                         backgroundColor: chartColors.primary,
                         borderColor: chartColors.primary,
                         borderWidth: 1
@@ -799,376 +831,226 @@ usort($categoryChartData, function($a, $b) { return $b['count'] - $a['count']; }
                 },
                 options: {
                     indexAxis: 'y',
-                    responsive: true,
-                    maintainAspectRatio: false,
                     plugins: {
                         legend: { display: false },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    return 'Beneficiaries: ' + context.parsed.x;
-                                }
-                            }
-                        }
+                        tooltip: { callbacks: { label: ctx => 'Beneficiaries: ' + formatCount(ctx.parsed.x) } }
                     },
-                    scales: {
-                        x: {
-                            beginAtZero: true,
-                            ticks: { precision: 0 }
-                        }
-                    }
+                    scales: { x: { beginAtZero: true, ticks: { precision: 0 } } }
                 }
-            });
-        }
+            }));
 
-        // 2. District Distribution Chart (Doughnut)
-        const districtData = <?php echo json_encode($proponentDistrictData, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
-        window.districtChart = null;
-        if (districtData && districtData.length > 0) {
-            const districtCtx = document.getElementById('districtChart').getContext('2d');
-            window.districtChart = new Chart(districtCtx, {
+            // 2. District distribution (groups), doughnut
+            const districts = data.districtDistribution || [];
+            renderChart('districtChart', districts.length === 0, () => ({
                 type: 'doughnut',
                 data: {
-                    labels: districtData.map(item => item.district),
+                    labels: districts.map(r => r.label),
                     datasets: [{
                         label: 'Projects',
-                        data: districtData.map(item => item.count),
-                        backgroundColor: colorPalette,
+                        data: districts.map(r => r.count),
+                        backgroundColor: paletteFor(districts.length),
                         borderWidth: 2,
                         borderColor: '#fff'
                     }]
                 },
                 options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
                     plugins: {
-                        legend: {
-                            position: 'right',
-                            labels: { padding: 10, font: { size: 11 } }
-                        },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    const label = context.label || '';
-                                    const value = context.parsed || 0;
-                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                    const percentage = ((value / total) * 100).toFixed(1);
-                                    return label + ': ' + value + ' (' + percentage + '%)';
-                                }
-                            }
-                        }
+                        legend: { position: 'right', labels: { padding: 10, font: { size: 11 } } },
+                        tooltip: { callbacks: { label: percentTooltip } }
                     }
                 }
-            });
-        }
+            }));
 
-        // 3. Worker Type Distribution Chart (Combined: Beneficiaries + Proponents)
-        const workerTypeData = <?php echo json_encode($workerTypeChartData, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
-        window.workerTypeChart = null;
-        if (workerTypeData && workerTypeData.length > 0) {
-            const projectTypeCtx = document.getElementById('projectTypeChart').getContext('2d');
-            window.workerTypeChart = new Chart(projectTypeCtx, {
-                type: 'pie',
-                data: {
-                    labels: workerTypeData.map(item => item.type_of_worker),
-                    datasets: [{
-                        label: 'Count',
-                        data: workerTypeData.map(item => item.count),
-                        backgroundColor: colorPalette,
-                        borderWidth: 2,
-                        borderColor: '#fff'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'bottom',
-                            labels: { padding: 10, font: { size: 11 } }
-                        },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    const label = context.label || '';
-                                    const value = context.parsed || 0;
-                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                    const percentage = ((value / total) * 100).toFixed(1);
-                                    return label + ': ' + value + ' (' + percentage + '%)';
-                                }
-                            }
-                        }
-                    }
-                }
-            });
-        }
-
-        // 4. Funding Source Breakdown Chart (Combined: Beneficiaries + Proponents)
-        const fundingData = <?php echo json_encode($fundingChartData, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
-        window.fundingChart = null;
-        if (fundingData && fundingData.length > 0) {
-            const fundingCtx = document.getElementById('fundingChart').getContext('2d');
-
-            // Generate colors based on funding source
-            const fundingColors = fundingData.map(item => {
-                if (item.source_of_funds === 'Not Specified') return chartColors.secondary;
-                if (item.source_of_funds === 'DOLE') return chartColors.primary;
-                if (item.source_of_funds === 'GAA') return chartColors.success;
-                if (item.source_of_funds === 'LGU') return chartColors.info;
-                if (item.source_of_funds === 'NGO') return chartColors.warning;
-                if (item.source_of_funds === 'TUPAD') return chartColors.purple;
-                if (item.source_of_funds === 'SPES') return chartColors.teal;
-                return chartColors.orange;
-            });
-
-            window.fundingChart = new Chart(fundingCtx, {
+            // 3. Worker types (combined). Records can name several types, so the counts
+            //    overlap and are shown as bars, not as shares of a pie.
+            const workerTypes = data.workerTypeDistribution || [];
+            renderChart('projectTypeChart', workerTypes.length === 0, () => ({
                 type: 'bar',
                 data: {
-                    labels: fundingData.map(item => item.source_of_funds),
+                    labels: workerTypes.map(r => r.label),
+                    datasets: [{
+                        label: 'Records',
+                        data: workerTypes.map(r => r.count),
+                        backgroundColor: paletteFor(workerTypes.length),
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: { callbacks: { label: ctx => 'Records: ' + formatCount(ctx.parsed.x) } }
+                    },
+                    scales: {
+                        x: { beginAtZero: true, ticks: { precision: 0 } },
+                        // Some worker type names are long; keep the axis readable
+                        y: { ticks: { callback: function(value) {
+                            const label = this.getLabelForValue(value);
+                            return label.length > 32 ? label.slice(0, 30) + '…' : label;
+                        } } }
+                    }
+                }
+            }));
+
+            // 4. Funding sources (combined), bar of amounts
+            const funding = data.fundingSourceBreakdown || [];
+            const fundingColors = funding.map(r => fundingColorMap[r.label] || chartColors.orange);
+            renderChart('fundingChart', funding.length === 0, () => ({
+                type: 'bar',
+                data: {
+                    labels: funding.map(r => r.label),
                     datasets: [{
                         label: 'Total Amount (₱)',
-                        data: fundingData.map(item => parseFloat(item.total_amount)),
+                        data: funding.map(r => parseFloat(r.total_amount) || 0),
                         backgroundColor: fundingColors,
                         borderColor: fundingColors,
                         borderWidth: 1
                     }]
                 },
                 options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
                     plugins: {
                         legend: { display: false },
                         tooltip: {
                             callbacks: {
-                                label: function(context) {
-                                    const count = fundingData[context.dataIndex].count;
-                                    return [
-                                        'Amount: ₱' + context.parsed.y.toLocaleString('en-PH', {minimumFractionDigits: 2}),
-                                        'Projects: ' + count
-                                    ];
-                                }
+                                label: ctx => [
+                                    'Amount: ₱' + ctx.parsed.y.toLocaleString('en-PH', { minimumFractionDigits: 2 }),
+                                    'Projects: ' + formatCount(funding[ctx.dataIndex].count)
+                                ]
                             }
                         }
                     },
                     scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: {
-                                callback: function(value) {
-                                    return '₱' + value.toLocaleString('en-PH');
-                                }
-                            }
-                        }
+                        y: { beginAtZero: true, ticks: { callback: value => '₱' + value.toLocaleString('en-PH') } }
                     }
                 }
-            });
-        } else {
-            // Display message when no data is available
-            const fundingCanvas = document.getElementById('fundingChart');
-            const fundingCtx = fundingCanvas.getContext('2d');
-            fundingCtx.font = '14px Inter, sans-serif';
-            fundingCtx.fillStyle = '#6c757d';
-            fundingCtx.textAlign = 'center';
-            fundingCtx.fillText('No funding source data available', fundingCanvas.width / 2, fundingCanvas.height / 2);
-        }
+            }));
 
-        // 5. Category Distribution Chart (Combined: Beneficiaries + Proponents)
-        const categoryData = <?php echo json_encode($categoryChartData, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
-        window.categoryChart = null;
-        if (categoryData && categoryData.length > 0) {
-            const categoryCtx = document.getElementById('categoryChart').getContext('2d');
-            window.categoryChart = new Chart(categoryCtx, {
+            // 5. Project category (groups), doughnut
+            const categories = data.categoryDistribution || [];
+            renderChart('categoryChart', categories.length === 0, () => ({
                 type: 'doughnut',
                 data: {
-                    labels: categoryData.map(item => item.category),
+                    labels: categories.map(r => r.label),
                     datasets: [{
                         label: 'Projects',
-                        data: categoryData.map(item => item.count),
-                        backgroundColor: colorPalette,
+                        data: categories.map(r => r.count),
+                        backgroundColor: paletteFor(categories.length),
                         borderWidth: 2,
                         borderColor: '#fff'
                     }]
                 },
                 options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
                     plugins: {
-                        legend: {
-                            position: 'right',
-                            labels: { padding: 10, font: { size: 11 } }
-                        },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    const label = context.label || '';
-                                    const value = context.parsed || 0;
-                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                    const percentage = ((value / total) * 100).toFixed(1);
-                                    return label + ': ' + value + ' (' + percentage + '%)';
-                                }
-                            }
-                        }
+                        legend: { position: 'right', labels: { padding: 10, font: { size: 11 } } },
+                        tooltip: { callbacks: { label: percentTooltip } }
                     }
                 }
-            });
-        }
+            }));
 
-        // 6. Monthly Trends Chart (Line)
-        const beneficiaryTrends = <?php echo json_encode($beneficiaryMonthlyTrends, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
-        const proponentTrends = <?php echo json_encode($proponentMonthlyTrends, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
-        window.trendsChart = null;
-
-        if ((beneficiaryTrends && beneficiaryTrends.length > 0) || (proponentTrends && proponentTrends.length > 0)) {
-            const allMonths = new Set();
-            beneficiaryTrends.forEach(item => allMonths.add(item.month));
-            proponentTrends.forEach(item => allMonths.add(item.month));
-            const sortedMonths = Array.from(allMonths).sort();
-
-            const beneficiaryMap = {};
-            const proponentMap = {};
-            beneficiaryTrends.forEach(item => beneficiaryMap[item.month] = parseInt(item.count));
-            proponentTrends.forEach(item => proponentMap[item.month] = parseInt(item.count));
-
-            const trendsCtx = document.getElementById('trendsChart').getContext('2d');
-            window.trendsChart = new Chart(trendsCtx, {
+            // 6. Monthly approvals, line. Months arrive as "YYYY-MM" with zeros filled in.
+            const trends = data.trends || { months: [], beneficiaries: [], proponents: [] };
+            const trendsEmpty = ![...trends.beneficiaries, ...trends.proponents].some(v => v > 0);
+            document.getElementById('trendsPeriod').textContent = data.filters && data.filters.year
+                ? String(data.filters.year)
+                : 'Last 12 Months';
+            renderChart('trendsChart', trendsEmpty, () => ({
                 type: 'line',
                 data: {
-                    labels: sortedMonths.map(month => {
-                        const date = new Date(month + '-01');
-                        return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+                    labels: trends.months.map(m => {
+                        const [year, month] = m.split('-').map(Number);
+                        return new Date(year, month - 1, 1).toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
                     }),
                     datasets: [
                         {
                             label: 'Individual Beneficiaries',
-                            data: sortedMonths.map(month => beneficiaryMap[month] || 0),
+                            data: trends.beneficiaries,
                             borderColor: chartColors.primary,
                             backgroundColor: chartColors.primary + '20',
                             tension: 0.4,
+                            cubicInterpolationMode: 'monotone', // smooth without dipping below zero
                             fill: true
                         },
                         {
                             label: 'Group Proponents',
-                            data: sortedMonths.map(month => proponentMap[month] || 0),
+                            data: trends.proponents,
                             borderColor: chartColors.success,
                             backgroundColor: chartColors.success + '20',
                             tension: 0.4,
+                            cubicInterpolationMode: 'monotone', // smooth without dipping below zero
                             fill: true
                         }
                     ]
                 },
                 options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    interaction: {
-                        mode: 'index',
-                        intersect: false
-                    },
+                    interaction: { mode: 'index', intersect: false },
                     plugins: {
-                        legend: {
-                            position: 'top',
-                            labels: { padding: 15 }
-                        },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    return context.dataset.label + ': ' + context.parsed.y + ' approved';
-                                }
-                            }
-                        }
+                        legend: { position: 'top', labels: { padding: 15 } },
+                        tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${formatCount(ctx.parsed.y)} approved` } }
                     },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: { precision: 0 }
-                        }
-                    }
+                    scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
                 }
-            });
+            }));
         }
-    </script>
-    <script>
-        // Province center config (mirrors PHP $provinceCenters)
-        var PROVINCE_CENTERS = <?php echo json_encode($provinceCenters, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
 
-        // Auto-center on logged-in user's province; super_admin sees regional overview
-        var MAP_CENTER  = <?php echo json_encode(array_values($mapCenter), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
-        var map = L.map('map').setView([MAP_CENTER[0], MAP_CENTER[1]], MAP_CENTER[2]);
+        // =========================================================
+        // Overdue liquidations alert
+        // =========================================================
+        function renderOverdue(data) {
+            const box = document.getElementById('widget-overdue');
+            const overdue = data.overdue || { total: 0, items: [] };
+            if (!box) return;
+            if (!overdue.total) {
+                box.innerHTML = '';
+                return;
+            }
 
-        // Add OpenStreetMap tile layer
+            const items = overdue.items.map(item =>
+                `<li><strong>${escapeHtml(item.proponent_name)}</strong> - Deadline: ${escapeHtml(item.deadline_label)}` +
+                ` (${formatCount(item.days_overdue)} ${item.days_overdue === 1 ? 'day' : 'days'} overdue)</li>`
+            ).join('');
+
+            const params = new URLSearchParams({ filter: 'overdue' });
+            if (data.isCrossProvince && data.filters && data.filters.province) params.set('province', data.filters.province);
+
+            const more = overdue.total > overdue.items.length
+                ? ` (showing the ${overdue.items.length} oldest)`
+                : '';
+
+            box.innerHTML =
+                '<div class="alert alert-danger alert-overdue mb-4" role="alert">' +
+                    '<h5 class="alert-heading"><i class="bi bi-exclamation-triangle-fill"></i> Overdue Liquidations</h5>' +
+                    `<p>There ${overdue.total === 1 ? 'is' : 'are'} <strong>${formatCount(overdue.total)}</strong> ${overdue.total === 1 ? 'proponent' : 'proponents'} with an overdue liquidation deadline${more}:</p>` +
+                    `<ul class="mb-0">${items}</ul>` +
+                    `<p class="mt-2 mb-0"><a href="proponents.php?${params}" class="alert-link">View all overdue liquidations</a></p>` +
+                '</div>';
+        }
+
+        // =========================================================
+        // Project map
+        // =========================================================
+        const map = L.map('map').setView([MAP_CENTER[0], MAP_CENTER[1]], MAP_CENTER[2]);
+
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '© OpenStreetMap contributors',
             maxZoom: 18
         }).addTo(map);
 
-        // Custom markers
-        var beneficiaryIcon = L.icon({
-            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
-            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-            iconSize: [25, 41],
-            iconAnchor: [12, 41],
-            popupAnchor: [1, -34],
-            shadowSize: [41, 41]
-        });
-
-        var proponentIcon = L.icon({
-            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
-            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-            iconSize: [25, 41],
-            iconAnchor: [12, 41],
-            popupAnchor: [1, -34],
-            shadowSize: [41, 41]
-        });
-
-        // Add markers from PHP data
-        var mapData = <?php echo json_encode($mapData, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
-        
-        console.log('Total map data items:', mapData.length);
-        
-        var validMarkers = 0;
-        var invalidMarkers = 0;
-        
-        mapData.forEach(function(item) {
-            var lat = parseFloat(item.latitude);
-            var lng = parseFloat(item.longitude);
-            
-            if (!isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0 && 
-                lat >= 9.0 && lat <= 12.0 && lng >= 122.0 && lng <= 124.0) {
-                
-                try {
-                    var icon = item.type === 'beneficiary' ? beneficiaryIcon : proponentIcon;
-                    var popupContent = '<div style="min-width: 200px;">' +
-                        '<h6 class="mb-2">' + escapeMapHtml(item.name) + '</h6>' +
-                        '<p class="mb-1"><strong>Project:</strong> ' + escapeMapHtml(item.project_title || item.project_name) + '</p>' +
-                        '<p class="mb-1"><strong>Location:</strong> ' + escapeMapHtml((item.barangay ? item.barangay + ', ' : '') + (item.municipality || item.district || '')) + '</p>' +
-                        '<p class="mb-1"><strong>Amount:</strong> ₱' + parseFloat(item.amount_worth || item.amount).toLocaleString('en-PH', {minimumFractionDigits: 2}) + '</p>';
-                    
-                    if (item.type === 'proponent') {
-                        popupContent += '<p class="mb-1"><strong>Beneficiaries:</strong> ' + escapeMapHtml(item.total_beneficiaries) + '</p>';
-                    }
-                    
-                    popupContent += '<p class="mb-0"><span class="badge bg-' + getStatusColor(item.status) + '">' + escapeMapHtml(capitalizeFirst(item.status || '')) + '</span></p>' +
-                        '</div>';
-                    
-                    L.marker([lat, lng], {icon: icon})
-                        .addTo(map)
-                        .bindPopup(popupContent);
-                    
-                    validMarkers++;
-                } catch (e) {
-                    console.error('Error adding marker:', e, item);
-                    invalidMarkers++;
-                }
-            } else {
-                console.warn('Invalid coordinates for item:', item.name, 'Lat:', lat, 'Lng:', lng);
-                invalidMarkers++;
-            }
-        });
-        
-        console.log('Valid markers added:', validMarkers);
-        console.log('Invalid/skipped markers:', invalidMarkers);
+        function markerIcon(color) {
+            return L.icon({
+                iconUrl: `https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-${color}.png`,
+                shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+                iconSize: [25, 41],
+                iconAnchor: [12, 41],
+                popupAnchor: [1, -34],
+                shadowSize: [41, 41]
+            });
+        }
+        const beneficiaryIcon = markerIcon('blue');
+        const proponentIcon = markerIcon('green');
+        const markerLayer = L.layerGroup().addTo(map);
 
         function getStatusColor(status) {
-            switch(status) {
+            switch (status) {
                 case 'pending': return 'secondary';
                 case 'approved': return 'primary';
                 case 'implemented': return 'success';
@@ -1182,15 +1064,48 @@ usort($categoryChartData, function($a, $b) { return $b['count'] - $a['count']; }
             return str.charAt(0).toUpperCase() + str.slice(1);
         }
 
-        // Popup content is HTML built from user-entered names and locations.
-        function escapeMapHtml(value) {
-            return String(value ?? '')
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;')
-                .replace(/"/g, '&quot;')
-                .replace(/'/g, '&#39;');
+        function mapPopup(item) {
+            let html = '<div style="min-width: 200px;">' +
+                '<h6 class="mb-2">' + escapeHtml(item.name) + '</h6>' +
+                '<p class="mb-1"><strong>Project:</strong> ' + escapeHtml(item.project) + '</p>' +
+                '<p class="mb-1"><strong>Location:</strong> ' + escapeHtml(item.location) + '</p>' +
+                '<p class="mb-1"><strong>Amount:</strong> ₱' + (Number(item.amount) || 0).toLocaleString('en-PH', { minimumFractionDigits: 2 }) + '</p>';
+            if (item.type === 'proponent') {
+                html += '<p class="mb-1"><strong>Beneficiaries:</strong> ' + escapeHtml(item.total_beneficiaries) + '</p>';
+            }
+            html += '<p class="mb-0"><span class="badge bg-' + getStatusColor(item.status) + '">' +
+                escapeHtml(capitalizeFirst(item.status || '')) + '</span></p></div>';
+            return html;
         }
+
+        function renderMap(data, recenter) {
+            markerLayer.clearLayers();
+            (data.mapPoints || []).forEach(item => {
+                L.marker([item.latitude, item.longitude], { icon: item.type === 'beneficiary' ? beneficiaryIcon : proponentIcon })
+                    .bindPopup(mapPopup(item))
+                    .addTo(markerLayer);
+            });
+
+            const province = data.filters && data.filters.province;
+            document.getElementById('mapAreaLabel').textContent = province || 'All Provinces';
+
+            if (recenter) {
+                const center = (province && PROVINCE_CENTERS[province]) || MAP_CENTER;
+                map.setView([center[0], center[1]], center[2]);
+            }
+        }
+
+        // =========================================================
+        // First render
+        // =========================================================
+        function renderDashboard(data, options = {}) {
+            if (options.stats) renderStats(data);
+            renderCharts(data);
+            renderOverdue(data);
+            renderMap(data, options.recenter);
+        }
+
+        renderDashboard(DASHBOARD_DATA);
     </script>
     <script>
     // Part 7: Dashboard Personalization
@@ -1238,7 +1153,7 @@ usort($categoryChartData, function($a, $b) { return $b['count'] - $a['count']; }
     };
     DILP.dashboard.init();
 
-    // Dashboard Tour Steps (initialized on-demand when user clicks "Start Tour" button)
+    // Dashboard Tour Steps (run when the user clicks "Start Tour")
     const dashboardTourSteps = [
         { target: '.stat-card.bg-primary', title: 'Beneficiary Overview', description: 'View total individual beneficiaries with gender breakdown at a glance.' },
         { target: '.stat-card.bg-success', title: 'Proponent Overview', description: 'Track group proponents categorized by LGU and Non-LGU types.' },
@@ -1248,14 +1163,12 @@ usort($categoryChartData, function($a, $b) { return $b['count'] - $a['count']; }
         { target: '#widget-charts', title: 'Data Visualization', description: 'Interactive charts showing municipality distribution, project types, funding sources, and monthly trends.' },
         { target: '#municipalityChart', title: 'Municipality Analysis', description: 'Bar chart displaying the top 10 municipalities with the most individual beneficiaries.' },
         { target: '#trendsChart', title: 'Monthly Trends', description: 'Line chart tracking approval trends over the last 12 months for both individuals and groups.' },
-        { target: '#map', title: 'Project Map', description: 'Interactive map showing project locations across Negros Occidental. Click markers for details.' },
+        { target: '#map', title: 'Project Map', description: 'Interactive map showing where approved projects are located. Click markers for details.' },
         { target: '.sidebar', title: 'Navigation', description: 'Use the sidebar to navigate between Beneficiaries, Proponents, Reports, and more.' }
     ];
     
-    // Initialize tour with steps when needed
     document.getElementById('startTourBtn').addEventListener('click', function() {
-        DILP.tour.init(dashboardTourSteps);
-        DILP.tour.start();
+        DILP.tour.start(dashboardTourSteps);
     });
     </script>
     <script>
@@ -1296,256 +1209,87 @@ usort($categoryChartData, function($a, $b) { return $b['count'] - $a['count']; }
     </script>
     <script>
     // Dashboard Filter Functionality
+    // The API returns the same structure the page was first rendered from, so a filter
+    // redraws every widget: stat cards, status counts, charts, overdue alert and map.
+    const DASHBOARD_LOADING_WIDGETS = ['widget-stats', 'widget-status', 'widget-charts', 'widget-overdue', 'widget-map'];
+
+    function setDashboardLoading(isLoading) {
+        DASHBOARD_LOADING_WIDGETS.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.classList.toggle('is-loading', isLoading);
+                el.setAttribute('aria-busy', isLoading ? 'true' : 'false');
+            }
+        });
+        const applyBtn = document.getElementById('applyFiltersBtn');
+        if (applyBtn) {
+            applyBtn.disabled = isLoading;
+            applyBtn.innerHTML = isLoading
+                ? '<span class="spinner-border spinner-border-sm" aria-hidden="true"></span> Applying'
+                : '<i class="bi bi-check-lg"></i> Apply';
+        }
+    }
+
     async function applyDashboardFilters() {
         const province = document.getElementById('filter-province').value;
         const year = document.getElementById('filter-year').value;
         const approvedOnly = document.getElementById('filter-approved-only').checked;
         const filterStatus = document.getElementById('filter-status');
-        
-        // Show loading state
-        document.querySelectorAll('.stat-number').forEach(el => {
-            el.innerHTML = '<i class="bi bi-hourglass-split"></i>';
-        });
-        
+
+        // Values stay on screen (dimmed) while loading, so a failed request leaves nothing broken
+        setDashboardLoading(true);
+
         try {
             const params = new URLSearchParams();
             if (province) params.append('province', province);
             if (year) params.append('year', year);
             if (approvedOnly) params.append('approved_only', '1');
-            
+
             const response = await fetch(`api/dashboard-stats.php?${params}`);
-            const data = await response.json();
-            
-            if (data.success) {
-                // Update statistics cards
-                updateStatCards(data);
+            let data = null;
+            try {
+                data = await response.json();
+            } catch (parseError) {
+                throw new Error(`The server returned an unexpected response (HTTP ${response.status}).`);
+            }
+            if (!response.ok || !data.success) {
+                throw new Error(data.message || 'Failed to apply filters.');
+            }
 
-                // Update charts (wrapped in try-catch to prevent errors from blocking success)
-                try {
-                    updateCharts(data);
-                } catch (chartError) {
-                    console.warn('Chart update warning:', chartError);
-                }
+            renderDashboard(data, { stats: true, recenter: true });
 
-                // Re-center map when super_admin selects a province
-                if (province && typeof map !== 'undefined' && PROVINCE_CENTERS[province]) {
-                    const center = PROVINCE_CENTERS[province];
-                    map.setView([center[0], center[1]], center[2]);
-                } else if (!province && typeof map !== 'undefined') {
-                    // Reset to regional overview
-                    map.setView([MAP_CENTER[0], MAP_CENTER[1]], MAP_CENTER[2]);
-                }
+            // Province users always carry their own province, so only count what they picked
+            const provinceIsFilter = data.isCrossProvince && !!province;
+            filterStatus.style.display = (provinceIsFilter || year || approvedOnly) ? '' : 'none';
 
-                // Show filter active badge
-                if (province || year || approvedOnly) {
-                    filterStatus.style.display = '';
+            if (typeof DILP !== 'undefined' && DILP.toast) {
+                if (data.hasData === false) {
+                    DILP.toast.warning('No Data Found', 'No records match the selected filters. Try adjusting your filter criteria.');
                 } else {
-                    filterStatus.style.display = 'none';
-                }
-                
-                // Show appropriate message
-                if (typeof DILP !== 'undefined' && DILP.toast) {
-                    if (data.hasData === false) {
-                        DILP.toast.warning('No Data Found', 'No records match the selected filters. Try adjusting your filter criteria.');
-                    } else {
-                        DILP.toast.success('Filters Applied', 'Dashboard data has been filtered.');
-                    }
-                }
-            } else {
-                if (typeof DILP !== 'undefined' && DILP.toast) {
-                    DILP.toast.error('Error', data.message || 'Failed to apply filters.');
+                    DILP.toast.success('Filters Applied', 'Dashboard data has been filtered.');
                 }
             }
         } catch (error) {
             console.error('Filter error:', error);
             if (typeof DILP !== 'undefined' && DILP.toast) {
-                DILP.toast.error('Error', 'Failed to fetch filtered data.');
+                DILP.toast.error('Error', error.message || 'Failed to fetch filtered data.');
             }
+        } finally {
+            setDashboardLoading(false);
         }
     }
-    
+
     function resetDashboardFilters() {
-        document.getElementById('filter-province').value = '';
+        const provinceSelect = document.getElementById('filter-province');
+        // Province users have a hidden input holding their own province; keep it
+        if (provinceSelect.tagName === 'SELECT') provinceSelect.value = '';
         document.getElementById('filter-year').value = '';
         document.getElementById('filter-approved-only').checked = false;
         document.getElementById('filter-status').style.display = 'none';
-        
+
         // Reload page to reset all data
         location.reload();
     }
-    
-    function updateStatCards(data) {
-        const bs = data.beneficiaryStats;
-        const ps = data.proponentStats;
-        const fs = data.fieldworkStats;
-
-        // Find and update stat cards by their titles (only main stats cards, not status overview)
-        const statCards = document.querySelectorAll('#widget-stats .stat-card');
-        statCards.forEach(card => {
-            try {
-                const title = card.querySelector('.card-title')?.textContent?.trim().toUpperCase();
-                const numberEl = card.querySelector('.stat-number');
-                const detailEl = card.querySelector('.stat-detail');
-
-                if (!numberEl) return;
-
-                switch(title) {
-                    case 'TOTAL PROPONENTS':
-                        numberEl.textContent = Number(ps?.total || 0).toLocaleString();
-                        if (detailEl) detailEl.textContent = `LGU: ${Number(ps?.lgu_count || 0).toLocaleString()} | Non-LGU: ${Number(ps?.non_lgu_count || 0).toLocaleString()}`;
-                        break;
-                    case 'TOTAL BENEFICIARIES':
-                        numberEl.textContent = Number(bs?.total || 0).toLocaleString();
-                        if (detailEl) detailEl.textContent = `Male: ${Number(bs?.male_count || 0).toLocaleString()} | Female: ${Number(bs?.female_count || 0).toLocaleString()}`;
-                        break;
-                    case 'BENEFICIARIES (GROUPS)':
-                        numberEl.textContent = Number(ps?.total_beneficiaries || 0).toLocaleString();
-                        if (detailEl) detailEl.textContent = `Male: ${Number(ps?.total_male || 0).toLocaleString()} | Female: ${Number(ps?.total_female || 0).toLocaleString()}`;
-                        break;
-                    case 'FIELDWORK SCHEDULE':
-                        numberEl.textContent = Number(fs?.total || 0).toLocaleString();
-                        if (detailEl) detailEl.textContent = `Ongoing: ${Number(fs?.ongoing || 0).toLocaleString()} | Completed: ${Number(fs?.completed || 0).toLocaleString()}`;
-                        break;
-                    default:
-                        // Handle "PCL (Parents of Child Laborers)" - starts with "PCL"
-                        if (title && title.startsWith('PCL')) {
-                            const benefPcl = Number(bs?.pcl_count || 0);
-                            const propPcl = Number(ps?.pcl_count || 0);
-                            numberEl.textContent = (benefPcl + propPcl).toLocaleString();
-                            if (detailEl) detailEl.textContent = `Individual: ${benefPcl.toLocaleString()} | Groups: ${propPcl.toLocaleString()}`;
-                        }
-                        // Handle "Total Amount (Individual + Group Projects)" - starts with "TOTAL AMOUNT"
-                        if (title && title.startsWith('TOTAL AMOUNT')) {
-                            const totalAmount = (parseFloat(bs?.total_amount) || 0) + (parseFloat(ps?.total_amount) || 0);
-                            numberEl.textContent = '₱' + totalAmount.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
-                        }
-                        break;
-                }
-            } catch (cardError) {
-                console.warn('Error updating stat card:', cardError);
-            }
-        });
-
-        // Update status overview cards (pending, approved, implemented, monitored, liquidated counts)
-        updateStatusOverview(data);
-    }
-
-    function updateStatusOverview(data) {
-        const bs = data.beneficiaryStats;
-        const ps = data.proponentStats;
-
-        // Update Individual Beneficiaries Status counts
-        const benefStatusCard = document.querySelector('#widget-status .col-md-6:first-child');
-        if (benefStatusCard) {
-            const counts = benefStatusCard.querySelectorAll('.stat-count');
-            if (counts.length >= 4) {
-                counts[0].textContent = Number(bs.pending || 0).toLocaleString();      // Pending
-                counts[1].textContent = Number(bs.approved || 0).toLocaleString();     // Approved
-                counts[2].textContent = Number(bs.implemented || 0).toLocaleString();  // Implemented
-                counts[3].textContent = Number(bs.monitored || 0).toLocaleString();    // Monitored
-            }
-        }
-
-        // Update Group Proponents Status counts
-        const propStatusCard = document.querySelector('#widget-status .col-md-6:last-child');
-        if (propStatusCard) {
-            const counts = propStatusCard.querySelectorAll('.stat-count');
-            if (counts.length >= 5) {
-                counts[0].textContent = Number(ps.pending || 0).toLocaleString();      // Pending
-                counts[1].textContent = Number(ps.approved || 0).toLocaleString();     // Approved
-                counts[2].textContent = Number(ps.implemented || 0).toLocaleString();  // Implemented
-                counts[3].textContent = Number(ps.liquidated || 0).toLocaleString();   // Liquidated
-                counts[4].textContent = Number(ps.monitored || 0).toLocaleString();    // Monitored
-            }
-        }
-    }
-    
-    function updateCharts(data) {
-        // Update Municipality Chart
-        // When cross-province user has no province filter active, rows include a `province`
-        // column → label bars as "Municipality (Province)" for clarity.
-        if (window.municipalityChart && data.municipalityDistribution) {
-            const showProvince = data.isCrossProvince && !data.filters?.province;
-            window.municipalityChart.data.labels = data.municipalityDistribution.map(m =>
-                showProvince && m.province ? `${m.municipality} (${m.province})` : m.municipality
-            );
-            window.municipalityChart.data.datasets[0].data = data.municipalityDistribution.map(m => m.count);
-            window.municipalityChart.update();
-        }
-
-        // Update District Chart
-        if (window.districtChart && data.districtDistribution) {
-            window.districtChart.data.labels = data.districtDistribution.map(d => d.district);
-            window.districtChart.data.datasets[0].data = data.districtDistribution.map(d => d.count);
-            window.districtChart.update();
-        }
-
-        // Update Worker Type Chart
-        if (window.workerTypeChart && data.workerTypeDistribution) {
-            window.workerTypeChart.data.labels = data.workerTypeDistribution.map(w => w.type_of_worker);
-            window.workerTypeChart.data.datasets[0].data = data.workerTypeDistribution.map(w => w.count);
-            window.workerTypeChart.update();
-        }
-
-        // Update Funding Source Chart
-        if (window.fundingChart && data.fundingSourceBreakdown) {
-            window.fundingChart.data.labels = data.fundingSourceBreakdown.map(f => f.source_of_funds);
-            window.fundingChart.data.datasets[0].data = data.fundingSourceBreakdown.map(f => parseFloat(f.total_amount) || 0);
-            window.fundingChart.update();
-        }
-
-        // Update Category Chart
-        if (window.categoryChart && data.categoryDistribution) {
-            window.categoryChart.data.labels = data.categoryDistribution.map(c => c.category);
-            window.categoryChart.data.datasets[0].data = data.categoryDistribution.map(c => c.count);
-            window.categoryChart.update();
-        }
-
-        // Update Trends Chart
-        if (window.trendsChart && (data.monthlyBeneficiaryTrends || data.monthlyProponentTrends)) {
-            const benefMonths = data.monthlyBeneficiaryTrends || [];
-            const propMonths = data.monthlyProponentTrends || [];
-
-            // Merge months
-            const allMonths = [...new Set([...benefMonths.map(b => b.month), ...propMonths.map(p => p.month)])].sort();
-
-            const benefData = allMonths.map(m => {
-                const found = benefMonths.find(b => b.month === m);
-                return found ? parseInt(found.count) : 0;
-            });
-
-            const propData = allMonths.map(m => {
-                const found = propMonths.find(p => p.month === m);
-                return found ? parseInt(found.count) : 0;
-            });
-
-            window.trendsChart.data.labels = allMonths.map(m => {
-                const [year, month] = m.split('-');
-                return new Date(year, month - 1).toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
-            });
-            window.trendsChart.data.datasets[0].data = benefData;
-            window.trendsChart.data.datasets[1].data = propData;
-            window.trendsChart.update();
-        }
-    }
-
-    // ── Auto-apply province filter on initial page load ──────────────────
-    // Province-scoped users: charts should reflect their province from the
-    // very first render, not just after manually applying filters.
-    // Cross-province users: no auto-filter on load (they see all by default).
-    (function autoLoadProvinceFilter() {
-        const isCrossProvince = <?php echo $isCrossProvince ? 'true' : 'false'; ?>;
-        const sessionProvince = <?php echo json_encode($sessionProvince, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
-
-        if (!isCrossProvince && sessionProvince) {
-            // Province-scoped user — silently trigger the filter so charts
-            // initialize with the correct province scope.
-            document.addEventListener('DOMContentLoaded', function () {
-                // Small delay to let Chart.js finish initial render
-                setTimeout(applyDashboardFilters, 300);
-            });
-        }
-    })();
     </script>
 </body>
 </html>
