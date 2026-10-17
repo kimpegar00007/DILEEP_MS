@@ -67,6 +67,26 @@
 
     .navbar-glass .navbar-brand { font-weight: 600; font-size: 1.25rem; }
 
+    /* Let the brand shrink so the long subtitle truncates instead of
+       pushing the nav items past the viewport edge */
+    .navbar-glass .navbar-brand { min-width: 0; flex: 0 1 auto; }
+    .navbar-glass .navbar-logo { flex-shrink: 0; }
+    .navbar-glass .navbar-brand-text {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .navbar-glass .navbar-brand-sub {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .navbar-glass .navbar-toggler { flex-shrink: 0; }
+    /* Collapsed navbar (below lg): keep the toggler on the brand's row */
+    @media (max-width: 991.98px) {
+        .navbar-glass .navbar-brand { flex: 1 1 0; }
+    }
+
     .navbar-glass .nav-link {
         color: rgba(255, 255, 255, 0.85) !important;
         font-size: 0.9rem;
@@ -719,6 +739,7 @@
         .stat-icon { font-size: 2rem; }
     }
     @media (max-width: 576px) {
+        .navbar-glass .navbar-brand-sub { display: none; }
         .stat-number { font-size: 1.25rem; }
         .stat-icon { font-size: 1.5rem; }
         .stat-card .card-body { padding: 1rem; }
