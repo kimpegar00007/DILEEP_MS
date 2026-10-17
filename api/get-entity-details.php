@@ -4,6 +4,7 @@ require_once '../config/database.php';
 require_once '../models/Beneficiary.php';
 require_once '../models/Proponent.php';
 require_once '../includes/Auth.php';
+require_once '../includes/status-badge.php';
 
 $auth = new Auth();
 $auth->requireLogin();
@@ -32,6 +33,10 @@ try {
             echo '<div class="alert alert-danger">Beneficiary not found.</div>';
             exit;
         }
+
+        $linkedProponent = !empty($entity['proponent_id'])
+            ? (new Proponent())->findById((int) $entity['proponent_id'])
+            : false;
         
         ?>
         <div class="entity-details">
@@ -55,11 +60,8 @@ try {
                 </div>
                 <div class="col-md-4">
                     <div class="text-center">
-                        <span class="badge bg-<?php 
-                            $statusColors = ['pending' => 'secondary', 'approved' => 'primary', 'implemented' => 'success', 'monitored' => 'info'];
-                            echo $statusColors[$entity['status']] ?? 'secondary';
-                        ?> badge-status fs-6">
-                            <?php echo ucfirst($entity['status']); ?>
+                        <span class="badge <?php echo statusBadgeClass($entity['status']); ?> badge-status fs-6">
+                            <?php echo htmlspecialchars(ucfirst($entity['status'] ?? '')); ?>
                         </span>
                     </div>
                 </div>
@@ -88,13 +90,18 @@ try {
                     <div class="mb-2">
                         <strong>Project Name:</strong> <?php echo htmlspecialchars($entity['project_name']); ?>
                     </div>
+                    <?php if ($linkedProponent): ?>
+                    <div class="mb-2">
+                        <strong>Proponent:</strong> <?php echo htmlspecialchars($linkedProponent['proponent_name']); ?>
+                    </div>
+                    <?php endif; ?>
                     <?php if ($entity['type_of_worker']): ?>
                     <div class="mb-2">
                         <strong>Type of Worker:</strong> <?php echo htmlspecialchars($entity['type_of_worker']); ?>
                     </div>
                     <?php endif; ?>
                     <div class="mb-2">
-                        <strong>Amount Worth:</strong> <span class="text-success fw-bold">₱<?php echo number_format($entity['amount_worth'], 2); ?></span>
+                        <strong>Amount Worth:</strong> <span class="text-success fw-bold">₱<?php echo number_format((float) $entity['amount_worth'], 2); ?></span>
                     </div>
                 </div>
             </div>
@@ -171,11 +178,8 @@ try {
                 </div>
                 <div class="col-md-4">
                     <div class="text-center">
-                        <span class="badge bg-<?php 
-                            $statusColors = ['pending' => 'secondary', 'approved' => 'primary', 'implemented' => 'success', 'liquidated' => 'warning', 'monitored' => 'info'];
-                            echo $statusColors[$entity['status']] ?? 'secondary';
-                        ?> badge-status fs-6">
-                            <?php echo ucfirst($entity['status']); ?>
+                        <span class="badge <?php echo statusBadgeClass($entity['status']); ?> badge-status fs-6">
+                            <?php echo htmlspecialchars(ucfirst($entity['status'] ?? '')); ?>
                         </span>
                     </div>
                 </div>
@@ -185,7 +189,7 @@ try {
                 <div class="col-md-6">
                     <h6 class="text-primary mb-1">Financial Information</h6>
                     <div class="mb-2">
-                        <strong>Project Amount:</strong> <span class="text-success fw-bold">₱<?php echo number_format($entity['amount'], 2); ?></span>
+                        <strong>Project Amount:</strong> <span class="text-success fw-bold">₱<?php echo number_format((float) $entity['amount'], 2); ?></span>
                     </div>
                     <div class="mb-2">
                         <strong>Category:</strong> <?php echo htmlspecialchars($entity['category']); ?>
@@ -215,7 +219,7 @@ try {
                 </div>
             </div>
             
-            <?php if ($entity['date_approved'] || $entity['date_turnover'] || $entity['date_implemented']): ?>
+            <?php if ($entity['date_approved'] || $entity['date_turnover'] || $entity['date_implemented'] || $entity['date_liquidated']): ?>
             <div class="row mb-3">
                 <div class="col-12">
                     <h6 class="text-primary mb-1">Key Dates</h6>

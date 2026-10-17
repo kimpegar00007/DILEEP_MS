@@ -111,8 +111,9 @@ if ($provinceFilter) {
                                 <label class="form-label">Proponent Type</label>
                                 <select name="proponent_type" class="form-select">
                                     <option value="">All</option>
-                                    <option value="LGU-associated" <?php echo $filters['proponent_type'] === 'LGU-associated' ? 'selected' : ''; ?>>LGU-associated</option>
-                                    <option value="Non-LGU-associated" <?php echo $filters['proponent_type'] === 'Non-LGU-associated' ? 'selected' : ''; ?>>Non-LGU-associated</option>
+                                    <?php foreach (['LGU-associated', 'Non-LGU-associated', 'By Administration', 'Others'] as $type): ?>
+                                    <option value="<?php echo $type; ?>" <?php echo $filters['proponent_type'] === $type ? 'selected' : ''; ?>><?php echo $type; ?></option>
+                                    <?php endforeach; ?>
                                 </select>
                             </div>
                             <div class="col-md-2">
