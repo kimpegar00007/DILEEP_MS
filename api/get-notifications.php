@@ -257,6 +257,10 @@ try {
         ];
     }
     
+    // Fieldwork dates are compared with today in Philippine time, passed in from PHP,
+    // because the database server's own date can differ. Same rule as FieldworkSchedule.
+    $fwToday = (new DateTime('now', new DateTimeZone('Asia/Manila')))->format('Y-m-d');
+
     // Get fieldwork activities scheduled for today (same day)
     try {
         $sql = "SELECT 
@@ -270,13 +274,13 @@ try {
                 FROM fieldwork_schedule fs
                 LEFT JOIN users u ON fs.assigned_user_id = u.id
                 WHERE fs.status IN ('pending', 'ongoing')
-                AND fs.start_date = CURDATE()
+                AND fs.start_date = ?
                 {$fwScopeSql}
                 ORDER BY fs.start_date ASC
                 LIMIT 20";
 
         $stmt = $db->prepare($sql);
-        $stmt->execute($scopeParams);
+        $stmt->execute(array_merge([$fwToday], $scopeParams));
         $todayFieldwork = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         foreach ($todayFieldwork as $item) {
@@ -307,13 +311,13 @@ try {
                 FROM fieldwork_schedule fs
                 LEFT JOIN users u ON fs.assigned_user_id = u.id
                 WHERE fs.status = 'pending'
-                AND DATEDIFF(fs.start_date, CURDATE()) = 1
+                AND DATEDIFF(fs.start_date, ?) = 1
                 {$fwScopeSql}
                 ORDER BY fs.start_date ASC
                 LIMIT 20";
 
         $stmt = $db->prepare($sql);
-        $stmt->execute($scopeParams);
+        $stmt->execute(array_merge([$fwToday], $scopeParams));
         $tomorrowFieldwork = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         foreach ($tomorrowFieldwork as $item) {
@@ -341,17 +345,17 @@ try {
                     fs.start_date,
                     fs.status,
                     u.full_name as assigned_user_name,
-                    DATEDIFF(fs.start_date, CURDATE()) as days_remaining
+                    DATEDIFF(fs.start_date, ?) as days_remaining
                 FROM fieldwork_schedule fs
                 LEFT JOIN users u ON fs.assigned_user_id = u.id
                 WHERE fs.status = 'pending'
-                AND DATEDIFF(fs.start_date, CURDATE()) BETWEEN 2 AND 3
+                AND DATEDIFF(fs.start_date, ?) BETWEEN 2 AND 3
                 {$fwScopeSql}
                 ORDER BY fs.start_date ASC
                 LIMIT 20";
 
         $stmt = $db->prepare($sql);
-        $stmt->execute($scopeParams);
+        $stmt->execute(array_merge([$fwToday, $fwToday], $scopeParams));
         $upcomingFieldwork = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         foreach ($upcomingFieldwork as $item) {
@@ -380,17 +384,17 @@ try {
                     fs.end_date,
                     fs.status,
                     u.full_name as assigned_user_name,
-                    DATEDIFF(CURDATE(), COALESCE(fs.end_date, fs.start_date)) as days_overdue
+                    DATEDIFF(?, COALESCE(fs.end_date, fs.start_date)) as days_overdue
                 FROM fieldwork_schedule fs
                 LEFT JOIN users u ON fs.assigned_user_id = u.id
-                WHERE fs.status NOT IN ('completed', 'missed')
-                AND COALESCE(fs.end_date, fs.start_date) < CURDATE()
+                WHERE fs.status IN ('pending', 'ongoing')
+                AND COALESCE(fs.end_date, fs.start_date) < ?
                 {$fwScopeSql}
                 ORDER BY fs.start_date ASC
                 LIMIT 20";
 
         $stmt = $db->prepare($sql);
-        $stmt->execute($scopeParams);
+        $stmt->execute(array_merge([$fwToday, $fwToday], $scopeParams));
         $overdueFieldwork = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         foreach ($overdueFieldwork as $item) {
@@ -398,8 +402,8 @@ try {
                 'id' => 'fieldwork_overdue_' . $item['id'],
                 'type' => 'fieldwork',
                 'title' => 'Overdue Fieldwork',
-                'message' => $item['title'] . ' — not completed',
-                'details' => 'Was due: ' . date('M d, Y', strtotime($item['start_date'])) . ' (' . $item['days_overdue'] . ' day' . ($item['days_overdue'] != 1 ? 's' : '') . ' overdue)',
+                'message' => $item['title'] . ' — past due, not yet marked completed or missed',
+                'details' => 'Was due: ' . date('M d, Y', strtotime($item['end_date'] ?: $item['start_date'])) . ' (' . $item['days_overdue'] . ' day' . ($item['days_overdue'] != 1 ? 's' : '') . ' overdue)',
                 'fieldwork_id' => $item['id'],
                 'severity' => 'danger',
                 'timestamp' => strtotime($item['start_date'])

@@ -965,14 +965,22 @@ const DILP = {
                 }
             } catch (e) { console.warn('[DILP] URL params handling failed:', e); }
 
-            // Show loading on form submissions
+            // Show loading on form submissions that really load a new page.
+            // Listening on document (bubble phase) runs after the form's own handlers, so a
+            // submit they cancelled to save over fetch() (e.preventDefault()) is skipped and
+            // the overlay can't get stuck. Forms can also opt out with data-no-loading.
             try {
-                document.querySelectorAll('form').forEach(function(form) {
-                    form.addEventListener('submit', function() {
-                        if (form.checkValidity()) {
-                            DILP.loading.show('Processing...');
-                        }
-                    });
+                document.addEventListener('submit', function(e) {
+                    const form = e.target;
+                    if (e.defaultPrevented || !(form instanceof HTMLFormElement)) return;
+                    if (form.hasAttribute('data-no-loading')) return;
+                    if (form.checkValidity()) {
+                        DILP.loading.show('Processing...');
+                    }
+                });
+                // A page restored from the back/forward cache keeps the overlay it left with.
+                window.addEventListener('pageshow', function(e) {
+                    if (e.persisted) DILP.loading.hide();
                 });
             } catch (e) { console.warn('[DILP] Form submit handler failed:', e); }
         }

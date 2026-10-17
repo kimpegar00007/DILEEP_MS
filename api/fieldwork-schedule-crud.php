@@ -25,17 +25,22 @@ try {
 
         case 'list':
             $filters = [];
-            if (!empty($_GET['status'])) {
-                $filters['status'] = $_GET['status'];
+            $statusFilter = (string) ($_GET['status'] ?? '');
+            if ($statusFilter !== '') {
+                if (!in_array($statusFilter, array_merge(FieldworkSchedule::STATUSES, ['overdue']), true)) {
+                    http_response_code(400);
+                    echo json_encode(['success' => false, 'error' => 'Invalid status filter']);
+                    break;
+                }
+                $filters['status'] = $statusFilter;
             }
             if (!empty($_GET['assigned_user_id'])) {
                 $filters['assigned_user_id'] = $_GET['assigned_user_id'];
             }
-            if (!empty($_GET['date_from'])) {
-                $filters['date_from'] = $_GET['date_from'];
-            }
-            if (!empty($_GET['date_to'])) {
-                $filters['date_to'] = $_GET['date_to'];
+            foreach (['date_from', 'date_to'] as $dateKey) {
+                if (!empty($_GET[$dateKey]) && isValidDate((string) $_GET[$dateKey])) {
+                    $filters[$dateKey] = $_GET[$dateKey];
+                }
             }
             if (!empty($_GET['search'])) {
                 $filters['search'] = $_GET['search'];
@@ -69,8 +74,14 @@ try {
             break;
 
         case 'calendar':
-            $start = $_GET['start'] ?? date('Y-m-01');
-            $end = $_GET['end'] ?? date('Y-m-t');
+            // FullCalendar sends ISO strings (2026-10-01T00:00:00+08:00); only the date part matters.
+            $start = substr((string) ($_GET['start'] ?? ''), 0, 10);
+            $end   = substr((string) ($_GET['end'] ?? ''), 0, 10);
+            if (!isValidDate($start) || !isValidDate($end)) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'error' => 'Invalid calendar range']);
+                break;
+            }
 
             $events = $model->getCalendarEvents($start, $end);
 
@@ -96,7 +107,9 @@ try {
                     'backgroundColor' => $colorMap[$event['status']] ?? '#6c757d',
                     'borderColor'     => $colorMap[$event['status']] ?? '#6c757d',
                     'textColor'       => $event['status'] === 'pending' ? '#212529' : '#ffffff',
+                    'classNames'      => $event['is_overdue'] ? ['fieldwork-overdue'] : [],
                     'extendedProps'   => [
+                        'is_overdue'    => $event['is_overdue'],
                         'description'   => $event['description'],
                         'location'      => $event['location'],
                         'status'        => $event['status'],
@@ -125,7 +138,7 @@ try {
             if ($result) {
                 echo json_encode(['success' => true, 'id' => $result, 'message' => 'Activity created successfully']);
             } else {
-                http_response_code(500);
+                http_response_code($model->getLastErrorStatus());
                 echo json_encode(['success' => false, 'error' => $model->getLastError() ?: 'Failed to create activity']);
             }
             break;
@@ -152,7 +165,7 @@ try {
             if ($result) {
                 echo json_encode(['success' => true, 'message' => 'Activity updated successfully']);
             } else {
-                http_response_code(500);
+                http_response_code($model->getLastErrorStatus());
                 echo json_encode(['success' => false, 'error' => $model->getLastError() ?: 'Failed to update activity']);
             }
             break;
@@ -171,9 +184,9 @@ try {
 
             $result = $model->updateStatus($id, $status);
             if ($result) {
-                echo json_encode(['success' => true, 'message' => 'Status updated to ' . $status]);
+                echo json_encode(['success' => true, 'message' => 'Status updated to ' . ucfirst($status)]);
             } else {
-                http_response_code(500);
+                http_response_code($model->getLastErrorStatus());
                 echo json_encode(['success' => false, 'error' => $model->getLastError() ?: 'Failed to update status']);
             }
             break;
@@ -199,7 +212,7 @@ try {
             if ($result) {
                 echo json_encode(['success' => true, 'message' => 'Activity deleted successfully']);
             } else {
-                http_response_code($model->getLastError() === 'Activity not found' ? 404 : 500);
+                http_response_code($model->getLastErrorStatus());
                 echo json_encode(['success' => false, 'error' => $model->getLastError() ?: 'Failed to delete activity']);
             }
             break;
@@ -210,6 +223,12 @@ try {
             break;
 
         case 'overdue':
+            // The reminder asks people to close activities, so only editors get it.
+            if (!canEdit($userRole)) {
+                http_response_code(403);
+                echo json_encode(['success' => false, 'error' => 'You do not have permission to perform this action']);
+                break;
+            }
             $overdue = $model->getOverdueActivities();
             echo json_encode(['success' => true, 'data' => $overdue, 'count' => count($overdue)]);
             break;
@@ -227,11 +246,7 @@ try {
 } catch (Exception $e) {
     error_log("[Fieldwork API] Exception: " . $e->getMessage());
     http_response_code(500);
-    echo json_encode([
-        'success' => false,
-        'error' => 'An unexpected error occurred',
-        'message' => $e->getMessage()
-    ]);
+    echo json_encode(['success' => false, 'error' => 'An unexpected error occurred']);
 }
 
 /**
@@ -239,8 +254,12 @@ try {
  * super_admin and regional_director are explicitly included because this function
  * receives the raw $_SESSION['role'] string, bypassing Auth::hasRole().
  */
+function canEdit($role) {
+    return in_array($role, ['admin', 'encoder', 'super_admin', 'regional_director'], true);
+}
+
 function requireEditPermission($role) {
-    if (!in_array($role, ['admin', 'encoder', 'super_admin', 'regional_director'], true)) {
+    if (!canEdit($role)) {
         http_response_code(403);
         echo json_encode(['success' => false, 'error' => 'You do not have permission to perform this action']);
         exit;
@@ -268,6 +287,15 @@ function getPostData() {
     ];
 }
 
+/** True for a real calendar date in YYYY-MM-DD form. */
+function isValidDate($value) {
+    if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $value)) {
+        return false;
+    }
+    [$y, $m, $d] = array_map('intval', explode('-', $value));
+    return checkdate($m, $d, $y);
+}
+
 /**
  * Validate activity data and return an array of errors
  */
@@ -286,16 +314,20 @@ function validateActivityData($data) {
 
     if (empty($data['start_date'])) {
         $errors[] = 'Start date is required';
-    } elseif (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $data['start_date'])) {
-        $errors[] = 'Invalid start date format';
+    } elseif (!isValidDate($data['start_date'])) {
+        $errors[] = 'Invalid start date';
     }
 
     if (!empty($data['end_date'])) {
-        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $data['end_date'])) {
-            $errors[] = 'Invalid end date format';
+        if (!isValidDate($data['end_date'])) {
+            $errors[] = 'Invalid end date';
         } elseif ($data['end_date'] < $data['start_date']) {
             $errors[] = 'End date must be on or after start date';
         }
+    }
+
+    if ($data['status'] !== '' && !in_array($data['status'], FieldworkSchedule::STATUSES, true)) {
+        $errors[] = 'Invalid status';
     }
 
     if (!empty($data['location']) && strlen($data['location']) > 500) {

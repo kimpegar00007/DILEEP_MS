@@ -7,10 +7,20 @@
 // v2.1: regional_director also bypasses province filters (cross-province access).
 //       Added manual_override flag: prevents autoUpdateStatuses() from reverting
 //       a manually-reset 'pending' status back to 'missed' for past-dated records.
+// v2.2: Nothing is auto-marked 'missed' any more. A past-due pending/ongoing activity
+//       stays as it is and is flagged overdue (is_overdue / getOverdueActivities()) until
+//       a person confirms it as completed or missed, or reschedules it, through the
+//       Smart Activity Reminder. "Today" is always PHP's date in Asia/Manila.
 
 class FieldworkSchedule {
     private $db;
     private $lastError = '';
+    private $lastErrorStatus = 500;
+
+    public const STATUSES = ['pending', 'ongoing', 'completed', 'missed'];
+
+    // autoUpdateStatuses() only needs to run once per request.
+    private static $statusesUpdated = false;
 
     // Cross-province roles — these bypass province scoping
     private const CROSS_PROVINCE_ROLES = ['super_admin', 'regional_director'];
@@ -23,6 +33,25 @@ class FieldworkSchedule {
     public function getLastError() {
         return $this->lastError;
     }
+
+    /** HTTP status that fits the last error: 404 not found, 422 bad input, 500 database. */
+    public function getLastErrorStatus() {
+        return $this->lastErrorStatus;
+    }
+
+    private function fail(string $message, int $status): bool {
+        $this->lastError       = $message;
+        $this->lastErrorStatus = $status;
+        return false;
+    }
+
+    /** Today's date in Philippine time, used instead of CURDATE() (the DB server's zone differs). */
+    private function today(): string {
+        return (new DateTime('now', new DateTimeZone('Asia/Manila')))->format('Y-m-d');
+    }
+
+    /** SQL fragment that is 1 when an activity is past its last day and nobody has closed it. */
+    private const OVERDUE_SQL = "(fs.status IN ('pending', 'ongoing') AND COALESCE(fs.end_date, fs.start_date) < ?)";
 
     private function ensureTable() {
         try {
@@ -125,28 +154,41 @@ class FieldworkSchedule {
         return [true, $sessionProvince];
     }
 
+    /**
+     * Status to store and the matching manual_override flag. An empty status means
+     * "auto-detect" from the dates. A status that differs from the date-based one is a
+     * manual choice, so it gets override = 1 (that only matters for 'pending', which
+     * autoUpdateStatuses() would otherwise move to 'ongoing').
+     */
+    private function resolveStatus(string $status, string $startDate, ?string $endDate): array {
+        $computed = $this->computeStatus($startDate, $endDate);
+        if ($status === '' || $status === $computed) {
+            return [$computed, 0];
+        }
+        return [$status, 1];
+    }
+
     public function create($data) {
         $this->lastError = '';
         [$ok, $province] = $this->resolveProvinceForAssignee((int) $data['assigned_user_id']);
         if (!$ok) {
-            $this->lastError = $province;
-            return false;
+            return $this->fail($province, 422);
         }
 
         try {
             $sql = "INSERT INTO fieldwork_schedule (
                 title, description, location, province, assigned_user_id,
                 start_date, end_date, status, manual_override, created_by
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?)";
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
             $stmt = $this->db->prepare($sql);
             if (!$stmt) {
-                $this->lastError = 'Prepare failed: ' . implode(' | ', $this->db->errorInfo());
                 $this->logDatabaseError('Prepare failed', $this->db->errorInfo());
-                return false;
+                return $this->fail('Failed to create activity', 500);
             }
 
-            $status = $this->computeStatus($data['start_date'], $data['end_date'] ?? null);
+            $endDate = !empty($data['end_date']) ? $data['end_date'] : null;
+            [$status, $override] = $this->resolveStatus((string) ($data['status'] ?? ''), $data['start_date'], $endDate);
 
             $result = $stmt->execute([
                 trim($data['title']),
@@ -155,15 +197,15 @@ class FieldworkSchedule {
                 $province,
                 (int) $data['assigned_user_id'],
                 $data['start_date'],
-                !empty($data['end_date']) ? $data['end_date'] : null,
+                $endDate,
                 $status,
+                $override,
                 $_SESSION['user_id'] ?? null,
             ]);
 
             if (!$result) {
-                $this->lastError = 'Execute failed: ' . implode(' | ', $stmt->errorInfo());
                 $this->logDatabaseError('Execute failed', $stmt->errorInfo());
-                return false;
+                return $this->fail('Failed to create activity', 500);
             }
 
             $insertId = (int) $this->db->lastInsertId();
@@ -177,20 +219,18 @@ class FieldworkSchedule {
                 $insertId = $row ? (int) $row['id'] : 0;
 
                 if ($insertId <= 0) {
-                    $this->lastError = 'Insert succeeded but could not retrieve the new record ID';
-                    return false;
+                    return $this->fail('Activity was saved but its ID could not be read back', 500);
                 }
             }
 
             $this->logActivity('create', $insertId, 'Created fieldwork schedule: ' . trim($data['title']));
             return $insertId;
         } catch (PDOException $e) {
-            $this->lastError = 'DB Error: ' . $e->getMessage();
             $this->logDatabaseError('PDOException in create', [
                 'code' => $e->getCode(), 'message' => $e->getMessage(),
                 'file' => $e->getFile(), 'line'    => $e->getLine(),
             ]);
-            return false;
+            return $this->fail('Failed to create activity', 500);
         }
     }
 
@@ -198,31 +238,46 @@ class FieldworkSchedule {
      * Province follows the assigned user (see resolveProvinceForAssignee()); for
      * provincial users that is always their own province, so it never changes.
      * Province scope on WHERE prevents cross-province writes.
-     * Editing a record clears manual_override so auto-update resumes normally.
+     *
+     * Status: an empty status means auto-detect. When the dates move (a reschedule) and
+     * the form still carries the old status, the status is worked out again from the new
+     * dates, so a missed or overdue activity moved to next week becomes 'pending'.
+     * A completed activity keeps its status.
      */
     public function update($id, $data) {
         $this->lastError = '';
         [$pSql, $pParams] = $this->provinceScope();
+
+        $existing = $this->findById($id);
+        if (!$existing) {
+            return $this->fail('Activity not found', 404);
+        }
+
         [$ok, $province] = $this->resolveProvinceForAssignee((int) $data['assigned_user_id']);
         if (!$ok) {
-            $this->lastError = $province;
-            return false;
+            return $this->fail($province, 422);
         }
 
         try {
             $sql = "UPDATE fieldwork_schedule SET
                 title = ?, description = ?, location = ?, assigned_user_id = ?, province = ?,
-                start_date = ?, end_date = ?, status = ?, manual_override = 0
+                start_date = ?, end_date = ?, status = ?, manual_override = ?
             WHERE id = ?" . $pSql;
 
             $stmt = $this->db->prepare($sql);
             if (!$stmt) {
-                $this->lastError = 'Prepare failed: ' . implode(' | ', $this->db->errorInfo());
                 $this->logDatabaseError('Prepare failed in update', $this->db->errorInfo());
-                return false;
+                return $this->fail('Failed to update activity', 500);
             }
 
-            $status = $data['status'] ?? $this->computeStatus($data['start_date'], $data['end_date'] ?? null);
+            $endDate      = !empty($data['end_date']) ? $data['end_date'] : null;
+            $status       = (string) ($data['status'] ?? '');
+            $datesChanged = $data['start_date'] !== $existing['start_date']
+                         || $endDate !== ($existing['end_date'] ?: null);
+            if ($datesChanged && $status === $existing['status'] && $status !== 'completed') {
+                $status = '';
+            }
+            [$status, $override] = $this->resolveStatus($status, $data['start_date'], $endDate);
 
             $result = $stmt->execute(array_merge([
                 trim($data['title']),
@@ -231,55 +286,50 @@ class FieldworkSchedule {
                 (int) $data['assigned_user_id'],
                 $province,
                 $data['start_date'],
-                !empty($data['end_date']) ? $data['end_date'] : null,
+                $endDate,
                 $status,
+                $override,
                 (int) $id,
             ], $pParams));
 
             if (!$result) {
-                $this->lastError = 'Execute failed: ' . implode(' | ', $stmt->errorInfo());
                 $this->logDatabaseError('Execute failed in update', $stmt->errorInfo());
-                return false;
+                return $this->fail('Failed to update activity', 500);
             }
 
             $this->logActivity('update', $id, 'Updated fieldwork schedule: ' . trim($data['title']));
             return true;
         } catch (PDOException $e) {
-            $this->lastError = 'DB Error: ' . $e->getMessage();
             $this->logDatabaseError('PDOException in update', [
                 'code' => $e->getCode(), 'message' => $e->getMessage(),
                 'file' => $e->getFile(), 'line'    => $e->getLine(),
             ]);
-            return false;
+            return $this->fail('Failed to update activity', 500);
         }
     }
 
     /**
-     * Manually set the status for an activity.
+     * Manually set the status for an activity (table menu and the Smart Activity Reminder).
      *
-     * Sets manual_override = 1 for any explicit manual status change so
-     * autoUpdateStatuses() won't immediately revert it. The override is
-     * cleared when the record naturally transitions (start_date reached).
+     * Sets manual_override = 1, so a manual 'pending' is not moved to 'ongoing' by
+     * autoUpdateStatuses(). Editing the activity's dates resets it (see update()).
      */
     public function updateStatus($id, $status) {
         $this->lastError = '';
         [$pSql, $pParams] = $this->provinceScope();
 
-        $validStatuses = ['pending', 'ongoing', 'completed', 'missed'];
-        if (!in_array($status, $validStatuses, true)) {
-            $this->lastError = 'Invalid status: ' . $status;
-            return false;
+        if (!in_array($status, self::STATUSES, true)) {
+            return $this->fail('Invalid status', 422);
         }
-
-        // Any manual status change sets override = 1
-        // 'ongoing' via Start button also sets override to prevent immediate revert
-        $manualOverride = 1;
+        if (!$this->findById($id)) {
+            return $this->fail('Activity not found', 404);
+        }
 
         try {
             $stmt   = $this->db->prepare(
-                "UPDATE fieldwork_schedule SET status = ?, manual_override = ? WHERE id = ?" . $pSql
+                "UPDATE fieldwork_schedule SET status = ?, manual_override = 1 WHERE id = ?" . $pSql
             );
-            $result = $stmt->execute(array_merge([$status, $manualOverride, (int) $id], $pParams));
+            $result = $stmt->execute(array_merge([$status, (int) $id], $pParams));
 
             if ($result) {
                 $this->logActivity('update', $id, 'Updated fieldwork status to: ' . $status);
@@ -287,11 +337,10 @@ class FieldworkSchedule {
 
             return $result;
         } catch (PDOException $e) {
-            $this->lastError = 'DB Error: ' . $e->getMessage();
             $this->logDatabaseError('PDOException in updateStatus', [
                 'code' => $e->getCode(), 'message' => $e->getMessage(),
             ]);
-            return false;
+            return $this->fail('Failed to update status', 500);
         }
     }
 
@@ -305,26 +354,23 @@ class FieldworkSchedule {
             $result   = $stmt->execute(array_merge([(int) $id], $pParams));
 
             if (!$result) {
-                $this->lastError = 'Execute failed: ' . implode(' | ', $stmt->errorInfo());
                 $this->logDatabaseError('Execute failed in delete', $stmt->errorInfo());
-                return false;
+                return $this->fail('Failed to delete activity', 500);
             }
 
             // Nothing deleted: the activity doesn't exist or is outside the user's province.
             if ($stmt->rowCount() === 0) {
-                $this->lastError = 'Activity not found';
-                return false;
+                return $this->fail('Activity not found', 404);
             }
 
             $title = $activity ? $activity['title'] : 'ID ' . $id;
             $this->logActivity('delete', $id, 'Deleted fieldwork schedule: ' . $title);
             return true;
         } catch (PDOException $e) {
-            $this->lastError = 'DB Error: ' . $e->getMessage();
             $this->logDatabaseError('PDOException in delete', [
                 'code' => $e->getCode(), 'message' => $e->getMessage(),
             ]);
-            return false;
+            return $this->fail('Failed to delete activity', 500);
         }
     }
 
@@ -336,32 +382,49 @@ class FieldworkSchedule {
         try {
             [$pSql, $pParams] = $this->provinceScope('fs');
             $stmt = $this->db->prepare("
-                SELECT fs.*, u.full_name as assigned_user_name, c.full_name as created_by_name
+                SELECT fs.*, u.full_name as assigned_user_name, c.full_name as created_by_name,
+                       " . self::OVERDUE_SQL . " AS is_overdue
                 FROM fieldwork_schedule fs
                 LEFT JOIN users u ON fs.assigned_user_id = u.id
                 LEFT JOIN users c ON fs.created_by = c.id
                 WHERE fs.id = ?" . $pSql
             );
-            $stmt->execute(array_merge([(int) $id], $pParams));
-            return $stmt->fetch();
+            $stmt->execute(array_merge([$this->today(), (int) $id], $pParams));
+            $row = $stmt->fetch();
+            if ($row) {
+                $row['is_overdue'] = (bool) $row['is_overdue'];
+            }
+            return $row;
         } catch (PDOException $e) {
             $this->logDatabaseError('PDOException in findById', ['message' => $e->getMessage()]);
             return false;
         }
     }
 
+    /**
+     * Filters: status (one of STATUSES, or 'overdue'), assigned_user_id, date_from,
+     * date_to (both on start_date) and search (title, description, location).
+     *
+     * Order: overdue first (oldest first), then today and upcoming (soonest first),
+     * then finished or past ones (most recent first).
+     */
     public function getAll($filters = []) {
         try {
             [$pSql, $pParams] = $this->provinceScope('fs');
+            $today = $this->today();
 
-            $sql    = "SELECT fs.*, u.full_name as assigned_user_name, c.full_name as created_by_name
+            $sql    = "SELECT fs.*, u.full_name as assigned_user_name, c.full_name as created_by_name,
+                              " . self::OVERDUE_SQL . " AS is_overdue
                        FROM fieldwork_schedule fs
                        LEFT JOIN users u ON fs.assigned_user_id = u.id
                        LEFT JOIN users c ON fs.created_by = c.id
                        WHERE 1=1" . $pSql;
-            $params = $pParams;
+            $params = array_merge([$today], $pParams);
 
-            if (!empty($filters['status'])) {
+            if (($filters['status'] ?? '') === 'overdue') {
+                $sql     .= " AND " . self::OVERDUE_SQL;
+                $params[] = $today;
+            } elseif (!empty($filters['status'])) {
                 $sql     .= " AND fs.status = ?";
                 $params[] = $filters['status'];
             }
@@ -387,11 +450,33 @@ class FieldworkSchedule {
                 $params[] = $term; $params[] = $term; $params[] = $term;
             }
 
-            $sql .= " ORDER BY fs.start_date ASC, fs.created_at DESC";
+            $sql .= " ORDER BY fs.start_date ASC, fs.id ASC";
 
             $stmt = $this->db->prepare($sql);
             $stmt->execute($params);
-            return $stmt->fetchAll();
+            $rows = $stmt->fetchAll();
+
+            // 0 = overdue, 1 = today or upcoming, 2 = closed or past.
+            $group = function (array $r) use ($today): int {
+                if ($r['is_overdue']) return 0;
+                $lastDay = $r['end_date'] ?: $r['start_date'];
+                return ($lastDay >= $today && !in_array($r['status'], ['completed', 'missed'], true)) ? 1 : 2;
+            };
+            $groups = [];
+            foreach ($rows as &$r) {
+                $r['is_overdue'] = (bool) $r['is_overdue'];
+                $groups[$r['id']] = $group($r);
+            }
+            unset($r);
+            usort($rows, function ($a, $b) use ($groups) {
+                $ga = $groups[$a['id']];
+                $gb = $groups[$b['id']];
+                if ($ga !== $gb) return $ga <=> $gb;
+                $cmp = strcmp($a['start_date'], $b['start_date']) ?: ($a['id'] <=> $b['id']);
+                return $ga === 2 ? -$cmp : $cmp;
+            });
+
+            return $rows;
         } catch (PDOException $e) {
             $this->logDatabaseError('PDOException in getAll', ['message' => $e->getMessage()]);
             return [];
@@ -402,16 +487,22 @@ class FieldworkSchedule {
         try {
             [$pSql, $pParams] = $this->provinceScope('fs');
 
-            $sql = "SELECT fs.*, u.full_name as assigned_user_name
+            $sql = "SELECT fs.*, u.full_name as assigned_user_name,
+                           " . self::OVERDUE_SQL . " AS is_overdue
                     FROM fieldwork_schedule fs
                     LEFT JOIN users u ON fs.assigned_user_id = u.id
-                    WHERE (fs.start_date <= ? AND (fs.end_date >= ? OR (fs.end_date IS NULL AND fs.start_date >= ?)))"
+                    WHERE fs.start_date <= ? AND COALESCE(fs.end_date, fs.start_date) >= ?"
                     . $pSql .
                    " ORDER BY fs.start_date ASC";
 
             $stmt = $this->db->prepare($sql);
-            $stmt->execute(array_merge([$endDate, $startDate, $startDate], $pParams));
-            return $stmt->fetchAll();
+            $stmt->execute(array_merge([$this->today(), $endDate, $startDate], $pParams));
+            $rows = $stmt->fetchAll();
+            foreach ($rows as &$r) {
+                $r['is_overdue'] = (bool) $r['is_overdue'];
+            }
+            unset($r);
+            return $rows;
         } catch (PDOException $e) {
             $this->logDatabaseError('PDOException in getCalendarEvents', ['message' => $e->getMessage()]);
             return [];
@@ -421,17 +512,18 @@ class FieldworkSchedule {
     public function getUpcomingActivities($daysAhead = 3) {
         try {
             [$pSql, $pParams] = $this->provinceScope('fs');
+            $today = $this->today();
 
             $sql = "SELECT fs.*, u.full_name as assigned_user_name
                     FROM fieldwork_schedule fs
                     LEFT JOIN users u ON fs.assigned_user_id = u.id
                     WHERE fs.status IN ('pending', 'ongoing')
-                    AND fs.start_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL ? DAY)"
+                    AND fs.start_date BETWEEN ? AND DATE_ADD(?, INTERVAL ? DAY)"
                     . $pSql .
                    " ORDER BY fs.start_date ASC";
 
             $stmt = $this->db->prepare($sql);
-            $stmt->execute(array_merge([$daysAhead], $pParams));
+            $stmt->execute(array_merge([$today, $today, (int) $daysAhead], $pParams));
             return $stmt->fetchAll();
         } catch (PDOException $e) {
             $this->logDatabaseError('PDOException in getUpcomingActivities', ['message' => $e->getMessage()]);
@@ -439,24 +531,31 @@ class FieldworkSchedule {
         }
     }
 
+    /**
+     * Activities past their last day that nobody has marked completed or missed.
+     * These feed the Smart Activity Reminder and the bell's "Overdue Fieldwork" items.
+     */
     public function getOverdueActivities() {
         try {
             [$pSql, $pParams] = $this->provinceScope('fs');
+            $today = $this->today();
 
-            $sql = "SELECT fs.*, u.full_name as assigned_user_name
+            $sql = "SELECT fs.*, u.full_name as assigned_user_name,
+                           DATEDIFF(?, COALESCE(fs.end_date, fs.start_date)) AS days_overdue
                     FROM fieldwork_schedule fs
                     LEFT JOIN users u ON fs.assigned_user_id = u.id
-                    WHERE fs.status NOT IN ('completed', 'missed')
-                    AND (
-                        (fs.end_date IS NOT NULL AND fs.end_date < CURDATE())
-                        OR (fs.end_date IS NULL AND fs.start_date < CURDATE() AND fs.status NOT IN ('completed', 'missed'))
-                    )"
+                    WHERE " . self::OVERDUE_SQL
                     . $pSql .
-                   " ORDER BY fs.start_date ASC";
+                   " ORDER BY COALESCE(fs.end_date, fs.start_date) ASC, fs.id ASC";
 
             $stmt = $this->db->prepare($sql);
-            $stmt->execute($pParams);
-            return $stmt->fetchAll();
+            $stmt->execute(array_merge([$today, $today], $pParams));
+            $rows = $stmt->fetchAll();
+            foreach ($rows as &$r) {
+                $r['days_overdue'] = (int) $r['days_overdue'];
+            }
+            unset($r);
+            return $rows;
         } catch (PDOException $e) {
             $this->logDatabaseError('PDOException in getOverdueActivities', ['message' => $e->getMessage()]);
             return [];
@@ -465,22 +564,27 @@ class FieldworkSchedule {
 
     public function getStatistics() {
         try {
-            [$pSql, $pParams] = $this->provinceScope();
+            [$pSql, $pParams] = $this->provinceScope('fs');
 
             $sql = "SELECT
                 COUNT(*) as total,
-                SUM(CASE WHEN status = 'pending'   THEN 1 ELSE 0 END) as pending,
-                SUM(CASE WHEN status = 'ongoing'   THEN 1 ELSE 0 END) as ongoing,
-                SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed,
-                SUM(CASE WHEN status = 'missed'    THEN 1 ELSE 0 END) as missed
-            FROM fieldwork_schedule WHERE 1=1" . $pSql;
+                SUM(CASE WHEN fs.status = 'pending'   THEN 1 ELSE 0 END) as pending,
+                SUM(CASE WHEN fs.status = 'ongoing'   THEN 1 ELSE 0 END) as ongoing,
+                SUM(CASE WHEN fs.status = 'completed' THEN 1 ELSE 0 END) as completed,
+                SUM(CASE WHEN fs.status = 'missed'    THEN 1 ELSE 0 END) as missed,
+                SUM(CASE WHEN " . self::OVERDUE_SQL . " THEN 1 ELSE 0 END) as overdue
+            FROM fieldwork_schedule fs WHERE 1=1" . $pSql;
 
             $stmt = $this->db->prepare($sql);
-            $stmt->execute($pParams);
-            return $stmt->fetch();
+            $stmt->execute(array_merge([$this->today()], $pParams));
+            $row = $stmt->fetch() ?: [];
+            foreach (['total', 'pending', 'ongoing', 'completed', 'missed', 'overdue'] as $k) {
+                $row[$k] = (int) ($row[$k] ?? 0);
+            }
+            return $row;
         } catch (PDOException $e) {
             $this->logDatabaseError('PDOException in getStatistics', ['message' => $e->getMessage()]);
-            return ['total' => 0, 'pending' => 0, 'ongoing' => 0, 'completed' => 0, 'missed' => 0];
+            return ['total' => 0, 'pending' => 0, 'ongoing' => 0, 'completed' => 0, 'missed' => 0, 'overdue' => 0];
         }
     }
 
@@ -507,41 +611,27 @@ class FieldworkSchedule {
     // This is a maintenance task; scoping it would leave other
     // provinces with stale statuses.
     //
-    // IMPORTANT: Records with manual_override = 1 are excluded from
-    // automatic status changes. manual_override is cleared when a
-    // record naturally transitions (start_date <= today for pending→ongoing).
+    // Only pending → ongoing is automatic. Nothing is marked 'missed'
+    // automatically: past-due activities stay pending/ongoing and are
+    // reported as overdue until a person confirms what happened.
+    // Records with manual_override = 1 (a manual 'pending') are skipped.
     // =========================================================
 
     public function autoUpdateStatuses() {
-        try {
-            $today = date('Y-m-d');
+        if (self::$statusesUpdated) {
+            return true;
+        }
+        self::$statusesUpdated = true;
 
-            // pending → ongoing: only if not manually overridden.
-            // Clears manual_override so future auto-updates work normally.
+        try {
+            $today = $this->today();
+
             $this->db->prepare("
-                UPDATE fieldwork_schedule SET status = 'ongoing', manual_override = 0
+                UPDATE fieldwork_schedule SET status = 'ongoing'
                 WHERE status = 'pending'
                 AND manual_override = 0
-                AND start_date <= ? AND (end_date >= ? OR end_date IS NULL)
+                AND start_date <= ? AND COALESCE(end_date, start_date) >= ?
             ")->execute([$today, $today]);
-
-            // non-completed/missed → missed when end_date has passed.
-            // Respects manual_override: won't revert a manually-reset 'pending'.
-            $this->db->prepare("
-                UPDATE fieldwork_schedule SET status = 'missed'
-                WHERE status NOT IN ('completed', 'missed')
-                AND manual_override = 0
-                AND end_date IS NOT NULL AND end_date < ?
-            ")->execute([$today]);
-
-            // No end_date but start_date passed → missed.
-            // Respects manual_override.
-            $this->db->prepare("
-                UPDATE fieldwork_schedule SET status = 'missed'
-                WHERE status NOT IN ('completed', 'missed')
-                AND manual_override = 0
-                AND end_date IS NULL AND start_date < ?
-            ")->execute([$today]);
 
             return true;
         } catch (PDOException $e) {
@@ -554,17 +644,16 @@ class FieldworkSchedule {
     // Utility
     // =========================================================
 
+    /**
+     * Date-based status: 'ongoing' while today falls inside the activity's dates,
+     * otherwise 'pending' (not started yet, or past and still waiting for someone to
+     * confirm it as completed or missed). Never returns completed or missed.
+     */
     public function computeStatus($startDate, $endDate = null) {
-        $today = date('Y-m-d');
+        $today   = $this->today();
+        $lastDay = !empty($endDate) ? $endDate : $startDate;
 
-        if (!empty($endDate) && $endDate < $today) return 'missed';
-
-        if ($startDate <= $today && (empty($endDate) || $endDate >= $today)) {
-            if ($startDate === $today) return 'ongoing';
-            if ($startDate < $today)  return empty($endDate) ? 'missed' : 'ongoing';
-        }
-
-        return 'pending';
+        return ($startDate <= $today && $lastDay >= $today) ? 'ongoing' : 'pending';
     }
 
     // =========================================================
