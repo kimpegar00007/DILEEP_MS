@@ -615,6 +615,86 @@ const DILP = {
     // Part 10: Export Utilities
     // --------------------------------------------------------
     export: {
+        // DataTables keeps only the current page's rows in the DOM, so read every row that
+        // matches the table's search (in its current sort order) through its API instead.
+        _rows(table) {
+            if (window.jQuery && jQuery.fn.dataTable && jQuery.fn.dataTable.isDataTable(table)) {
+                return Array.from(jQuery(table).DataTable().rows({ search: 'applied', order: 'applied' }).nodes());
+            }
+            return Array.from(table.querySelectorAll('tbody tr'));
+        },
+
+        // Copy of the table holding all rows from _rows(), for exports that use its HTML.
+        _fullTable(table) {
+            const copy = table.cloneNode(false);
+            copy.removeAttribute('style');
+            if (table.tHead) copy.appendChild(table.tHead.cloneNode(true));
+            const body = document.createElement('tbody');
+            this._rows(table).forEach(tr => body.appendChild(tr.cloneNode(true)));
+            copy.appendChild(body);
+            if (table.tFoot) copy.appendChild(table.tFoot.cloneNode(true));
+            return copy;
+        },
+
+        // Print with every row on the page, then restore the user's page length.
+        print(tableSelector) {
+            const table = document.querySelector(tableSelector);
+            if (!table || !(window.jQuery && jQuery.fn.dataTable && jQuery.fn.dataTable.isDataTable(table))) {
+                window.print();
+                return;
+            }
+            const dt = jQuery(table).DataTable();
+            const pageLength = dt.page.len();
+            const page = dt.page();
+            dt.page.len(-1).draw(false);
+            const restore = () => {
+                window.removeEventListener('afterprint', restore);
+                dt.page.len(pageLength).draw(false);
+                dt.page(page).draw(false);
+            };
+            window.addEventListener('afterprint', restore);
+            window.print();
+        },
+
+        // Local date as YYYY-MM-DD for file names (toISOString() is UTC, a day behind in the morning here).
+        _today() {
+            const d = new Date();
+            return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        },
+
+        _download(blob, fileName) {
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = fileName;
+            link.click();
+            setTimeout(() => URL.revokeObjectURL(link.href), 0);
+        },
+
+        // A cell's export value. Cells may carry raw values next to their display text:
+        // data-num="1234.5" (amounts, counts) and data-date="2026-10-05" (ISO date).
+        _cellValue(cell) {
+            if (cell.dataset.num !== undefined && cell.dataset.num !== '') {
+                return { type: 'number', value: Number(cell.dataset.num) };
+            }
+            if (cell.dataset.date !== undefined) {
+                return cell.dataset.date ? { type: 'date', value: cell.dataset.date } : { type: 'text', value: '' };
+            }
+            return { type: 'text', value: cell.textContent.replace(/\s+/g, ' ').trim() };
+        },
+
+        // Header labels, every exported body row and the footer rows, as cell values.
+        _tableData(table) {
+            const headerCells = table.tHead ? Array.from(table.tHead.rows[table.tHead.rows.length - 1].cells) : [];
+            const rowValues = tr => Array.from(tr.cells).map(cell => this._cellValue(cell));
+            return {
+                headers: headerCells.map(th => th.textContent.replace(/\s+/g, ' ').trim()),
+                sumKinds: headerCells.map(th => th.dataset.sum || ''),
+                body: this._rows(table).map(rowValues),
+                footer: table.tFoot ? Array.from(table.tFoot.rows).map(rowValues) : [],
+            };
+        },
+
+        // CSV with raw numbers (no ₱ or thousands separators) and ISO dates, so it sums and sorts in a spreadsheet.
         toCSV(tableSelector, filename = 'report') {
             const table = document.querySelector(tableSelector);
             if (!table) {
@@ -624,34 +704,22 @@ const DILP = {
 
             DILP.loading.show('Preparing CSV export...');
 
-            const rows = [];
-            const headers = [];
-            table.querySelectorAll('thead th').forEach(th => {
-                headers.push('"' + th.textContent.trim().replace(/"/g, '""') + '"');
-            });
-            rows.push(headers.join(','));
+            const data = this._tableData(table);
+            const quote = text => '"' + String(text).replace(/"/g, '""') + '"';
+            const line = cells => cells.map(c => c.type === 'number' ? String(c.value) : quote(c.value)).join(',');
+            const lines = [data.headers.map(quote).join(',')]
+                .concat(data.body.map(line), data.footer.map(line));
 
-            table.querySelectorAll('tbody tr').forEach(tr => {
-                const cols = [];
-                tr.querySelectorAll('td').forEach(td => {
-                    cols.push('"' + td.textContent.trim().replace(/"/g, '""') + '"');
-                });
-                rows.push(cols.join(','));
-            });
-
-            const csvContent = '\uFEFF' + rows.join('\n');
-            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = `${filename}_${new Date().toISOString().slice(0,10)}.csv`;
-            link.click();
-            URL.revokeObjectURL(link.href);
+            this._download(new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8;' }),
+                `${filename}_${this._today()}.csv`);
 
             DILP.loading.hide();
             DILP.toast.success('Export Complete', 'CSV file has been downloaded.');
         },
 
-        toExcel(tableSelector, filename = 'report') {
+        // Real .xlsx through SheetJS (window.XLSX, loaded by the page): numbers and dates stay numeric,
+        // with optional title/subtitle rows above the table. Falls back to an HTML .xls without SheetJS.
+        toExcel(tableSelector, filename = 'report', options = {}) {
             const table = document.querySelector(tableSelector);
             if (!table) {
                 DILP.toast.error('Export Error', 'No data table found to export.');
@@ -660,6 +728,61 @@ const DILP = {
 
             DILP.loading.show('Preparing Excel export...');
 
+            if (!window.XLSX) {
+                this._excelFromHtml(table, filename);
+                return;
+            }
+
+            const data = this._tableData(table);
+            const columnCount = Math.max(data.headers.length, 1);
+            const rows = [];
+            if (options.title) rows.push([`DOLE DILEEP Monitoring System - ${options.title}`]);
+            if (options.subtitle) rows.push([options.subtitle]);
+            rows.push([`Generated: ${new Date().toLocaleString()} | Total Records: ${data.body.length}`]);
+            rows.push([]);
+            const headerRow = rows.length;
+            rows.push(data.headers);
+            const firstDataRow = rows.length;
+            data.body.concat(data.footer).forEach(cells => rows.push(cells.map(c => c.value)));
+
+            const ws = XLSX.utils.aoa_to_sheet(rows);
+
+            // Typed cells: money/count formats from the header's data-sum, dates as Excel date serials.
+            const excelEpoch = Date.UTC(1899, 11, 30);
+            data.body.concat(data.footer).forEach((cells, i) => {
+                cells.forEach((c, col) => {
+                    const ref = XLSX.utils.encode_cell({ r: firstDataRow + i, c: col });
+                    if (c.type === 'number') {
+                        ws[ref] = { t: 'n', v: c.value };
+                        if (data.sumKinds[col] === 'money') ws[ref].z = '#,##0.00';
+                        else if (data.sumKinds[col] === 'count') ws[ref].z = '#,##0';
+                    } else if (c.type === 'date') {
+                        const [y, m, d] = c.value.split('-').map(Number);
+                        ws[ref] = { t: 'n', v: (Date.UTC(y, m - 1, d) - excelEpoch) / 86400000, z: 'mmm dd, yyyy' };
+                    }
+                });
+            });
+
+            // Title lines span the table; columns sized to their longest text (capped).
+            ws['!merges'] = rows.slice(0, headerRow - 1).map((_, r) => ({ s: { r, c: 0 }, e: { r, c: columnCount - 1 } }));
+            ws['!cols'] = data.headers.map((header, col) => {
+                const longest = rows.slice(headerRow).reduce((max, row) => {
+                    const cell = row[col];
+                    return Math.max(max, cell === undefined || cell === null ? 0 : String(cell).length);
+                }, header.length);
+                return { wch: Math.min(Math.max(longest + 2, 8), 45) };
+            });
+            ws['!autofilter'] = { ref: XLSX.utils.encode_range({ s: { r: headerRow, c: 0 }, e: { r: firstDataRow + data.body.length - 1, c: columnCount - 1 } }) };
+
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, (options.sheetName || 'Report').slice(0, 31));
+            XLSX.writeFile(wb, `${filename}_${this._today()}.xlsx`);
+
+            DILP.loading.hide();
+            DILP.toast.success('Export Complete', 'Excel file has been downloaded.');
+        },
+
+        _excelFromHtml(table, filename) {
             const html = `
                 <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
                 <head><meta charset="UTF-8">
@@ -667,20 +790,15 @@ const DILP = {
                 <x:Name>Report</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions>
                 </x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]-->
                 <style>td,th{border:1px solid #ccc;padding:5px;font-family:Arial;font-size:12px;}th{background:#1B7A3D;color:white;font-weight:bold;}</style>
-                </head><body>${table.outerHTML}</body></html>`;
+                </head><body>${this._fullTable(table).outerHTML}</body></html>`;
 
-            const blob = new Blob([html], { type: 'application/vnd.ms-excel' });
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = `${filename}_${new Date().toISOString().slice(0,10)}.xls`;
-            link.click();
-            URL.revokeObjectURL(link.href);
+            this._download(new Blob([html], { type: 'application/vnd.ms-excel' }), `${filename}_${this._today()}.xls`);
 
             DILP.loading.hide();
             DILP.toast.success('Export Complete', 'Excel file has been downloaded.');
         },
 
-        toPDF(tableSelector, title = 'Report') {
+        toPDF(tableSelector, title = 'Report', subtitle = '') {
             DILP.loading.show('Preparing PDF export...');
 
             const table = document.querySelector(tableSelector);
@@ -690,7 +808,13 @@ const DILP = {
                 return;
             }
 
+            const fullTable = this._fullTable(table);
             const printWindow = window.open('', '_blank');
+            if (!printWindow) {
+                DILP.loading.hide();
+                DILP.toast.error('Export Error', 'Pop-up blocked. Allow pop-ups for this site to export a PDF.');
+                return;
+            }
             printWindow.document.write(`
                 <!DOCTYPE html>
                 <html><head><title>${title}</title>
@@ -702,12 +826,15 @@ const DILP = {
                     th { background: #145A2C; color: white; padding: 8px 6px; text-align: left; }
                     td { padding: 6px; border-bottom: 1px solid #ddd; }
                     tr:nth-child(even) { background: #f8f9fa; }
+                    tfoot td { font-weight: bold; border-top: 2px solid #145A2C; }
+                    .text-end { text-align: right; }
                     .footer { margin-top: 20px; text-align: center; font-size: 10px; color: #999; }
                 </style></head><body>
                 <h1>DOLE DILEEP Monitoring System - ${title}</h1>
-                <div class="meta">Generated: ${new Date().toLocaleString()} | Total Records: ${table.querySelectorAll('tbody tr').length}</div>
-                ${table.outerHTML}
-                <div class="footer">&copy; 2026 Department of Labor and Employment</div>
+                ${subtitle ? `<div class="meta">${String(subtitle).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]))}</div>` : ''}
+                <div class="meta">Generated: ${new Date().toLocaleString()} | Total Records: ${fullTable.tBodies[0].rows.length}</div>
+                ${fullTable.outerHTML}
+                <div class="footer">&copy; ${new Date().getFullYear()} Department of Labor and Employment</div>
                 </body></html>
             `);
             printWindow.document.close();

@@ -279,6 +279,11 @@ class Beneficiary {
             $params[] = $filters['status'];
         }
 
+        if (!empty($filters['source_of_funds'])) {
+            $sql     .= " AND source_of_funds = ?";
+            $params[] = $filters['source_of_funds'];
+        }
+
         $allowedDateFields = [
             'date_complied_by_proponent', 'date_forwarded_to_ro6', 'date_approved',
             'date_forwarded_to_nofo', 'date_turnover', 'date_monitoring',

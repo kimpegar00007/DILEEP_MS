@@ -355,6 +355,11 @@ class Proponent {
             $params[] = $filters['category'];
         }
 
+        if (!empty($filters['source_of_funds'])) {
+            $sql     .= " AND source_of_funds = ?";
+            $params[] = $filters['source_of_funds'];
+        }
+
         // Past the liquidation deadline and not liquidated yet (same rule as the dashboard alert
         // in Dashboard::getOverdueLiquidations()); "today" is Manila time, not the DB server's.
         if (!empty($filters['overdue'])) {

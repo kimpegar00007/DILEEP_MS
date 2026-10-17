@@ -4,7 +4,7 @@ $db = Database::getInstance()->getConnection();
 $cqprDateFrom = $dateFrom;
 $cqprDateTo = $dateTo;
 $regionalOffice = $_GET['regional_office'] ?? 'NIR';
-$cqprStatus = $_GET['status'] ?? '';
+$cqprStatus = $selectedStatus; // whitelisted against $recordStatusOptions['cqpr'] in reports.php
 
 // Conditions use a {t} token for the table alias, swapped in per query below.
 // Do not str_replace column names: that also rewrites the :named placeholders.
@@ -23,11 +23,21 @@ if ($cqprDateFrom && $cqprDateTo) {
     $params[':date_to'] = $cqprDateTo;
 }
 
-// Province filter from report form
+// Province filter from report form. A provincial user without a province sees nothing,
+// the same fail-closed rule as the models' provinceScope().
 $provinceCondition = '';
-if (!empty($provinceFilter)) {
+if (!$isCrossProvince && empty($sessionProvince)) {
+    $provinceCondition = ' AND 1 = 0';
+} elseif (!empty($provinceFilter)) {
     $provinceCondition = " AND {t}.province = :province";
     $params[':province'] = $provinceFilter;
+}
+
+// Fund source filter (GAA / Centrally Managed Fund / Other), whitelisted in reports.php
+$fundCondition = '';
+if ($sourceOfFunds !== '') {
+    $fundCondition = " AND {t}.source_of_funds = :source_of_funds";
+    $params[':source_of_funds'] = $sourceOfFunds;
 }
 
 // Status filter for CQPR
@@ -66,7 +76,7 @@ $proponentsSql = "SELECT
     p.status as project_status,
     'proponent' as source_table
 FROM proponents p
-WHERE p.status IN {$proponentStatusList}" . str_replace('{t}', 'p', $dateCondition . $provinceCondition) . "
+WHERE p.status IN {$proponentStatusList}" . str_replace('{t}', 'p', $dateCondition . $provinceCondition . $fundCondition) . "
 ORDER BY p.date_approved DESC";
 
 $stmt = $db->prepare($proponentsSql);
@@ -108,7 +118,7 @@ $beneficiariesSql = "SELECT
     'beneficiary' as source_table
 FROM beneficiaries b
 LEFT JOIN proponents p ON p.id = b.proponent_id
-WHERE b.status IN {$beneficiaryStatusList}" . str_replace('{t}', 'b', $provinceCondition . $dateCondition) . "
+WHERE b.status IN {$beneficiaryStatusList}" . str_replace('{t}', 'b', $provinceCondition . $dateCondition . $fundCondition) . "
 ORDER BY b.date_approved DESC";
 
 $stmt = $db->prepare($beneficiariesSql);
@@ -131,6 +141,96 @@ foreach ($cqprData as $record) {
     $totalFemale += (int) $record['female'];
     $totalAmount += (float) $record['amount_released'];
 }
+
+$cqprNotes = [
+    'a' => 'Purpose of Project (Use Acronym): Kabuhayan Formation (F), Kabuhayan Enhancement (E), Kabuhayan Restoration (R)',
+    'b' => 'Type of Project (Use Acronym): Individual (I), Group (G)',
+    'c' => 'Type of Beneficiaries: Marginalized and Landless Farmers, Marginalized Fisherfolks, Self-employed with Insufficient Income, Parents of Child Laborers, Displaced Workers, among others',
+    'd' => 'Convergence Project/Partner: DSWD Project Lawa at Saka, Zero Hunger, DILG KAPAG Project, MMDA Brigade Eskwela, TAU-DLP, WDDP-Prov, among others',
+    'e' => 'Project Status: Cheque released to partner; Assistance awarded or released to beneficiaries; Ongoing procurement; Operational; among others',
+];
+$cqprFundColumns = ['GAA' => 14, 'Centrally Managed Fund' => 15, 'Other' => 16];
+
+// =========================================================
+// Excel version of the form (DOLE-QF-COP-05-01), built from the same rows as the HTML table
+// =========================================================
+
+// Excel stores dates as days since 1899-12-30
+$toExcelDate = static function (?string $date): ?int {
+    $parsed = $date ? DateTime::createFromFormat('!Y-m-d', substr($date, 0, 10), new DateTimeZone('UTC')) : false;
+    return $parsed ? (new DateTime('1899-12-30', new DateTimeZone('UTC')))->diff($parsed)->days : null;
+};
+$lastCol = 18;
+$rightCell = static fn(string $text): array => array_merge(array_fill(0, $lastCol, null), [$text]);
+
+$sheetRows = [
+    $rightCell('DOLE-QF-COP-05-01'),
+    $rightCell('Revision No. 07'),
+    $rightCell('Effective Date: 24 March 2026'),
+    ['Consolidated Quarterly Progress Report'],
+    ['DOLE Integrated Livelihood and Emergency Employment Program (DILEEP)'],
+    ['From ' . ($cqprDateFrom ? date('F d, Y', strtotime($cqprDateFrom)) : '_______________')
+        . ' to ' . ($cqprDateTo ? date('F d, Y', strtotime($cqprDateTo)) : '_______________')],
+    [],
+    ['DOLE Regional Office No. ' . $regionalOffice],
+    ['A. DOLE Integrated Livelihood Program'],
+    ['Name & Nature of Project', 'Name of Implementor', 'Project Location', null, null, null, null,
+     'Purpose of Project (a)', 'Type of Project (b)', 'Beneficiaries', null, null, 'Amount Released (Php)',
+     'Date Released', 'Fund Source', null, null, 'Convergence Project/Partner (d)', 'Project Status (e)'],
+    [null, null, 'Barangay', 'City/Municipality', 'Province', 'District', 'Income Class', null, null,
+     'Total', 'Female', 'Type (c)', null, null, 'Regular GAA, SN', 'Convergence Fund', 'Fund Others', null, null],
+];
+$headerRow = 9;
+$firstDataRow = count($sheetRows);
+foreach ($cqprData as $row) {
+    $line = [
+        $row['name_nature_of_project'] ?? '', $row['name_of_implementor'] ?? '', $row['barangay'] ?? '',
+        $row['city_municipality'] ?? '', $row['province'] ?? '', $row['district'] ?? '', $row['income_class'] ?? '',
+        $row['purpose_of_project'] ?? '', $row['type_of_project'] ?? '', (int) ($row['total_beneficiaries'] ?? 0),
+        (int) ($row['female'] ?? 0), $row['beneficiary_type'] ?? '', (float) ($row['amount_released'] ?? 0),
+        $toExcelDate($row['date_released'] ?? null), null, null, null, $row['convergence_project'] ?? '',
+        ucfirst($row['project_status'] ?? ''),
+    ];
+    if (isset($cqprFundColumns[$row['source_of_funds'] ?? ''])) {
+        $line[$cqprFundColumns[$row['source_of_funds']]] = '✓';
+    }
+    $sheetRows[] = $line;
+}
+$totalRow = count($sheetRows);
+$sheetRows[] = ['TOTAL', null, null, null, null, null, null, null, null, $totalBeneficiaries, $totalFemale, null, $totalAmount];
+$sheetRows[] = [];
+$sheetRows[] = ['Notes:'];
+foreach ($cqprNotes as $letter => $note) {
+    $sheetRows[] = ["{$letter} - {$note}"];
+}
+$sheetRows[] = [];
+$sheetRows[] = array_merge(['Prepared by:'], array_fill(1, 11, null), ['Approved by:']);
+$sheetRows[] = [];
+$sheetRows[] = [];
+$sheetRows[] = array_merge(['(Name)'], array_fill(1, 11, null), ['(Name)']);
+$sheetRows[] = array_merge(['(Position Title)'], array_fill(1, 11, null), ['Director']);
+
+$merges = [[3, 0, 3, $lastCol], [4, 0, 4, $lastCol], [5, 0, 5, $lastCol], [$totalRow, 0, $totalRow, 8]];
+foreach ([0, 1, 7, 8, 12, 13, 17, 18] as $col) {      // header cells spanning both header rows
+    $merges[] = [$headerRow, $col, $headerRow + 1, $col];
+}
+foreach ([[2, 6], [9, 11], [14, 16]] as [$from, $to]) { // Project Location, Beneficiaries, Fund Source
+    $merges[] = [$headerRow, $from, $headerRow, $to];
+}
+for ($r = $totalRow + 3; $r < $totalRow + 3 + count($cqprNotes); $r++) {
+    $merges[] = [$r, 0, $r, $lastCol];
+}
+
+$cqprSheet = [
+    'rows'         => $sheetRows,
+    'merges'       => $merges,
+    'firstDataRow' => $firstDataRow,
+    'totalRow'     => $totalRow,
+    'amountCol'    => 12,
+    'dateCol'      => 13,
+    'recordCount'  => count($cqprData),
+    'filename'     => $exportFilename,
+];
 ?>
 
 <style>
@@ -187,19 +287,19 @@ foreach ($cqprData as $record) {
 </style>
 
 <div class="card">
-    <div class="card-header bg-white d-flex justify-content-between align-items-center no-print">
-        <h5 class="mb-0">
-            <i class="bi bi-file-earmark-spreadsheet"></i> CQPR - Consolidated Quarterly Progress Report
-            <?php if ($cqprDateFrom && $cqprDateTo): ?>
-            <small class="text-muted">(<?php echo date('M d, Y', strtotime($cqprDateFrom)); ?> - <?php echo date('M d, Y', strtotime($cqprDateTo)); ?>)</small>
-            <?php endif; ?>
-        </h5>
-        <div class="d-flex gap-2">
-            <button onclick="exportCQPRToExcel()" class="btn btn-sm btn-success" title="Export as Excel">
-                <i class="bi bi-file-earmark-excel"></i> Excel
+    <div class="card-header bg-white d-flex flex-wrap justify-content-between align-items-start gap-2 no-print">
+        <div>
+            <h5 class="mb-1">
+                <i class="bi bi-file-earmark-spreadsheet" aria-hidden="true"></i> CQPR - Consolidated Quarterly Progress Report
+            </h5>
+            <?php include __DIR__ . '/report-applied-filters.php'; ?>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            <button type="button" onclick="exportCQPRToExcel()" class="btn btn-sm btn-success" title="Export as Excel (.xlsx)">
+                <i class="bi bi-file-earmark-excel" aria-hidden="true"></i> Excel
             </button>
-            <button onclick="window.print()" class="btn btn-sm btn-primary" title="Print">
-                <i class="bi bi-printer"></i> Print
+            <button type="button" onclick="window.print(); if (window.logReportExport) logReportExport('print', <?php echo count($cqprData); ?>);" class="btn btn-sm btn-primary" title="Print">
+                <i class="bi bi-printer" aria-hidden="true"></i> Print
             </button>
         </div>
     </div>
@@ -214,7 +314,7 @@ foreach ($cqprData as $record) {
                 <h4><strong>Consolidated Quarterly Progress Report</strong></h4>
                 <h4>DOLE Integrated Livelihood and Emergency Employment Program (DILEEP)</h4>
                 <p>From <u>&nbsp;<?php echo $cqprDateFrom ? date('F d, Y', strtotime($cqprDateFrom)) : '_______________'; ?>&nbsp;</u> 
-                   to <u>&nbsp;<?php echo $cqprDateTo ? date('F d, Y', strtotime($cqprDateTo)) : '_______________'; ?>&nbsp;</u>, 20<?php echo date('y'); ?></p>
+                   to <u>&nbsp;<?php echo $cqprDateTo ? date('F d, Y', strtotime($cqprDateTo)) : '_______________'; ?>&nbsp;</u></p>
             </div>
             
             <p><strong>DOLE Regional Office No.</strong> <u>&nbsp;<?php echo htmlspecialchars($regionalOffice); ?>&nbsp;</u></p>
@@ -222,7 +322,7 @@ foreach ($cqprData as $record) {
             
             <?php if (empty($cqprData)): ?>
             <div class="alert alert-warning">
-                <i class="bi bi-exclamation-circle"></i> No records found for the selected date range.
+                <i class="bi bi-exclamation-circle"></i> No records found for the selected filters.
             </div>
             <?php else: ?>
             <div class="table-responsive">
@@ -272,11 +372,11 @@ foreach ($cqprData as $record) {
                             <td><?php echo htmlspecialchars($row['beneficiary_type'] ?? ''); ?></td>
                             <td class="text-right"><?php echo number_format($row['amount_released'] ?? 0, 2); ?></td>
                             <td class="text-center"><?php echo $row['date_released'] ? date('m/d/Y', strtotime($row['date_released'])) : ''; ?></td>
-                            <td class="text-center"><?php echo ($row['source_of_funds'] === 'GAA') ? '✓' : ''; ?></td>
-                            <td class="text-center"><?php echo ($row['source_of_funds'] === 'Centrally Managed Fund') ? '✓' : ''; ?></td>
-                            <td class="text-center"><?php echo ($row['source_of_funds'] === 'Other') ? '✓' : ''; ?></td>
+                            <?php foreach (array_keys($cqprFundColumns) as $fund): ?>
+                            <td class="text-center"><?php echo ($row['source_of_funds'] ?? '') === $fund ? '✓' : ''; ?></td>
+                            <?php endforeach; ?>
                             <td><?php echo htmlspecialchars($row['convergence_project'] ?? ''); ?></td>
-                            <td class="text-center"><?php echo ucfirst($row['project_status'] ?? ''); ?></td>
+                            <td class="text-center"><?php echo htmlspecialchars(ucfirst($row['project_status'] ?? '')); ?></td>
                         </tr>
                         <?php endforeach; ?>
                         <tr class="fw-bold">
@@ -294,11 +394,9 @@ foreach ($cqprData as $record) {
             
             <div class="cqpr-notes">
                 <p><strong>Notes:</strong></p>
-                <p><sup>a</sup> - Purpose of Project (Use Acronym): Kabuhayan Formation (F), Kabuhayan Enhancement (E), Kabuhayan Restoration (R)</p>
-                <p><sup>b</sup> - Type of Project (Use Acronym): Individual (I), Group (G)</p>
-                <p><sup>c</sup> - Type of Beneficiaries: Marginalized and Landless Farmers, Marginalized Fisherfolks, Self-employed with Insufficient Income, Parents of Child Laborers, Displaced Workers, among others</p>
-                <p><sup>d</sup> - Convergence Project/Partner: DSWD Project Lawa at Saka, Zero Hunger, DILG KAPAG Project, MMDA Brigade Eskwela, TAU-DLP, WDDP-Prov, among others</p>
-                <p><sup>e</sup> - Project Status: Cheque released to partner; Assistance awarded or released to beneficiaries; Ongoing procurement; Operational; among others</p>
+                <?php foreach ($cqprNotes as $letter => $note): ?>
+                <p><sup><?php echo $letter; ?></sup> - <?php echo htmlspecialchars($note); ?></p>
+                <?php endforeach; ?>
             </div>
             
             <div class="cqpr-signatures">
@@ -319,28 +417,33 @@ foreach ($cqprData as $record) {
     </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script>
+// SheetJS (window.XLSX) is loaded by reports.php.
 function exportCQPRToExcel() {
-    const table = document.getElementById('cqprTable');
-    if (!table) {
-        alert('No data to export');
+    const sheet = <?php echo json_encode($cqprSheet, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE); ?>;
+    if (!window.XLSX) {
+        DILP.toast.error('Export Error', 'The Excel library did not load. Check your connection and reload the page.');
         return;
     }
-    
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.table_to_sheet(table);
-    
-    // Set column widths
+
+    const ws = XLSX.utils.aoa_to_sheet(sheet.rows);
+    ws['!merges'] = sheet.merges.map(m => ({ s: { r: m[0], c: m[1] }, e: { r: m[2], c: m[3] } }));
+    for (let r = sheet.firstDataRow; r <= sheet.totalRow; r++) {
+        const amount = ws[XLSX.utils.encode_cell({ r, c: sheet.amountCol })];
+        if (amount && amount.t === 'n') amount.z = '#,##0.00';
+        const date = ws[XLSX.utils.encode_cell({ r, c: sheet.dateCol })];
+        if (date && date.t === 'n') date.z = 'mm/dd/yyyy';
+    }
     ws['!cols'] = [
-        {wch: 25}, {wch: 20}, {wch: 15}, {wch: 15}, {wch: 15}, {wch: 8}, {wch: 8},
-        {wch: 8}, {wch: 8}, {wch: 8}, {wch: 8}, {wch: 15}, {wch: 12}, {wch: 10},
-        {wch: 8}, {wch: 8}, {wch: 8}, {wch: 15}, {wch: 10}
+        {wch: 30}, {wch: 28}, {wch: 16}, {wch: 16}, {wch: 16}, {wch: 8}, {wch: 8},
+        {wch: 10}, {wch: 8}, {wch: 8}, {wch: 8}, {wch: 22}, {wch: 14}, {wch: 12},
+        {wch: 10}, {wch: 11}, {wch: 9}, {wch: 18}, {wch: 14}
     ];
-    
+
+    const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'CQPR Report');
-    
-    const dateStr = new Date().toISOString().slice(0, 10);
-    XLSX.writeFile(wb, `CQPR_Report_${dateStr}.xlsx`);
+    XLSX.writeFile(wb, `${sheet.filename}_${DILP.export._today()}.xlsx`);
+
+    if (window.logReportExport) logReportExport('excel', sheet.recordCount);
 }
 </script>
