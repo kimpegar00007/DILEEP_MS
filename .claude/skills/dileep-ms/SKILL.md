@@ -206,7 +206,22 @@ IMPROVEMENTS (10-16-26)". Do this without being asked, before the final reply.
 4. **Writing rules**: audience is non-technical DOLE staff. One short row per change, plain words, no file, function or
    table names, no code. Say what users now see or can do, and the benefit. Group related fixes into one row. Status
    column is "✔ Fixed" for fixes.
-5. Check the .docx opens (`qlmanage -t -s 1400 -o <scratchpad> <file>.docx` on macOS renders a preview) and mention the
-   file path in the final reply. Commit the .docx and spec with the code change.
-6. To change the look for all future summaries, edit the reference Google Doc, re-export it as .docx over
+5. Check the .docx opens (`qlmanage -t -s 1400 -o <scratchpad> <file>.docx` on macOS renders a preview).
+6. **Upload to the user's Google Drive automatically** (no need to ask). The .docx is ~1 MB because of the header logos,
+   so do not upload it as base64; copy the reference Google Doc instead, which keeps the header, footer and styles.
+   Reference doc id `1kMms3oferTqLtIb8vnaEU4aQv2tF3B-1WRfwG-w0IMk` (My Drive root; owner ragepmik26@gmail.com).
+   Drive file name format is the title: `DILEEPSYS UPDATES & IMPROVEMENTS (MM-DD-YY)`.
+   Load the Drive/Docs tools with ToolSearch first (`copy_file`, `update_doc`; `read_doc` for the Docs one), then:
+   1. `copy_file` the reference id with that title (omit `parentId` so it lands in the same folder).
+   2. `read_doc` the copy (output is saved to a file on disk), then
+      `python3 docs/implementation-summaries/drive_requests.py rows <saved read_doc file> <spec.json>` and send its JSON to
+      `update_doc` on the copy (adds table rows).
+   3. `read_doc` the copy again, run `drive_requests.py fill <new saved file> <spec.json>` and send that JSON to `update_doc`
+      (sets title, date line and every cell, in descending index order so indices stay valid).
+   4. Verify: `download_file_content` with `exportMimeType: application/pdf`, decode the base64 from the saved file,
+      `pdftoppm -r 80 -png` and look at it.
+   Give the user the Drive link (`viewUrl`) and the local .docx path. If the Drive tools are unavailable, say so and
+   hand over the .docx. Commit the .docx, spec and any script changes with the code change.
+   Note: the copy is made from the 10-16-26 reference; if a later summary should become the new reference, change the id here.
+7. To change the look for all future summaries, edit the reference Google Doc, re-export it as .docx over
    `_template.docx`, and keep the two table header rows and the bullet heading paragraph, since the builder reuses them.
