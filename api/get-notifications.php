@@ -3,10 +3,33 @@ session_start();
 require_once '../config/database.php';
 require_once '../includes/Auth.php';
 
-$auth = new Auth();
-$auth->requireLogin();
-
 header('Content-Type: application/json');
+// Live, per-user data: never let the browser or a proxy reuse it.
+header('Cache-Control: no-store, no-cache, must-revalidate');
+
+// This is a fetch() endpoint, so answer with JSON instead of the redirects that
+// requireLogin() sends (a redirect would hand the page login HTML to parse as JSON).
+$auth = new Auth();
+if (!$auth->isLoggedIn()) {
+    http_response_code(401);
+    echo json_encode(['success' => false, 'code' => 'session_expired', 'error' => 'Your session has expired. Please sign in again.']);
+    exit;
+}
+try {
+    if ($auth->isMaintenanceModeEnabled() && !$auth->hasRole('admin')) {
+        http_response_code(503);
+        echo json_encode(['success' => false, 'code' => 'maintenance', 'error' => 'The system is under maintenance.']);
+        exit;
+    }
+} catch (Exception $e) {
+    // Fail open, same as Auth::requireLogin()
+}
+
+// Read what we need from the session, then release the session lock so this
+// (up to 14 queries) request does not block the user's other page loads.
+$sessionProvince = $auth->getProvince();
+$crossProvince   = $auth->isCrossProvince();
+session_write_close();
 
 try {
     $db = Database::getInstance()->getConnection();
@@ -16,8 +39,7 @@ try {
     // cross-province roles see everything, provincial users see
     // their own province, a provincial user with no province sees nothing.
     // =========================================================
-    $sessionProvince = $auth->getProvince();
-    if ($auth->isCrossProvince()) {
+    if ($crossProvince) {
         $pScopeSql  = '';
         $fwScopeSql = '';
         $scopeParams = [];
@@ -31,404 +53,334 @@ try {
         $scopeParams = [$sessionProvince];
     }
 
+    // "Today" is Philippine time, passed in from PHP, because the database server's
+    // own date can differ. Same rule as Dashboard, Proponent and FieldworkSchedule.
+    $today  = (new DateTime('now', new DateTimeZone('Asia/Manila')))->format('Y-m-d');
+    $t      = $db->quote($today);   // safe: generated above, never user input
+
+    $days   = function ($n) { return $n . ' day' . ($n != 1 ? 's' : ''); };
+    $fmt    = function ($d) { return $d ? date('M d, Y', strtotime($d)) : ''; };
+
     $notifications = [];
-    
-    // Get overdue liquidations
-    $sql = "SELECT 
-                id,
-                proponent_name,
-                project_title,
-                proponent_type,
-                date_turnover,
-                liquidation_deadline,
-                DATEDIFF(CURDATE(), liquidation_deadline) as days_overdue
-            FROM proponents 
-            WHERE liquidation_deadline IS NOT NULL 
-                AND date_liquidated IS NULL 
-                AND liquidation_deadline < CURDATE()
-            {$pScopeSql}
-            ORDER BY liquidation_deadline ASC";
-    
-    $stmt = $db->prepare($sql);
-    $stmt->execute($scopeParams);
-    $overdueLiquidations = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
-    foreach ($overdueLiquidations as $item) {
-        $notifications[] = [
-            'id' => 'liquidation_' . $item['id'],
-            'type' => 'liquidation',
-            'title' => 'Overdue Liquidation',
-            'message' => $item['proponent_name'] . ' - Liquidation deadline passed',
-            'details' => 'Deadline: ' . date('M d, Y', strtotime($item['liquidation_deadline'])) . ' (' . $item['days_overdue'] . ' days overdue)',
-            'proponent_id' => $item['id'],
-            'proponent_name' => $item['proponent_name'],
-            'project_title' => $item['project_title'],
-            'deadline' => $item['liquidation_deadline'],
-            'days_overdue' => $item['days_overdue'],
-            'severity' => 'danger',
-            'timestamp' => strtotime($item['liquidation_deadline'])
-        ];
-    }
-    
-    // Get upcoming liquidation deadlines (within 14 days)
-    $sql = "SELECT 
-                id,
-                proponent_name,
-                project_title,
-                proponent_type,
-                date_turnover,
-                liquidation_deadline,
-                DATEDIFF(liquidation_deadline, CURDATE()) as days_remaining
-            FROM proponents 
-            WHERE liquidation_deadline IS NOT NULL 
-                AND date_liquidated IS NULL 
-                AND liquidation_deadline >= CURDATE()
-                AND liquidation_deadline <= DATE_ADD(CURDATE(), INTERVAL 14 DAY)
-            {$pScopeSql}
-            ORDER BY liquidation_deadline ASC";
-    
-    $stmt = $db->prepare($sql);
-    $stmt->execute($scopeParams);
-    $upcomingLiquidations = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
-    foreach ($upcomingLiquidations as $item) {
-        $notifications[] = [
-            'id' => 'upcoming_liquidation_' . $item['id'],
-            'type' => 'upcoming_liquidation',
-            'title' => 'Upcoming Liquidation Deadline',
-            'message' => $item['proponent_name'] . ' - Liquidation due soon',
-            'details' => 'Deadline: ' . date('M d, Y', strtotime($item['liquidation_deadline'])) . ' (' . $item['days_remaining'] . ' day' . ($item['days_remaining'] != 1 ? 's' : '') . ' remaining)',
-            'proponent_id' => $item['id'],
-            'proponent_name' => $item['proponent_name'],
-            'project_title' => $item['project_title'],
-            'deadline' => $item['liquidation_deadline'],
-            'days_remaining' => $item['days_remaining'],
-            'severity' => 'warning',
-            'timestamp' => strtotime($item['liquidation_deadline'])
-        ];
-    }
-    
-    // Get beneficiaries with upcoming monitoring (within 7 days)
-    $sql = "SELECT 
-                id,
-                CONCAT(first_name, ' ', last_name) as name,
-                project_name,
-                date_turnover,
-                DATE_ADD(date_turnover, INTERVAL 30 DAY) as monitoring_due_date,
-                DATEDIFF(DATE_ADD(date_turnover, INTERVAL 30 DAY), CURDATE()) as days_remaining
-            FROM beneficiaries 
-            WHERE date_turnover IS NOT NULL 
-                AND date_monitoring IS NULL 
-                AND DATE_ADD(date_turnover, INTERVAL 30 DAY) >= CURDATE()
-                AND DATE_ADD(date_turnover, INTERVAL 30 DAY) <= DATE_ADD(CURDATE(), INTERVAL 7 DAY)
-            {$pScopeSql}
-            ORDER BY date_turnover ASC
-            LIMIT 20";
-    
-    $stmt = $db->prepare($sql);
-    $stmt->execute($scopeParams);
-    $upcomingBeneficiaryMonitoring = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
-    foreach ($upcomingBeneficiaryMonitoring as $item) {
-        $notifications[] = [
-            'id' => 'upcoming_monitoring_beneficiary_' . $item['id'],
-            'type' => 'upcoming_monitoring',
-            'title' => 'Upcoming Monitoring (Beneficiary)',
-            'message' => $item['name'] . ' - Monitoring due soon',
-            'details' => 'Expected: ' . date('M d, Y', strtotime($item['monitoring_due_date'])) . ' (' . $item['days_remaining'] . ' day' . ($item['days_remaining'] != 1 ? 's' : '') . ' remaining)',
-            'beneficiary_id' => $item['id'],
-            'beneficiary_name' => $item['name'],
-            'project_name' => $item['project_name'],
-            'deadline' => $item['monitoring_due_date'],
-            'days_remaining' => $item['days_remaining'],
-            'severity' => 'info',
-            'timestamp' => strtotime($item['monitoring_due_date'])
-        ];
-    }
-    
-    // Get beneficiaries with overdue monitoring (turnover date + 30 days, no monitoring date yet)
-    $sql = "SELECT 
-                id,
-                CONCAT(first_name, ' ', last_name) as name,
-                project_name,
-                date_turnover,
-                DATE_ADD(date_turnover, INTERVAL 30 DAY) as monitoring_due_date,
-                DATEDIFF(CURDATE(), DATE_ADD(date_turnover, INTERVAL 30 DAY)) as days_overdue
-            FROM beneficiaries 
-            WHERE date_turnover IS NOT NULL 
-                AND date_monitoring IS NULL 
-                AND DATE_ADD(date_turnover, INTERVAL 30 DAY) < CURDATE()
-            {$pScopeSql}
-            ORDER BY date_turnover ASC
-            LIMIT 20";
-    
-    $stmt = $db->prepare($sql);
-    $stmt->execute($scopeParams);
-    $overdueMonitoring = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
-    foreach ($overdueMonitoring as $item) {
-        $notifications[] = [
-            'id' => 'overdue_monitoring_beneficiary_' . $item['id'],
-            'type' => 'monitoring',
-            'title' => 'Overdue Monitoring (Beneficiary)',
-            'message' => $item['name'] . ' - Monitoring overdue',
-            'details' => 'Expected: ' . date('M d, Y', strtotime($item['monitoring_due_date'])) . ' (' . $item['days_overdue'] . ' day' . ($item['days_overdue'] != 1 ? 's' : '') . ' overdue)',
-            'beneficiary_id' => $item['id'],
-            'beneficiary_name' => $item['name'],
-            'project_name' => $item['project_name'],
-            'deadline' => $item['monitoring_due_date'],
-            'days_overdue' => $item['days_overdue'],
-            'severity' => 'warning',
-            'timestamp' => strtotime($item['monitoring_due_date'])
-        ];
-    }
-    
-    // Get proponents with upcoming monitoring (within 14 days of expected monitoring date)
-    $sql = "SELECT 
-                id,
-                proponent_name,
-                project_title,
-                date_turnover,
-                date_monitoring as expected_monitoring_date,
-                DATEDIFF(date_monitoring, CURDATE()) as days_remaining
-            FROM proponents 
-            WHERE date_monitoring IS NOT NULL 
-                AND date_monitoring >= CURDATE()
-                AND date_monitoring <= DATE_ADD(CURDATE(), INTERVAL 14 DAY)
-                AND status != 'monitored'
-            {$pScopeSql}
-            ORDER BY date_monitoring ASC
-            LIMIT 20";
-    
-    $stmt = $db->prepare($sql);
-    $stmt->execute($scopeParams);
-    $upcomingProponentMonitoring = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
-    foreach ($upcomingProponentMonitoring as $item) {
-        $notifications[] = [
-            'id' => 'upcoming_monitoring_proponent_' . $item['id'],
-            'type' => 'upcoming_monitoring',
-            'title' => 'Upcoming Monitoring (Proponent)',
-            'message' => $item['proponent_name'] . ' - Monitoring scheduled soon',
-            'details' => 'Scheduled: ' . date('M d, Y', strtotime($item['expected_monitoring_date'])) . ' (' . $item['days_remaining'] . ' day' . ($item['days_remaining'] != 1 ? 's' : '') . ' remaining)',
-            'proponent_id' => $item['id'],
-            'proponent_name' => $item['proponent_name'],
-            'project_title' => $item['project_title'],
-            'deadline' => $item['expected_monitoring_date'],
-            'days_remaining' => $item['days_remaining'],
-            'severity' => 'info',
-            'timestamp' => strtotime($item['expected_monitoring_date'])
-        ];
-    }
-    
-    // Get proponents with overdue monitoring (date_monitoring passed but status not monitored)
-    $sql = "SELECT 
-                id,
-                proponent_name,
-                project_title,
-                date_monitoring as expected_monitoring_date,
-                DATEDIFF(CURDATE(), date_monitoring) as days_overdue
-            FROM proponents 
-            WHERE date_monitoring IS NOT NULL 
-                AND date_monitoring < CURDATE()
-                AND status != 'monitored'
-            {$pScopeSql}
-            ORDER BY date_monitoring ASC
-            LIMIT 20";
-    
-    $stmt = $db->prepare($sql);
-    $stmt->execute($scopeParams);
-    $overdueProponentMonitoring = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
-    foreach ($overdueProponentMonitoring as $item) {
-        $notifications[] = [
-            'id' => 'overdue_monitoring_proponent_' . $item['id'],
-            'type' => 'monitoring',
-            'title' => 'Overdue Monitoring (Proponent)',
-            'message' => $item['proponent_name'] . ' - Monitoring overdue',
-            'details' => 'Scheduled: ' . date('M d, Y', strtotime($item['expected_monitoring_date'])) . ' (' . $item['days_overdue'] . ' day' . ($item['days_overdue'] != 1 ? 's' : '') . ' overdue)',
-            'proponent_id' => $item['id'],
-            'proponent_name' => $item['proponent_name'],
-            'project_title' => $item['project_title'],
-            'deadline' => $item['expected_monitoring_date'],
-            'days_overdue' => $item['days_overdue'],
-            'severity' => 'warning',
-            'timestamp' => strtotime($item['expected_monitoring_date'])
-        ];
-    }
-    
-    // Fieldwork dates are compared with today in Philippine time, passed in from PHP,
-    // because the database server's own date can differ. Same rule as FieldworkSchedule.
-    $fwToday = (new DateTime('now', new DateTimeZone('Asia/Manila')))->format('Y-m-d');
+    $totals = ['overdue' => 0, 'upcoming' => 0];   // real totals, even when a list is capped
+    $capped = false;
 
-    // Get fieldwork activities scheduled for today (same day)
-    try {
-        $sql = "SELECT 
-                    fs.id,
-                    fs.title,
-                    fs.location,
-                    fs.start_date,
-                    fs.end_date,
-                    fs.status,
-                    u.full_name as assigned_user_name
-                FROM fieldwork_schedule fs
-                LEFT JOIN users u ON fs.assigned_user_id = u.id
-                WHERE fs.status IN ('pending', 'ongoing')
-                AND fs.start_date = ?
-                {$fwScopeSql}
-                ORDER BY fs.start_date ASC
-                LIMIT 20";
+    /**
+     * Run one notification query.
+     *   $from  : "FROM ... WHERE ..." (scope fragment already appended)
+     *   $select: column list
+     *   $order : "ORDER BY ..."
+     *   $urgency: 'overdue' counts toward the overdue total, anything else toward upcoming
+     *   $map   : row => notification array
+     * Returns nothing; appends to $notifications and adds to $totals.
+     */
+    $run = function (string $select, string $from, string $order, array $params, string $urgency, callable $map, int $limit = 25, string $label = '')
+        use ($db, &$notifications, &$totals, &$capped) {
+        try {
+            $stmt = $db->prepare("SELECT COUNT(*) {$from}");
+            $stmt->execute($params);
+            $total = (int) $stmt->fetchColumn();
 
-        $stmt = $db->prepare($sql);
-        $stmt->execute(array_merge([$fwToday], $scopeParams));
-        $todayFieldwork = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $stmt = $db->prepare("SELECT {$select} {$from} {$order} LIMIT " . (int) $limit);
+            $stmt->execute($params);
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        foreach ($todayFieldwork as $item) {
-            $notifications[] = [
-                'id' => 'fieldwork_today_' . $item['id'],
-                'type' => 'fieldwork',
-                'title' => 'Fieldwork Today',
-                'message' => $item['title'] . ' is scheduled for today',
-                'details' => 'Assigned: ' . ($item['assigned_user_name'] ?? 'N/A') . ($item['location'] ? ' | Location: ' . $item['location'] : ''),
-                'fieldwork_id' => $item['id'],
-                'severity' => 'warning',
-                'timestamp' => strtotime($item['start_date'])
-            ];
+            $totals[$urgency === 'overdue' ? 'overdue' : 'upcoming'] += $total;
+            if ($total > count($rows)) {
+                $capped = true;
+            }
+            foreach ($rows as $row) {
+                $notifications[] = $map($row);
+            }
+        } catch (PDOException $e) {
+            // One broken query (e.g. a table missing on an older install) must not hide the rest.
+            error_log("[Notifications] {$label} query failed: " . $e->getMessage());
         }
-    } catch (PDOException $e) {
-        error_log("[Notifications] Fieldwork today query failed: " . $e->getMessage());
-    }
+    };
 
-    // Get fieldwork activities in 1 day
-    try {
-        $sql = "SELECT 
-                    fs.id,
-                    fs.title,
-                    fs.location,
-                    fs.start_date,
-                    fs.status,
-                    u.full_name as assigned_user_name
-                FROM fieldwork_schedule fs
-                LEFT JOIN users u ON fs.assigned_user_id = u.id
-                WHERE fs.status = 'pending'
-                AND DATEDIFF(fs.start_date, ?) = 1
-                {$fwScopeSql}
-                ORDER BY fs.start_date ASC
-                LIMIT 20";
-
-        $stmt = $db->prepare($sql);
-        $stmt->execute(array_merge([$fwToday], $scopeParams));
-        $tomorrowFieldwork = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-        foreach ($tomorrowFieldwork as $item) {
-            $notifications[] = [
-                'id' => 'fieldwork_1day_' . $item['id'],
-                'type' => 'fieldwork',
-                'title' => 'Fieldwork Tomorrow',
-                'message' => $item['title'] . ' scheduled in 1 day',
-                'details' => 'Date: ' . date('M d, Y', strtotime($item['start_date'])) . ' | Assigned: ' . ($item['assigned_user_name'] ?? 'N/A'),
-                'fieldwork_id' => $item['id'],
-                'severity' => 'info',
-                'timestamp' => strtotime($item['start_date'])
+    // ---------------------------------------------------------
+    // Overdue liquidations. Liquidated and monitored projects are past this step even
+    // when date_liquidated was never filled in, same rule as Dashboard::getOverdueLiquidations().
+    // ---------------------------------------------------------
+    $run(
+        "id, proponent_name, project_title, province, liquidation_deadline,
+         DATEDIFF({$t}, liquidation_deadline) AS days_overdue",
+        "FROM proponents
+         WHERE liquidation_deadline IS NOT NULL AND date_liquidated IS NULL
+           AND status NOT IN ('liquidated', 'monitored')
+           AND liquidation_deadline < {$t} {$pScopeSql}",
+        "ORDER BY liquidation_deadline ASC",
+        $scopeParams, 'overdue',
+        function ($r) use ($days, $fmt) {
+            $n = (int) $r['days_overdue'];
+            return [
+                'id' => 'liquidation_' . $r['id'], 'type' => 'liquidation', 'category' => 'liquidation',
+                'urgency' => 'overdue', 'severity' => 'danger',
+                'title' => 'Overdue Liquidation',
+                'subject' => $r['proponent_name'], 'project' => $r['project_title'], 'province' => $r['province'],
+                'message' => $r['proponent_name'] . ' - Liquidation deadline passed',
+                'details' => 'Deadline: ' . $fmt($r['liquidation_deadline']) . ' (' . $days($n) . ' overdue)',
+                'chip' => $days($n) . ' overdue',
+                'href' => 'proponent-view.php?id=' . (int) $r['id'],
+                'proponent_id' => $r['id'], 'proponent_name' => $r['proponent_name'], 'project_title' => $r['project_title'],
+                'deadline' => $r['liquidation_deadline'], 'days_overdue' => $n,
+                'timestamp' => strtotime($r['liquidation_deadline']),
             ];
-        }
-    } catch (PDOException $e) {
-        error_log("[Notifications] Fieldwork 1-day query failed: " . $e->getMessage());
-    }
+        },
+        25, 'Overdue liquidation'
+    );
 
-    // Get fieldwork activities in 3 days
-    try {
-        $sql = "SELECT 
-                    fs.id,
-                    fs.title,
-                    fs.location,
-                    fs.start_date,
-                    fs.status,
-                    u.full_name as assigned_user_name,
-                    DATEDIFF(fs.start_date, ?) as days_remaining
-                FROM fieldwork_schedule fs
-                LEFT JOIN users u ON fs.assigned_user_id = u.id
-                WHERE fs.status = 'pending'
-                AND DATEDIFF(fs.start_date, ?) BETWEEN 2 AND 3
-                {$fwScopeSql}
-                ORDER BY fs.start_date ASC
-                LIMIT 20";
-
-        $stmt = $db->prepare($sql);
-        $stmt->execute(array_merge([$fwToday, $fwToday], $scopeParams));
-        $upcomingFieldwork = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-        foreach ($upcomingFieldwork as $item) {
-            $notifications[] = [
-                'id' => 'fieldwork_upcoming_' . $item['id'],
-                'type' => 'fieldwork',
-                'title' => 'Upcoming Fieldwork',
-                'message' => $item['title'] . ' scheduled in ' . $item['days_remaining'] . ' days',
-                'details' => 'Date: ' . date('M d, Y', strtotime($item['start_date'])) . ' | Assigned: ' . ($item['assigned_user_name'] ?? 'N/A'),
-                'fieldwork_id' => $item['id'],
-                'severity' => 'info',
-                'timestamp' => strtotime($item['start_date'])
+    // Upcoming liquidation deadlines (within 14 days)
+    $run(
+        "id, proponent_name, project_title, province, liquidation_deadline,
+         DATEDIFF(liquidation_deadline, {$t}) AS days_remaining",
+        "FROM proponents
+         WHERE liquidation_deadline IS NOT NULL AND date_liquidated IS NULL
+           AND status NOT IN ('liquidated', 'monitored')
+           AND liquidation_deadline >= {$t}
+           AND liquidation_deadline <= DATE_ADD({$t}, INTERVAL 14 DAY) {$pScopeSql}",
+        "ORDER BY liquidation_deadline ASC",
+        $scopeParams, 'upcoming',
+        function ($r) use ($days, $fmt) {
+            $n = (int) $r['days_remaining'];
+            return [
+                'id' => 'upcoming_liquidation_' . $r['id'], 'type' => 'upcoming_liquidation', 'category' => 'liquidation',
+                'urgency' => 'upcoming', 'severity' => 'warning',
+                'title' => 'Upcoming Liquidation Deadline',
+                'subject' => $r['proponent_name'], 'project' => $r['project_title'], 'province' => $r['province'],
+                'message' => $r['proponent_name'] . ' - Liquidation due soon',
+                'details' => 'Deadline: ' . $fmt($r['liquidation_deadline']) . ' (' . $days($n) . ' remaining)',
+                'chip' => $n === 0 ? 'due today' : 'in ' . $days($n),
+                'href' => 'proponent-view.php?id=' . (int) $r['id'],
+                'proponent_id' => $r['id'], 'proponent_name' => $r['proponent_name'], 'project_title' => $r['project_title'],
+                'deadline' => $r['liquidation_deadline'], 'days_remaining' => $n,
+                'timestamp' => strtotime($r['liquidation_deadline']),
             ];
-        }
-    } catch (PDOException $e) {
-        error_log("[Notifications] Fieldwork upcoming query failed: " . $e->getMessage());
-    }
+        },
+        25, 'Upcoming liquidation'
+    );
 
-    // Get overdue/missed fieldwork activities
-    try {
-        $sql = "SELECT 
-                    fs.id,
-                    fs.title,
-                    fs.location,
-                    fs.start_date,
-                    fs.end_date,
-                    fs.status,
-                    u.full_name as assigned_user_name,
-                    DATEDIFF(?, COALESCE(fs.end_date, fs.start_date)) as days_overdue
-                FROM fieldwork_schedule fs
-                LEFT JOIN users u ON fs.assigned_user_id = u.id
-                WHERE fs.status IN ('pending', 'ongoing')
-                AND COALESCE(fs.end_date, fs.start_date) < ?
-                {$fwScopeSql}
-                ORDER BY fs.start_date ASC
-                LIMIT 20";
+    // ---------------------------------------------------------
+    // Beneficiary monitoring: due 30 days after turn-over, until a monitoring date is
+    // entered or the record is marked monitored.
+    // ---------------------------------------------------------
+    $benefName = "TRIM(CONCAT(COALESCE(first_name, ''), ' ', COALESCE(last_name, '')))";
+    $dueSql    = "DATE_ADD(date_turnover, INTERVAL 30 DAY)";
 
-        $stmt = $db->prepare($sql);
-        $stmt->execute(array_merge([$fwToday, $fwToday], $scopeParams));
-        $overdueFieldwork = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-        foreach ($overdueFieldwork as $item) {
-            $notifications[] = [
-                'id' => 'fieldwork_overdue_' . $item['id'],
-                'type' => 'fieldwork',
-                'title' => 'Overdue Fieldwork',
-                'message' => $item['title'] . ' — past due, not yet marked completed or missed',
-                'details' => 'Was due: ' . date('M d, Y', strtotime($item['end_date'] ?: $item['start_date'])) . ' (' . $item['days_overdue'] . ' day' . ($item['days_overdue'] != 1 ? 's' : '') . ' overdue)',
-                'fieldwork_id' => $item['id'],
-                'severity' => 'danger',
-                'timestamp' => strtotime($item['start_date'])
+    $run(
+        "id, {$benefName} AS name, project_name, province, {$dueSql} AS monitoring_due_date,
+         DATEDIFF({$dueSql}, {$t}) AS days_remaining",
+        "FROM beneficiaries
+         WHERE date_turnover IS NOT NULL AND date_monitoring IS NULL AND status != 'monitored'
+           AND {$dueSql} >= {$t} AND {$dueSql} <= DATE_ADD({$t}, INTERVAL 7 DAY) {$pScopeSql}",
+        "ORDER BY date_turnover ASC",
+        $scopeParams, 'upcoming',
+        function ($r) use ($days, $fmt) {
+            $n = (int) $r['days_remaining'];
+            return [
+                'id' => 'upcoming_monitoring_beneficiary_' . $r['id'], 'type' => 'upcoming_monitoring', 'category' => 'monitoring',
+                'urgency' => 'upcoming', 'severity' => 'info',
+                'title' => 'Upcoming Monitoring (Beneficiary)',
+                'subject' => $r['name'], 'project' => $r['project_name'], 'province' => $r['province'],
+                'message' => $r['name'] . ' - Monitoring due soon',
+                'details' => 'Expected: ' . $fmt($r['monitoring_due_date']) . ' (' . $days($n) . ' remaining)',
+                'chip' => $n === 0 ? 'due today' : 'in ' . $days($n),
+                'href' => 'beneficiary-view.php?id=' . (int) $r['id'],
+                'beneficiary_id' => $r['id'], 'beneficiary_name' => $r['name'], 'project_name' => $r['project_name'],
+                'deadline' => $r['monitoring_due_date'], 'days_remaining' => $n,
+                'timestamp' => strtotime($r['monitoring_due_date']),
             ];
-        }
-    } catch (PDOException $e) {
-        error_log("[Notifications] Fieldwork overdue query failed: " . $e->getMessage());
-    }
+        },
+        25, 'Upcoming beneficiary monitoring'
+    );
 
-    // Sort notifications by severity and timestamp
-    usort($notifications, function($a, $b) {
+    $run(
+        "id, {$benefName} AS name, project_name, province, {$dueSql} AS monitoring_due_date,
+         DATEDIFF({$t}, {$dueSql}) AS days_overdue",
+        "FROM beneficiaries
+         WHERE date_turnover IS NOT NULL AND date_monitoring IS NULL AND status != 'monitored'
+           AND {$dueSql} < {$t} {$pScopeSql}",
+        "ORDER BY date_turnover ASC",
+        $scopeParams, 'overdue',
+        function ($r) use ($days, $fmt) {
+            $n = (int) $r['days_overdue'];
+            return [
+                'id' => 'overdue_monitoring_beneficiary_' . $r['id'], 'type' => 'monitoring', 'category' => 'monitoring',
+                'urgency' => 'overdue', 'severity' => 'warning',
+                'title' => 'Overdue Monitoring (Beneficiary)',
+                'subject' => $r['name'], 'project' => $r['project_name'], 'province' => $r['province'],
+                'message' => $r['name'] . ' - Monitoring overdue',
+                'details' => 'Expected: ' . $fmt($r['monitoring_due_date']) . ' (' . $days($n) . ' overdue)',
+                'chip' => $days($n) . ' overdue',
+                'href' => 'beneficiary-view.php?id=' . (int) $r['id'],
+                'beneficiary_id' => $r['id'], 'beneficiary_name' => $r['name'], 'project_name' => $r['project_name'],
+                'deadline' => $r['monitoring_due_date'], 'days_overdue' => $n,
+                'timestamp' => strtotime($r['monitoring_due_date']),
+            ];
+        },
+        25, 'Overdue beneficiary monitoring'
+    );
+
+    // ---------------------------------------------------------
+    // Proponent monitoring (rule unchanged; what date_monitoring means is a product decision)
+    // ---------------------------------------------------------
+    $run(
+        "id, proponent_name, project_title, province, date_monitoring AS expected_monitoring_date,
+         DATEDIFF(date_monitoring, {$t}) AS days_remaining",
+        "FROM proponents
+         WHERE date_monitoring IS NOT NULL AND date_monitoring >= {$t}
+           AND date_monitoring <= DATE_ADD({$t}, INTERVAL 14 DAY)
+           AND status != 'monitored' {$pScopeSql}",
+        "ORDER BY date_monitoring ASC",
+        $scopeParams, 'upcoming',
+        function ($r) use ($days, $fmt) {
+            $n = (int) $r['days_remaining'];
+            return [
+                'id' => 'upcoming_monitoring_proponent_' . $r['id'], 'type' => 'upcoming_monitoring', 'category' => 'monitoring',
+                'urgency' => 'upcoming', 'severity' => 'info',
+                'title' => 'Upcoming Monitoring (Proponent)',
+                'subject' => $r['proponent_name'], 'project' => $r['project_title'], 'province' => $r['province'],
+                'message' => $r['proponent_name'] . ' - Monitoring scheduled soon',
+                'details' => 'Scheduled: ' . $fmt($r['expected_monitoring_date']) . ' (' . $days($n) . ' remaining)',
+                'chip' => $n === 0 ? 'due today' : 'in ' . $days($n),
+                'href' => 'proponent-view.php?id=' . (int) $r['id'],
+                'proponent_id' => $r['id'], 'proponent_name' => $r['proponent_name'], 'project_title' => $r['project_title'],
+                'deadline' => $r['expected_monitoring_date'], 'days_remaining' => $n,
+                'timestamp' => strtotime($r['expected_monitoring_date']),
+            ];
+        },
+        25, 'Upcoming proponent monitoring'
+    );
+
+    $run(
+        "id, proponent_name, project_title, province, date_monitoring AS expected_monitoring_date,
+         DATEDIFF({$t}, date_monitoring) AS days_overdue",
+        "FROM proponents
+         WHERE date_monitoring IS NOT NULL AND date_monitoring < {$t}
+           AND status != 'monitored' {$pScopeSql}",
+        "ORDER BY date_monitoring ASC",
+        $scopeParams, 'overdue',
+        function ($r) use ($days, $fmt) {
+            $n = (int) $r['days_overdue'];
+            return [
+                'id' => 'overdue_monitoring_proponent_' . $r['id'], 'type' => 'monitoring', 'category' => 'monitoring',
+                'urgency' => 'overdue', 'severity' => 'warning',
+                'title' => 'Overdue Monitoring (Proponent)',
+                'subject' => $r['proponent_name'], 'project' => $r['project_title'], 'province' => $r['province'],
+                'message' => $r['proponent_name'] . ' - Monitoring overdue',
+                'details' => 'Scheduled: ' . $fmt($r['expected_monitoring_date']) . ' (' . $days($n) . ' overdue)',
+                'chip' => $days($n) . ' overdue',
+                'href' => 'proponent-view.php?id=' . (int) $r['id'],
+                'proponent_id' => $r['id'], 'proponent_name' => $r['proponent_name'], 'project_title' => $r['project_title'],
+                'deadline' => $r['expected_monitoring_date'], 'days_overdue' => $n,
+                'timestamp' => strtotime($r['expected_monitoring_date']),
+            ];
+        },
+        25, 'Overdue proponent monitoring'
+    );
+
+    // ---------------------------------------------------------
+    // Fieldwork
+    // ---------------------------------------------------------
+    $fwFrom = "FROM fieldwork_schedule fs LEFT JOIN users u ON fs.assigned_user_id = u.id";
+    $fwCols = "fs.id, fs.title, fs.location, fs.province, fs.start_date, fs.end_date, u.full_name AS assigned_user_name";
+    $fwItem = function ($r, $id, $title, $message, $details, $severity, $urgency, $chip) {
+        return [
+            'id' => $id . $r['id'], 'type' => 'fieldwork', 'category' => 'fieldwork',
+            'urgency' => $urgency, 'severity' => $severity,
+            'title' => $title,
+            'subject' => $r['title'], 'project' => $r['location'] ?: '', 'province' => $r['province'],
+            'message' => $message, 'details' => $details, 'chip' => $chip,
+            'href' => 'fieldwork-schedule.php',
+            'fieldwork_id' => $r['id'],
+            'timestamp' => strtotime($r['start_date']),
+        ];
+    };
+
+    // Today: starts today, or a multi-day activity that started earlier and is still running
+    $run(
+        $fwCols,
+        "{$fwFrom}
+         WHERE fs.status IN ('pending', 'ongoing') AND fs.start_date <= {$t}
+           AND COALESCE(fs.end_date, fs.start_date) >= {$t} {$fwScopeSql}",
+        "ORDER BY fs.start_date ASC",
+        $scopeParams, 'upcoming',
+        function ($r) use ($fwItem, $t) {
+            return $fwItem($r, 'fieldwork_today_', 'Fieldwork Today',
+                $r['title'] . ' is scheduled for today',
+                'Assigned: ' . ($r['assigned_user_name'] ?? 'N/A') . ($r['location'] ? ' | Location: ' . $r['location'] : ''),
+                'warning', 'upcoming', 'today');
+        },
+        25, 'Fieldwork today'
+    );
+
+    // Tomorrow
+    $run(
+        $fwCols,
+        "{$fwFrom}
+         WHERE fs.status = 'pending' AND DATEDIFF(fs.start_date, {$t}) = 1 {$fwScopeSql}",
+        "ORDER BY fs.start_date ASC",
+        $scopeParams, 'upcoming',
+        function ($r) use ($fwItem, $fmt) {
+            return $fwItem($r, 'fieldwork_1day_', 'Fieldwork Tomorrow',
+                $r['title'] . ' scheduled in 1 day',
+                'Date: ' . $fmt($r['start_date']) . ' | Assigned: ' . ($r['assigned_user_name'] ?? 'N/A'),
+                'info', 'upcoming', 'tomorrow');
+        },
+        25, 'Fieldwork tomorrow'
+    );
+
+    // In 2-3 days
+    $run(
+        $fwCols . ", DATEDIFF(fs.start_date, {$t}) AS days_remaining",
+        "{$fwFrom}
+         WHERE fs.status = 'pending' AND DATEDIFF(fs.start_date, {$t}) BETWEEN 2 AND 3 {$fwScopeSql}",
+        "ORDER BY fs.start_date ASC",
+        $scopeParams, 'upcoming',
+        function ($r) use ($fwItem, $fmt) {
+            $n = (int) $r['days_remaining'];
+            return $fwItem($r, 'fieldwork_upcoming_', 'Upcoming Fieldwork',
+                $r['title'] . ' scheduled in ' . $n . ' days',
+                'Date: ' . $fmt($r['start_date']) . ' | Assigned: ' . ($r['assigned_user_name'] ?? 'N/A'),
+                'info', 'upcoming', 'in ' . $n . ' days');
+        },
+        25, 'Fieldwork upcoming'
+    );
+
+    // Past due and still pending/ongoing: the Fieldwork page asks the user to mark it completed or missed
+    $run(
+        $fwCols . ", DATEDIFF({$t}, COALESCE(fs.end_date, fs.start_date)) AS days_overdue",
+        "{$fwFrom}
+         WHERE fs.status IN ('pending', 'ongoing') AND COALESCE(fs.end_date, fs.start_date) < {$t} {$fwScopeSql}",
+        "ORDER BY fs.start_date ASC",
+        $scopeParams, 'overdue',
+        function ($r) use ($fwItem, $fmt, $days) {
+            $n = (int) $r['days_overdue'];
+            return $fwItem($r, 'fieldwork_overdue_', 'Overdue Fieldwork',
+                $r['title'] . ' — past due, not yet marked completed or missed',
+                'Was due: ' . $fmt($r['end_date'] ?: $r['start_date']) . ' (' . $days($n) . ' overdue)',
+                'danger', 'overdue', $days($n) . ' overdue');
+        },
+        25, 'Fieldwork overdue'
+    );
+
+    // Most severe first, then the oldest date
+    usort($notifications, function ($a, $b) {
         $severityOrder = ['danger' => 0, 'warning' => 1, 'info' => 2];
-        $severityCompare = $severityOrder[$a['severity']] - $severityOrder[$b['severity']];
-        if ($severityCompare !== 0) {
-            return $severityCompare;
-        }
-        return $a['timestamp'] - $b['timestamp'];
+        $cmp = $severityOrder[$a['severity']] <=> $severityOrder[$b['severity']];
+        return $cmp !== 0 ? $cmp : $a['timestamp'] <=> $b['timestamp'];
     });
-    
+
     echo json_encode([
-        'success' => true,
-        'count' => count($notifications),
-        'notifications' => $notifications
+        'success'       => true,
+        // Real number of alerts (not just the ones listed), so the badge is honest
+        'count'         => $totals['overdue'] + $totals['upcoming'],
+        'totals'        => $totals,
+        'truncated'     => $capped,
+        'generated_at'  => time(),
+        'notifications' => $notifications,
     ]);
-    
+
 } catch (Exception $e) {
     http_response_code(500);
     echo json_encode([

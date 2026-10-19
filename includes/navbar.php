@@ -61,12 +61,15 @@ $_navIsSuperAdmin = ($_navRole === 'super_admin');
             <img src="assets/dole.png" alt="DOLE Logo" class="navbar-logo partner-logo" style="height:40px; width:auto; margin-left:8px;">
             <span class="navbar-brand-text">DILEEP System<span class="navbar-brand-sub" title="Department of Labor and Employment - Integrated Livelihood and Emergency Employment Program - Monitoring System">Department of Labor and Employment - Integrated Livelihood and Emergency Employment Program - Monitoring System</span></span>
         </a>
+        <!-- Bell sits outside the collapsible menu so it stays visible on phones -->
+        <ul class="navbar-nav flex-row align-items-center navbar-bell order-lg-last ms-lg-2 me-2 me-lg-0">
+            <?php include __DIR__ . '/notification-bell.php'; ?>
+        </ul>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
         </button>
         <div class="collapse navbar-collapse" id="navbarNav">
             <ul class="navbar-nav ms-auto align-items-center">
-                <?php include __DIR__ . '/notification-bell.php'; ?>
 
                 <!-- Province / role identity badge -->
                 <li class="nav-item d-none d-md-flex align-items-center me-2">
