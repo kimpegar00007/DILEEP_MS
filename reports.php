@@ -502,42 +502,15 @@ $formatDate = static fn(?string $date): string => $date ? date('M d, Y', strtoti
                                 </select>
                             </div>
 
-                            <div class="col-12 col-sm-6 col-lg-3" id="proponentLinkGroup" <?php echo $reportType === 'beneficiaries' ? '' : 'style="display: none;"'; ?>>
-                                <label class="form-label" for="proponentLink">Proponent link</label>
-                                <select name="proponent_link" id="proponentLink" class="form-select" <?php echo $reportType === 'beneficiaries' ? '' : 'disabled'; ?>>
-                                    <option value="">All</option>
-                                    <option value="linked" <?php echo $proponentLink === 'linked' ? 'selected' : ''; ?>>Linked to a proponent</option>
-                                    <option value="unlinked" <?php echo $proponentLink === 'unlinked' ? 'selected' : ''; ?>>Not linked to any proponent</option>
-                                </select>
-                            </div>
-
-                            <div class="col-12 col-sm-6 col-lg-3" id="proponentGroup" <?php echo $reportType === 'beneficiaries' ? '' : 'style="display: none;"'; ?>>
-                                <label class="form-label" for="proponentSearch">Proponent</label>
-                                <div class="position-relative" id="proponentCombobox">
-                                    <input type="hidden" name="proponent_id" id="proponentId" value="<?php echo $proponentId ?: ''; ?>" <?php echo $reportType === 'beneficiaries' ? '' : 'disabled'; ?>>
-                                    <div class="input-group">
-                                        <input type="text" id="proponentSearch" class="form-control" autocomplete="off"
-                                               placeholder="All proponents – type to search"
-                                               value="<?php echo htmlspecialchars($selectedProponentLabel); ?>"
-                                               <?php echo ($reportType === 'beneficiaries' && $proponentLink !== 'unlinked') ? '' : 'disabled'; ?>>
-                                        <button type="button" id="proponentClear" class="btn btn-outline-secondary" title="Clear proponent" aria-label="Clear proponent">
-                                            <i class="bi bi-x-lg" aria-hidden="true"></i>
-                                        </button>
-                                    </div>
-                                    <div id="proponentDropdown" class="list-group position-absolute w-100 shadow-sm"
-                                         style="z-index: 1050; max-height: 260px; overflow-y: auto; display: none; top: 100%;"></div>
-                                </div>
-                            </div>
-
-                            <div class="col-12 col-sm-6 col-lg-3" id="dateFieldGroup"<?php echo $reportType === 'cqpr' ? 'style="display: none;"' : ''; ?>>
-                                <label class="form-label" for="dateField">Date basis</label>
+                            <div class="col-12 col-sm-6 col-lg-3" id="dateFieldGroup" <?php echo $reportType === 'cqpr' ? 'style="display: none;"' : ''; ?>>
+                                <label class="form-label" for="dateField">Date basis <i class="bi bi-info-circle text-muted" aria-hidden="true" title="Which date the range is checked against. The default also includes records not approved yet, by the date they were encoded."></i></label>
                                 <select name="date_field" id="dateField" class="form-select" aria-describedby="dateFieldHint" <?php echo $reportType === 'cqpr' ? 'disabled' : ''; ?>>
                                     <option value=""><?php echo htmlspecialchars($defaultDateBasisOption); ?></option>
                                     <?php foreach ($dateFieldOptions as $key => $label): ?>
                                     <option value="<?php echo htmlspecialchars($key); ?>" <?php echo $dateField === $key ? 'selected' : ''; ?>><?php echo htmlspecialchars($label); ?></option>
                                     <?php endforeach; ?>
                                 </select>
-                                <div class="form-text" id="dateFieldHint">Which date the range is checked against. The default also includes records not approved yet, by the date they were encoded.</div>
+                                <div class="visually-hidden" id="dateFieldHint">Which date the range is checked against. The default also includes records not approved yet, by the date they were encoded.</div>
                             </div>
 
                             <div class="col-12 col-sm-6 col-lg-3" id="cqprDateNote" <?php echo $reportType === 'cqpr' ? '' : 'style="display: none;"'; ?>>
@@ -563,6 +536,33 @@ $formatDate = static fn(?string $date): string => $date ? date('M d, Y', strtoti
                                     <option value="<?php echo htmlspecialchars($key); ?>" <?php echo $sourceOfFunds === $key ? 'selected' : ''; ?>><?php echo htmlspecialchars($label); ?></option>
                                     <?php endforeach; ?>
                                 </select>
+                            </div>
+
+                            <div class="col-12 col-sm-6 col-lg-3" id="proponentLinkGroup" <?php echo $reportType === 'beneficiaries' ? '' : 'style="display: none;"'; ?>>
+                                <label class="form-label" for="proponentLink">Proponent link</label>
+                                <select name="proponent_link" id="proponentLink" class="form-select" <?php echo $reportType === 'beneficiaries' ? '' : 'disabled'; ?>>
+                                    <option value="">All</option>
+                                    <option value="linked" <?php echo $proponentLink === 'linked' ? 'selected' : ''; ?>>Linked to a proponent</option>
+                                    <option value="unlinked" <?php echo $proponentLink === 'unlinked' ? 'selected' : ''; ?>>Not linked to any proponent</option>
+                                </select>
+                            </div>
+
+                            <div class="col-12 col-lg-6" id="proponentGroup" <?php echo $reportType === 'beneficiaries' ? '' : 'style="display: none;"'; ?>>
+                                <label class="form-label" for="proponentSearch">Proponent</label>
+                                <div class="position-relative" id="proponentCombobox">
+                                    <input type="hidden" name="proponent_id" id="proponentId" value="<?php echo $proponentId ?: ''; ?>" <?php echo $reportType === 'beneficiaries' ? '' : 'disabled'; ?>>
+                                    <div class="input-group">
+                                        <input type="text" id="proponentSearch" class="form-control" autocomplete="off"
+                                               placeholder="All proponents (type to search)"
+                                               value="<?php echo htmlspecialchars($selectedProponentLabel); ?>"
+                                               <?php echo ($reportType === 'beneficiaries' && $proponentLink !== 'unlinked') ? '' : 'disabled'; ?>>
+                                        <button type="button" id="proponentClear" class="btn btn-outline-secondary" title="Clear proponent" aria-label="Clear proponent">
+                                            <i class="bi bi-x-lg" aria-hidden="true"></i>
+                                        </button>
+                                    </div>
+                                    <div id="proponentDropdown" class="list-group position-absolute w-100 shadow-sm"
+                                         style="z-index: 1050; max-height: 260px; overflow-y: auto; display: none; top: 100%;"></div>
+                                </div>
                             </div>
 
                             <div class="col-12 d-flex flex-wrap gap-2">
