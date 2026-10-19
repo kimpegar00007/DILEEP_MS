@@ -284,6 +284,16 @@ class Beneficiary {
             $params[] = $filters['source_of_funds'];
         }
 
+        // Link to a proponent: a specific one, or just "has / has no proponent"
+        if (!empty($filters['proponent_id'])) {
+            $sql     .= " AND proponent_id = ?";
+            $params[] = (int) $filters['proponent_id'];
+        } elseif (($filters['proponent_link'] ?? '') === 'linked') {
+            $sql .= " AND proponent_id IS NOT NULL";
+        } elseif (($filters['proponent_link'] ?? '') === 'unlinked') {
+            $sql .= " AND proponent_id IS NULL";
+        }
+
         $allowedDateFields = [
             'date_complied_by_proponent', 'date_forwarded_to_ro6', 'date_approved',
             'date_forwarded_to_nofo', 'date_turnover', 'date_monitoring',

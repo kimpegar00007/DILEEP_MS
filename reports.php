@@ -37,6 +37,11 @@ $district = $getString('district');
 $dateField = $getString('date_field');          // which date the range applies to
 $selectedStatus = $getString('status');         // record status (pending, approved, ...)
 $sourceOfFunds = $getString('source_of_funds');
+$proponentLink = $getString('proponent_link');  // Individual report: linked / unlinked
+if (!in_array($proponentLink, ['linked', 'unlinked'], true)) {
+    $proponentLink = '';
+}
+$proponentId = ctype_digit($getString('proponent_id')) ? (int) $getString('proponent_id') : 0;
 
 // Province filter: cross-province roles (super_admin, regional_director) can choose freely; provincial users are locked
 $provinceFilter = '';
@@ -170,6 +175,37 @@ if (!in_array($district, $districts, true)) {
     $district = '';
 }
 
+// Proponents the Individual report can be narrowed to, keyed by province ('' = all provinces) like the
+// location lists above. Provincial users only get their own province; one without a province gets none.
+$proponentsByProvince = ['' => []];
+$proponentSql = "SELECT id, proponent_name, project_title, province FROM proponents";
+$proponentParams = [];
+if (!$isCrossProvince) {
+    $proponentSql .= " WHERE province = ?";
+    $proponentParams[] = $sessionProvince;
+}
+$stmt = $db->prepare($proponentSql . " ORDER BY proponent_name, project_title");
+$stmt->execute($proponentParams);
+foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+    $option = [
+        'id'    => (int) $row['id'],
+        'label' => trim($row['proponent_name'] . ($row['project_title'] !== '' && $row['project_title'] !== null ? ' — ' . $row['project_title'] : '')),
+    ];
+    if (($row['province'] ?? '') !== '') {
+        $proponentsByProvince[$row['province']][] = $option;
+    }
+    $proponentsByProvince[''][] = $option;
+}
+$proponentOptions = $proponentsByProvince[$provinceFilter] ?? [];
+$proponentLabels = array_column($proponentOptions, 'label', 'id');
+if (!isset($proponentLabels[$proponentId]) || $proponentLink === 'unlinked') {
+    $proponentId = 0; // unknown, out-of-scope, or contradicts "Not linked"
+}
+$selectedProponentLabel = $proponentLabels[$proponentId] ?? '';
+if ($proponentId) {
+    $proponentLink = 'linked';
+}
+
 // Quarter shortcuts for the date range: this year and the two before it.
 $quarterPresets = [];
 $currentYear = (int) date('Y');
@@ -227,6 +263,8 @@ if (isset($_GET['generate'])) {
             // Queried by includes/cqpr-report-template.php
         } elseif ($reportType === 'beneficiaries') {
             $filters['municipality'] = $municipality;
+            $filters['proponent_id'] = $proponentId;
+            $filters['proponent_link'] = $proponentLink;
             $reportData = $beneficiaryModel->getAll($filters);
         } else {
             $filters['district'] = $district;
@@ -243,6 +281,9 @@ $dateColumnLabel = $dateField ? $dateFieldOptions[$dateField] : 'Date Approved';
 $appliedFilters = ['Province' => $provinceFilter ?: 'All provinces'];
 if ($reportType === 'beneficiaries') {
     $appliedFilters['Municipality'] = $municipality ?: 'All';
+    $appliedFilters['Proponent'] = $proponentId
+        ? $selectedProponentLabel
+        : ['' => 'All', 'linked' => 'Any linked proponent', 'unlinked' => 'Not linked to a proponent'][$proponentLink];
 } elseif ($reportType === 'proponents') {
     $appliedFilters['District'] = $district ?: 'All';
 }
@@ -267,9 +308,10 @@ $filterSummaryText = implode(' · ', array_map(
 $isIndividualReport = $reportType === 'beneficiaries';
 $showProvinceColumn = $provinceFilter === '';
 
-$summary = ['amount' => 0.0, 'beneficiaries' => 0, 'male' => 0, 'female' => 0, 'byStatus' => []];
+$summary = ['amount' => 0.0, 'beneficiaries' => 0, 'male' => 0, 'female' => 0, 'linked' => 0, 'unlinked' => 0, 'byStatus' => []];
 foreach ($reportData as $item) {
     if ($isIndividualReport) {
+        $summary[empty($item['proponent_id']) ? 'unlinked' : 'linked']++;
         $summary['amount'] += (float) ($item['amount_worth'] ?? 0);
         $summary['beneficiaries']++;
         $summary['male'] += ($item['gender'] ?? '') === 'Male' ? 1 : 0;
@@ -293,13 +335,15 @@ foreach (array_keys($statusOptions) as $statusKey) {
 $summary['byStatus'] = $orderedStatusCounts + $summary['byStatus'];
 
 // Names of the proponents the listed beneficiaries are linked to
-$linkedProponentNames = [];
+$linkedProponents = []; // id => [proponent_name, project_title, status]
 if ($isIndividualReport && $reportData) {
     $proponentIds = array_values(array_unique(array_filter(array_map('intval', array_column($reportData, 'proponent_id')))));
     if ($proponentIds) {
-        $stmt = $db->prepare('SELECT id, proponent_name FROM proponents WHERE id IN (' . implode(',', array_fill(0, count($proponentIds), '?')) . ')');
+        $stmt = $db->prepare('SELECT id, proponent_name, project_title, status FROM proponents WHERE id IN (' . implode(',', array_fill(0, count($proponentIds), '?')) . ')');
         $stmt->execute($proponentIds);
-        $linkedProponentNames = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $linkedProponents[(int) $row['id']] = $row;
+        }
     }
 }
 
@@ -458,7 +502,34 @@ $formatDate = static fn(?string $date): string => $date ? date('M d, Y', strtoti
                                 </select>
                             </div>
 
-                            <div class="col-12 col-sm-6 col-lg-3" id="dateFieldGroup" <?php echo $reportType === 'cqpr' ? 'style="display: none;"' : ''; ?>>
+                            <div class="col-12 col-sm-6 col-lg-3" id="proponentLinkGroup" <?php echo $reportType === 'beneficiaries' ? '' : 'style="display: none;"'; ?>>
+                                <label class="form-label" for="proponentLink">Proponent link</label>
+                                <select name="proponent_link" id="proponentLink" class="form-select" <?php echo $reportType === 'beneficiaries' ? '' : 'disabled'; ?>>
+                                    <option value="">All</option>
+                                    <option value="linked" <?php echo $proponentLink === 'linked' ? 'selected' : ''; ?>>Linked to a proponent</option>
+                                    <option value="unlinked" <?php echo $proponentLink === 'unlinked' ? 'selected' : ''; ?>>Not linked to any proponent</option>
+                                </select>
+                            </div>
+
+                            <div class="col-12 col-sm-6 col-lg-3" id="proponentGroup" <?php echo $reportType === 'beneficiaries' ? '' : 'style="display: none;"'; ?>>
+                                <label class="form-label" for="proponentSearch">Proponent</label>
+                                <div class="position-relative" id="proponentCombobox">
+                                    <input type="hidden" name="proponent_id" id="proponentId" value="<?php echo $proponentId ?: ''; ?>" <?php echo $reportType === 'beneficiaries' ? '' : 'disabled'; ?>>
+                                    <div class="input-group">
+                                        <input type="text" id="proponentSearch" class="form-control" autocomplete="off"
+                                               placeholder="All proponents – type to search"
+                                               value="<?php echo htmlspecialchars($selectedProponentLabel); ?>"
+                                               <?php echo ($reportType === 'beneficiaries' && $proponentLink !== 'unlinked') ? '' : 'disabled'; ?>>
+                                        <button type="button" id="proponentClear" class="btn btn-outline-secondary" title="Clear proponent" aria-label="Clear proponent">
+                                            <i class="bi bi-x-lg" aria-hidden="true"></i>
+                                        </button>
+                                    </div>
+                                    <div id="proponentDropdown" class="list-group position-absolute w-100 shadow-sm"
+                                         style="z-index: 1050; max-height: 260px; overflow-y: auto; display: none; top: 100%;"></div>
+                                </div>
+                            </div>
+
+                            <div class="col-12 col-sm-6 col-lg-3" id="dateFieldGroup"<?php echo $reportType === 'cqpr' ? 'style="display: none;"' : ''; ?>>
                                 <label class="form-label" for="dateField">Date basis</label>
                                 <select name="date_field" id="dateField" class="form-select" aria-describedby="dateFieldHint" <?php echo $reportType === 'cqpr' ? 'disabled' : ''; ?>>
                                     <option value=""><?php echo htmlspecialchars($defaultDateBasisOption); ?></option>
@@ -543,6 +614,13 @@ $formatDate = static fn(?string $date): string => $date ? date('M d, Y', strtoti
                         </span>
                         <?php endforeach; ?>
                     </div>
+                    <?php if ($isIndividualReport): ?>
+                    <div class="summary-statuses">
+                        <span class="me-1">Proponent link:</span>
+                        <span class="badge text-bg-success">Linked: <?php echo number_format($summary['linked']); ?></span>
+                        <span class="badge text-bg-secondary">Not linked: <?php echo number_format($summary['unlinked']); ?></span>
+                    </div>
+                    <?php endif; ?>
                 </div>
 
                 <div class="card">
@@ -581,6 +659,7 @@ $formatDate = static fn(?string $date): string => $date ? date('M d, Y', strtoti
                                         <?php if ($showProvinceColumn): ?><th>Province</th><?php endif; ?>
                                         <th>Project Name</th>
                                         <th>Proponent</th>
+                                        <th>Proponent Link</th>
                                         <th>Type of Worker</th>
                                         <th>Source of Funds</th>
                                         <th data-sum="money">Amount</th>
@@ -590,7 +669,10 @@ $formatDate = static fn(?string $date): string => $date ? date('M d, Y', strtoti
                                 </thead>
                                 <tbody>
                                     <?php foreach ($reportData as $item): ?>
-                                    <?php $amount = (float) ($item['amount_worth'] ?? 0); ?>
+                                    <?php
+                                    $amount = (float) ($item['amount_worth'] ?? 0);
+                                    $linkedProponent = $linkedProponents[(int) ($item['proponent_id'] ?? 0)] ?? null;
+                                    ?>
                                     <tr>
                                         <td data-num="<?php echo (int) $item['id']; ?>"><?php echo (int) $item['id']; ?></td>
                                         <td><?php echo htmlspecialchars(trim(($item['first_name'] ?? '') . ' ' . ($item['last_name'] ?? ''))); ?></td>
@@ -598,7 +680,16 @@ $formatDate = static fn(?string $date): string => $date ? date('M d, Y', strtoti
                                         <td><?php echo htmlspecialchars(implode(', ', array_filter([$item['barangay'] ?? '', $item['municipality'] ?? '']))); ?></td>
                                         <?php if ($showProvinceColumn): ?><td><?php echo htmlspecialchars($item['province'] ?? ''); ?></td><?php endif; ?>
                                         <td><?php echo htmlspecialchars($item['project_name'] ?? ''); ?></td>
-                                        <td><?php echo htmlspecialchars($linkedProponentNames[(int) ($item['proponent_id'] ?? 0)] ?? ''); ?></td>
+                                        <td>
+                                            <?php if ($linkedProponent): ?>
+                                            <?php echo htmlspecialchars($linkedProponent['proponent_name']); ?>
+                                            <?php if (($linkedProponent['project_title'] ?? '') !== ''): ?>
+                                            – <span class="text-muted small"><?php echo htmlspecialchars($linkedProponent['project_title']); ?></span>
+                                            <?php endif; ?>
+                                            (<?php echo htmlspecialchars(ucfirst($linkedProponent['status'] ?? '')); ?>)
+                                            <?php endif; ?>
+                                        </td>
+                                        <td><span class="badge <?php echo $linkedProponent ? 'text-bg-success' : 'text-bg-secondary'; ?> badge-status"><?php echo $linkedProponent ? 'Linked' : 'Not linked'; ?></span></td>
                                         <td><?php echo htmlspecialchars($item['type_of_worker'] ?? ''); ?></td>
                                         <td><?php echo htmlspecialchars($item['source_of_funds'] ?? ''); ?></td>
                                         <td class="text-end text-nowrap" data-order="<?php echo $amount; ?>" data-num="<?php echo $amount; ?>">₱<?php echo number_format($amount, 2); ?></td>
@@ -610,7 +701,7 @@ $formatDate = static fn(?string $date): string => $date ? date('M d, Y', strtoti
                                 <tfoot class="table-light fw-bold">
                                     <tr>
                                         <td>Total</td>
-                                        <?php echo str_repeat('<td></td>', $showProvinceColumn ? 8 : 7); ?>
+                                        <?php echo str_repeat('<td></td>', $showProvinceColumn ? 9 : 8); ?>
                                         <td class="text-end text-nowrap" data-num="<?php echo $summary['amount']; ?>">₱<?php echo number_format($summary['amount'], 2); ?></td>
                                         <td></td>
                                         <td></td>
@@ -776,6 +867,7 @@ $formatDate = static fn(?string $date): string => $date ? date('M d, Y', strtoti
                 'statuses'         => $recordStatusOptions,
                 'municipalities'   => $municipalitiesByProvince,
                 'districts'        => $districtsByProvince,
+                'proponents'       => $proponentsByProvince,
                 'defaultDateBasis' => $defaultDateBasisOption,
             ], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>;
 
@@ -799,6 +891,66 @@ $formatDate = static fn(?string $date): string => $date ? date('M d, Y', strtoti
                 $(selector).toggle(visible).find('select, input').prop('disabled', !visible);
             }
 
+            // ---- Proponent picker (searchable, filtered client-side from filterData.proponents) ----
+            var $proponentId = $('#proponentId'), $proponentSearch = $('#proponentSearch');
+            var $proponentList = $('#proponentDropdown'), $proponentLink = $('#proponentLink');
+
+            function proponentOptions() {
+                return filterData.proponents[$province.val() || ''] || [];
+            }
+
+            function renderProponentList() {
+                var term = $.trim($proponentSearch.val()).toLowerCase();
+                var matches = proponentOptions().filter(function(p) {
+                    return !term || p.label.toLowerCase().indexOf(term) !== -1;
+                }).slice(0, 50);
+                $proponentList.empty();
+                if (!matches.length) {
+                    $proponentList.append($('<div class="list-group-item text-muted small">').text('No matching proponents found.'));
+                }
+                matches.forEach(function(p) {
+                    $('<button type="button" class="list-group-item list-group-item-action text-start">')
+                        .text(p.label)
+                        // mousedown (not click) so it fires before the input loses focus
+                        .on('mousedown', function(e) {
+                            e.preventDefault();
+                            $proponentId.val(p.id);
+                            $proponentSearch.val(p.label);
+                            $proponentList.hide();
+                        })
+                        .appendTo($proponentList);
+                });
+                $proponentList.show();
+            }
+
+            // Drop a pick that is no longer offered (province changed) and lock the picker for "Not linked".
+            function refreshProponentPicker() {
+                var picked = parseInt($proponentId.val(), 10) || 0;
+                var stillOffered = proponentOptions().some(function(p) { return p.id === picked; });
+                if (picked && !stillOffered) clearProponent();
+                var unlinked = $proponentLink.val() === 'unlinked';
+                if (unlinked) clearProponent();
+                var visible = $type.val() === 'beneficiaries';
+                $proponentSearch.prop('disabled', !visible || unlinked);
+                $('#proponentClear').prop('disabled', !visible || unlinked);
+            }
+
+            function clearProponent() {
+                $proponentId.val('');
+                $proponentSearch.val('');
+                $proponentList.hide();
+            }
+
+            $proponentSearch.on('focus', renderProponentList).on('input', function() {
+                $proponentId.val(''); // typing again un-picks until a result is chosen
+                renderProponentList();
+            }).on('blur', function() {
+                $proponentList.hide();
+                if (!$proponentId.val()) $proponentSearch.val(''); // free text is not a filter
+            });
+            $('#proponentClear').on('click', clearProponent);
+            $proponentLink.on('change', refreshProponentPicker);
+
             function refreshFilters() {
                 var type = $type.val();
                 var province = $province.val() || '';
@@ -811,6 +963,9 @@ $formatDate = static fn(?string $date): string => $date ? date('M d, Y', strtoti
 
                 showGroup('#municipalityGroup', type === 'beneficiaries');
                 showGroup('#districtGroup', type === 'proponents');
+                showGroup('#proponentLinkGroup', type === 'beneficiaries');
+                showGroup('#proponentGroup', type === 'beneficiaries');
+                refreshProponentPicker();
                 showGroup('#dateFieldGroup', type !== 'cqpr');
                 $('#cqprDateNote').toggle(type === 'cqpr');
             }
