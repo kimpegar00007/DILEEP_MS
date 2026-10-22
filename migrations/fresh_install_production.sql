@@ -46,6 +46,7 @@ DROP TABLE IF EXISTS `province_access_audit`;
 DROP TABLE IF EXISTS `user_provinces`;
 DROP TABLE IF EXISTS `proponent_returns`;
 DROP TABLE IF EXISTS `proponent_associations`;
+DROP TABLE IF EXISTS `fieldwork_notifications`;
 DROP TABLE IF EXISTS `fieldwork_schedule`;
 DROP TABLE IF EXISTS `activity_logs`;
 DROP TABLE IF EXISTS `beneficiaries`;
@@ -283,6 +284,29 @@ CREATE TABLE `fieldwork_schedule` (
     KEY `idx_fieldwork_province` (`province`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
 COMMENT='Fieldwork scheduling system';
+
+-- ----------------------------------------------------------------------------
+-- Table: fieldwork_notifications
+-- Description: Outbox for fieldwork email alerts; the unique key stops an alert being sent twice
+-- ----------------------------------------------------------------------------
+CREATE TABLE `fieldwork_notifications` (
+    `id` INT(11) NOT NULL AUTO_INCREMENT,
+    `activity_id` INT(11) NOT NULL,
+    `event_type` VARCHAR(30) NOT NULL,
+    `event_key` VARCHAR(40) NOT NULL,
+    `recipient_user_id` INT(11) NOT NULL,
+    `recipient_role` ENUM('assignee','creator') NOT NULL DEFAULT 'assignee',
+    `status` ENUM('pending','sending','sent','failed','skipped') NOT NULL DEFAULT 'pending',
+    `attempts` TINYINT UNSIGNED NOT NULL DEFAULT 0,
+    `last_error` VARCHAR(255) DEFAULT NULL,
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    `sent_at` DATETIME DEFAULT NULL,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uq_fieldwork_notification` (`activity_id`, `event_type`, `event_key`, `recipient_user_id`),
+    KEY `idx_fieldwork_notification_status` (`status`, `id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
+COMMENT='Fieldwork email alert outbox';
 
 -- ----------------------------------------------------------------------------
 -- Table: system_settings

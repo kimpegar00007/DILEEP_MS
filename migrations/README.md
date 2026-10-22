@@ -349,6 +349,7 @@ If you encounter issues not covered here:
 
 | Date | Script | Purpose | Status |
 |------|--------|---------|--------|
+| Oct 22, 2026 | `add_fieldwork_notifications.sql` | Outbox table for fieldwork email alerts (the app also creates it on first use) | ✅ Current |
 | May 13, 2026 | `fresh_install_production.sql` | Fresh installation with all features | ✅ Current (Recommended) |
 | May 13, 2026 | `production_schema_migration.sql` | Fix "Database Error" | ✅ Current |
 | May 12, 2026 | `phase9_beneficiary_types_and_orgchart_province.sql` | Add beneficiary types | ✅ Integrated |

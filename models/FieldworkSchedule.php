@@ -11,11 +11,16 @@
 //       stays as it is and is flagged overdue (is_overdue / getOverdueActivities()) until
 //       a person confirms it as completed or missed, or reschedules it, through the
 //       Smart Activity Reminder. "Today" is always PHP's date in Asia/Manila.
+// v2.3: Saves queue email alerts for the assignee (FieldworkNotifier); reminders and
+//       overdue notices are queued by cron/fieldwork-notifications.php.
+
+require_once __DIR__ . '/../includes/FieldworkNotifier.php';
 
 class FieldworkSchedule {
     private $db;
     private $lastError = '';
     private $lastErrorStatus = 500;
+    private $notifier = null;
 
     public const STATUSES = ['pending', 'ongoing', 'completed', 'missed'];
 
@@ -37,6 +42,10 @@ class FieldworkSchedule {
     /** HTTP status that fits the last error: 404 not found, 422 bad input, 500 database. */
     public function getLastErrorStatus() {
         return $this->lastErrorStatus;
+    }
+
+    private function notifier(): FieldworkNotifier {
+        return $this->notifier ??= new FieldworkNotifier();
     }
 
     private function fail(string $message, int $status): bool {
@@ -224,6 +233,7 @@ class FieldworkSchedule {
             }
 
             $this->logActivity('create', $insertId, 'Created fieldwork schedule: ' . trim($data['title']));
+            $this->notifier()->onCreated($insertId);
             return $insertId;
         } catch (PDOException $e) {
             $this->logDatabaseError('PDOException in create', [
@@ -298,6 +308,7 @@ class FieldworkSchedule {
             }
 
             $this->logActivity('update', $id, 'Updated fieldwork schedule: ' . trim($data['title']));
+            $this->notifier()->onUpdated($existing);
             return true;
         } catch (PDOException $e) {
             $this->logDatabaseError('PDOException in update', [
@@ -321,7 +332,8 @@ class FieldworkSchedule {
         if (!in_array($status, self::STATUSES, true)) {
             return $this->fail('Invalid status', 422);
         }
-        if (!$this->findById($id)) {
+        $existing = $this->findById($id);
+        if (!$existing) {
             return $this->fail('Activity not found', 404);
         }
 
@@ -333,6 +345,7 @@ class FieldworkSchedule {
 
             if ($result) {
                 $this->logActivity('update', $id, 'Updated fieldwork status to: ' . $status);
+                $this->notifier()->onStatusChanged((int) $id, (string) $existing['status'], $status);
             }
 
             return $result;

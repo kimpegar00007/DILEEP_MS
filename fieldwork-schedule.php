@@ -479,6 +479,7 @@ function fieldworkUserLabel(array $u, array $roleLabels, bool $withProvince): st
                                     <option value="<?php echo (int) $u['id']; ?>"><?php echo htmlspecialchars(fieldworkUserLabel($u, $roleLabels, $isCrossProvince)); ?></option>
                                     <?php endforeach; ?>
                                 </select>
+                                <div class="form-text" id="assignedUserEmailNote"><i class="bi bi-envelope"></i> The assigned user is emailed about this activity, and reminded before it starts and if it is not closed.</div>
                                 <div class="form-text text-danger d-none" id="assignedUserWarning"></div>
                             </div>
                             <div class="col-md-6">

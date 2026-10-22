@@ -55,6 +55,19 @@ def fill_pass(body, spec):
                                  "paragraphStyle": {"alignment": "CENTER"}, "fields": "alignment"}})
                 jobs.append((start, reqs))
     reqs = [q for _, rs in sorted(jobs, key=lambda j: -j[0]) for q in rs]
+    # A section the spec leaves out (no fixes, or no features) is removed: its heading paragraph and table.
+    # These sit below the title and above the cells already edited, so they go after the cell edits, last table first.
+    for key in reversed(("fixes", "features")):
+        if spec.get(key):
+            continue
+        for i, e in enumerate(body):
+            if "table" in e and e is tables(body)[("fixes", "features").index(key)]:
+                j = i - 1   # step back over blank paragraphs to the heading itself
+                while j > 0 and not "".join(x.get("textRun", {}).get("content", "")
+                                            for x in body[j].get("paragraph", {}).get("elements", [])).strip():
+                    j -= 1
+                heading = body[j]
+                reqs.append({"deleteContentRange": {"range": {"startIndex": heading["startIndex"], "endIndex": e["endIndex"]}}})
     # title + date line come first in the document, so they go last
     title_old = "DILEEP MONITORING SYSTEM UPDATES & IMPROVEMENTS ("
     for e in body:

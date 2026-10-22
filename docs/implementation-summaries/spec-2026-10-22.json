@@ -1,0 +1,13 @@
+{
+ "date": "2026-10-22",
+ "features": [
+  ["Automatic email when fieldwork is assigned", "The assigned user now receives an email with the activity title, dates, location and details as soon as an activity is created for them or reassigned to them", "Staff in the field know about new work right away, even if they never open the system"],
+  ["Email when a schedule changes", "When the dates of an activity change, the assigned user is emailed the new dates", "No one shows up on the wrong day"],
+  ["Reminder emails before fieldwork", "The assigned user is emailed the morning before the activity starts and again on the morning it starts", "Fieldwork is not forgotten, with no need to check the calendar"],
+  ["Overdue follow-up emails", "If an activity is still not marked Completed or Missed after its last day, the assigned user is emailed 1, 3 and 7 days later asking them to confirm what happened or reschedule; from the third day the person who created the activity is copied", "Unclosed activities no longer sit unnoticed, and the Missed and Completed records stay accurate"],
+  ["Email when fieldwork is marked as missed", "When an activity is marked Missed, both the assigned user and the person who created it are told", "Supervisors know right away when planned fieldwork did not happen"],
+  ["Runs without anyone logged in", "A scheduled task on the server checks the schedule every 10 minutes, sends the emails that are due and keeps activity statuses up to date", "The system keeps working on people's behalf while they are out in the field"],
+  ["No duplicate or outdated emails", "Each alert is sent only once, a failed email is retried later, and an email is dropped if the activity was completed, deleted, reassigned or rescheduled before it was sent. People are not emailed about their own changes", "Fewer, more useful emails"],
+  ["Email note on the activity form", "The Add / Edit Activity form now tells the user that the assigned person will be emailed", "Users know what happens when they save"]
+ ]
+}
