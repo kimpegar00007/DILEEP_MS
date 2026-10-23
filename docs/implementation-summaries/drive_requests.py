@@ -24,6 +24,11 @@ def rows_pass(body, spec):
     # last table first so earlier table indices stay valid
     for tbl, key in reversed(list(zip(t, ("fixes", "features")))):
         need = len(spec.get(key, [])) + 1 - tbl["table"]["rows"]
+        if need < 0 and spec.get(key):
+            # the copy has more rows than the spec: delete the surplus from the bottom up
+            for r in range(tbl["table"]["rows"] - 1, len(spec[key]), -1):
+                reqs.append({"deleteTableRow": {"tableCellLocation": {
+                    "tableStartLocation": {"index": tbl["startIndex"]}, "rowIndex": r, "columnIndex": 0}}})
         for _ in range(max(need, 0)):
             reqs.append({"insertTableRow": {"tableCellLocation": {
                 "tableStartLocation": {"index": tbl["startIndex"]},

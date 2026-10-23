@@ -1,0 +1,15 @@
+{
+ "date": "2026-10-23",
+ "features": [
+  ["Reports open on Group Proponents", "The Report Type now starts on Group Proponents instead of Individual Beneficiaries, and the Reset button goes back to it", "Saves a step for staff who mostly report on group projects"],
+  ["Four new date columns", "The Group Proponents report now shows Date Released, Date of Turn-over, Date Due for Liquidation and Date Monitored right after Date Approved. The Individual Beneficiaries report shows Date of Turn-over and Date Monitored", "The whole timeline of a project can be read in one row, without opening each record"],
+  ["Side-to-side scrolling for the report table", "The table now scrolls left and right so every column can be reached. The search box and page buttons stay in place, and the column headings stay visible while scrolling down", "All columns are readable on any screen size, even with the extra dates"],
+  ["\"Generated through the system\" line", "A line saying the report was generated through the system, with the date and time, now appears under the report on screen, when printing, at the bottom of the PDF and as the last line of the Excel file. The CSV file stays plain data", "Printed and downloaded reports show where and when they were produced"]
+ ],
+ "screenshots": [
+  {"file": "docs/implementation-summaries/screenshots/2026-10-23/reports-01-opens-on-group-proponents.png", "caption": "Figure 1. The Reports page now opens with Group Proponents already selected as the Report Type."},
+  {"file": "docs/implementation-summaries/screenshots/2026-10-23/reports-02-group-proponents-scrollbar.png", "caption": "Figure 2. The Group Proponents report table scrolls sideways, with the search box and page buttons kept in place. The \"generated through the system\" line is at the bottom of the report."},
+  {"file": "docs/implementation-summaries/screenshots/2026-10-23/reports-03-group-proponents-new-columns.png", "caption": "Figure 3. Scrolled to the right: the new Date Released, Date of Turn-over, Date Due for Liquidation and Date Monitored columns, right after Date Approved."},
+  {"file": "docs/implementation-summaries/screenshots/2026-10-23/reports-04-individual-new-columns.png", "caption": "Figure 4. The Individual Beneficiaries report gets Date of Turn-over and Date Monitored."}
+ ]
+}

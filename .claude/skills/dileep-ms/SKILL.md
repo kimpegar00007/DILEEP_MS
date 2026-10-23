@@ -188,13 +188,32 @@ There is no automated test suite. Verify changes with:
 
 Every time you implement something (code, schema, config or behaviour change), finish by producing a
 plain-language summary .docx in the same format as the reference Google Doc "DILEEPSYS UPDATES &
-IMPROVEMENTS (10-16-26)". Do this without being asked, before the final reply.
+IMPROVEMENTS (10-16-26)", **with screenshots of the change working**. Do this without being asked, at the end of every
+completed task (code, schema, config or behaviour change), before the final reply. Skipping the screenshots is not
+allowed: if a change has no visible result, screenshot the nearest thing the user can see (the form note, the email
+in the mail catcher, the page that uses the data) and say in the caption what it proves.
 
+0. **Capture screenshots** while verifying on the local QA server (never production):
+   - Start the QA app (`.claude/launch.json` config `dileep-qa-3307`, port 8001, DB `dilp_monitoring_qa` on 3307) and log in
+     with a test account from `.claude/local-qa/seed.sql` (e.g. `qa_super`; never real credentials). If the XAMPP databases
+     are unreadable, build a throwaway one: `mysqld --no-defaults --datadir=<scratchpad>/qadb --port=3307
+     --socket=/tmp/qa3307.sock` (XAMPP binaries in `/Applications/XAMPP/xamppfiles/sbin`), then load
+     `migrations/fresh_install_production.sql`, the two `add_proponent_id…`/`expand_proponent…` migrations and `seed.sql`.
+   - Use clean, believable demo rows (no XSS test payloads, no real beneficiary data) so the picture reads well.
+   - Take 2–5 sharp shots with `node docs/implementation-summaries/take_screenshots.mjs <shots.json>` (headless Chrome,
+     2x resolution, logs in with `SHOT_USER`/`SHOT_PASS` env vars; the config format is at the top of the script). Save
+     to `docs/implementation-summaries/screenshots/YYYY-MM-DD/NN-short-name.png`. Crop to the changed area (`clip`
+     selector), show the new thing in use (scroll, open, submit as needed), and look at every PNG before using it.
+   - The browser-pane screenshot tool is only a fallback: it is low resolution (about 800px wide).
 1. **Write a spec JSON** in `docs/implementation-summaries/` named `spec-YYYY-MM-DD.json` (add a suffix such as `-b`
    if a spec for that date already exists):
-   `{"date": "YYYY-MM-DD", "fixes": [[issue, description, "✔ Fixed"]], "features": [[feature, what it does, benefit]]}`.
+   `{"date": "YYYY-MM-DD", "fixes": [[issue, description, "✔ Fixed"]], "features": [[feature, what it does, benefit]],
+   "screenshots": [{"file": "docs/implementation-summaries/screenshots/YYYY-MM-DD/NN-name.png", "caption": "Figure 1. …"}]}`.
    `date` is the day the change takes effect (use today's date; for a past implementation use its commit date).
-   Omit `fixes` or `features` if the change has none.
+   Omit `fixes` or `features` if the change has none. `screenshots` is required; paths are relative to the repo root and
+   must be PNGs; captions are one plain sentence for non-technical staff ("Figure N. What you can see here.").
+   When replaying a past implementation, take the screenshots from the code as it was then (or the current page if
+   unchanged) and say so in the reply.
 2. **Build it**: `python3 docs/implementation-summaries/build_summary.py docs/implementation-summaries/spec-YYYY-MM-DD.json`.
    Output is `DILEEPSYS-Updates-and-Improvements-MM-DD-YY.docx` in the same folder. Never hand-build the file:
    `_template.docx` (exported from the reference doc) supplies the DOLE letterhead and logos in the header, the
@@ -202,11 +221,13 @@ IMPROVEMENTS (10-16-26)". Do this without being asked, before the final reply.
    bordered tables (ISSUES / DESCRIPTION / STATUS and FEATURE / WHAT IT DOES / BENEFIT).
 3. **Layout the output must keep**: centred bold title "DILEEP MONITORING SYSTEM UPDATES & IMPROVEMENTS (MM-DD-YY)",
    then a centred italic line "Date of implementation: Month D, YYYY", then section "1. System Fixes & Improvements"
-   and/or "2. New Features", each a table.
+   and/or "2. New Features", each a table, then a last numbered section "Screenshots" holding each figure as an italic
+   centred caption above a full-width picture with a thin grey border (the builder does this from `screenshots`).
 4. **Writing rules**: audience is non-technical DOLE staff. One short row per change, plain words, no file, function or
    table names, no code. Say what users now see or can do, and the benefit. Group related fixes into one row. Status
    column is "✔ Fixed" for fixes.
-5. Check the .docx opens (`qlmanage -t -s 1400 -o <scratchpad> <file>.docx` on macOS renders a preview).
+5. Check the .docx opens (`qlmanage -t -s 1400 -o <scratchpad> <file>.docx` on macOS renders a preview, and it shows the
+   screenshots below the tables; read the PNG).
 6. **Upload to the user's Google Drive automatically** (no need to ask). The .docx is ~1 MB because of the header logos,
    so do not upload it as base64; copy the reference Google Doc instead, which keeps the header, footer and styles.
    Reference doc id `1kMms3oferTqLtIb8vnaEU4aQv2tF3B-1WRfwG-w0IMk` (My Drive root; owner ragepmik26@gmail.com).
@@ -220,8 +241,12 @@ IMPROVEMENTS (10-16-26)". Do this without being asked, before the final reply.
       (sets title, date line and every cell, in descending index order so indices stay valid).
    4. Verify: `download_file_content` with `exportMimeType: application/pdf`, decode the base64 from the saved file,
       `pdftoppm -r 80 -png` and look at it.
+   **Screenshots do not reach the Drive copy**: `update_doc` can only insert images from a public URL and the .docx is too
+   big to upload through the tools, and we do not make files public. So the Drive doc holds the tables and the
+   local .docx (which has the screenshots) is the complete version. Always say this in the reply and tell the user to
+   upload the .docx to Drive (right-click → Open with → Google Docs) if they want the pictures there.
    Give the user the Drive link (`viewUrl`) and the local .docx path. If the Drive tools are unavailable, say so and
-   hand over the .docx. Commit the .docx, spec and any script changes with the code change.
+   hand over the .docx. Commit the .docx, spec, screenshots and any script changes with the code change.
    Note: the copy is made from the 10-16-26 reference; if a later summary should become the new reference, change the id here.
 7. To change the look for all future summaries, edit the reference Google Doc, re-export it as .docx over
    `_template.docx`, and keep the two table header rows and the bullet heading paragraph, since the builder reuses them.
