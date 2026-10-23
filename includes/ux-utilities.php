@@ -744,6 +744,9 @@ const DILP = {
             rows.push(data.headers);
             const firstDataRow = rows.length;
             data.body.concat(data.footer).forEach(cells => rows.push(cells.map(c => c.value)));
+            const dataEnd = rows.length;
+            rows.push([]);
+            rows.push(['This report was generated through the system.']);
 
             const ws = XLSX.utils.aoa_to_sheet(rows);
 
@@ -766,7 +769,7 @@ const DILP = {
             // Title lines span the table; columns sized to their longest text (capped).
             ws['!merges'] = rows.slice(0, headerRow - 1).map((_, r) => ({ s: { r, c: 0 }, e: { r, c: columnCount - 1 } }));
             ws['!cols'] = data.headers.map((header, col) => {
-                const longest = rows.slice(headerRow).reduce((max, row) => {
+                const longest = rows.slice(headerRow, dataEnd).reduce((max, row) => {
                     const cell = row[col];
                     return Math.max(max, cell === undefined || cell === null ? 0 : String(cell).length);
                 }, header.length);
@@ -834,7 +837,7 @@ const DILP = {
                 ${subtitle ? `<div class="meta">${String(subtitle).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]))}</div>` : ''}
                 <div class="meta">Generated: ${new Date().toLocaleString()} | Total Records: ${fullTable.tBodies[0].rows.length}</div>
                 ${fullTable.outerHTML}
-                <div class="footer">&copy; ${new Date().getFullYear()} Department of Labor and Employment</div>
+                <div class="footer">This report was generated through the system.<br>&copy; ${new Date().getFullYear()} Department of Labor and Employment</div>
                 </body></html>
             `);
             printWindow.document.close();

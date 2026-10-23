@@ -26,9 +26,9 @@ $getString = static function (string $key): string {
     return is_string($value) ? trim($value) : '';
 };
 
-$reportType = $getString('type') ?: 'beneficiaries';
+$reportType = $getString('type') ?: 'proponents';
 if (!in_array($reportType, ['beneficiaries', 'proponents', 'cqpr'], true)) {
-    $reportType = 'beneficiaries';
+    $reportType = 'proponents';
 }
 $dateFrom = $getString('date_from');
 $dateTo = $getString('date_to');
@@ -277,6 +277,20 @@ if (isset($_GET['generate'])) {
 $dateColumnKey = $dateField ?: 'date_approved';
 $dateColumnLabel = $dateField ? $dateFieldOptions[$dateField] : 'Date Approved';
 
+// Extra date columns shown after that date column (column => header). Individual beneficiaries
+// have no check release or liquidation deadline.
+$extraDateColumns = $reportType === 'beneficiaries'
+    ? [
+        'date_turnover'   => 'Date of Turn-over',
+        'date_monitoring' => 'Date Monitored',
+    ]
+    : [
+        'date_check_release'   => 'Date Released',
+        'date_turnover'        => 'Date of Turn-over',
+        'liquidation_deadline' => 'Date Due for Liquidation',
+        'date_monitoring'      => 'Date Monitored',
+    ];
+
 // "Applied filters" line shown above the report (and printed / put in the PDF).
 $appliedFilters = ['Province' => $provinceFilter ?: 'All provinces'];
 if ($reportType === 'beneficiaries') {
@@ -386,10 +400,15 @@ $formatDate = static fn(?string $date): string => $date ? date('M d, Y', strtoti
             font-size: 0.9rem;
         }
         .summary-statuses .badge { font-size: 0.8rem; font-weight: 500; }
+        /* Only the table scrolls sideways, so the search box and pager stay in view. */
+        .report-table-scroll { overflow: auto; max-height: 70vh; }
+        #reportTable th, #reportTable td { white-space: nowrap; }
+        #reportTable thead th { position: sticky; top: 0; z-index: 1; background-color: var(--bs-light); }
         @media (max-width: 576px) {
             .report-summary { padding: 1.25rem; }
         }
         @media print {
+            .report-table-scroll { overflow: visible; max-height: none; }
             .dataTables_length, .dataTables_filter, .dataTables_paginate { display: none !important; }
             .report-summary { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
         }
@@ -647,7 +666,7 @@ $formatDate = static fn(?string $date): string => $date ? date('M d, Y', strtoti
                         </div>
                     </div>
                     <div class="card-body">
-                        <div class="table-responsive">
+                        <div>
                             <?php if ($isIndividualReport): ?>
                             <table id="reportTable" class="table table-bordered table-sm align-middle">
                                 <thead class="table-light">
@@ -665,6 +684,7 @@ $formatDate = static fn(?string $date): string => $date ? date('M d, Y', strtoti
                                         <th data-sum="money">Amount</th>
                                         <th>Status</th>
                                         <th><?php echo htmlspecialchars($dateColumnLabel); ?></th>
+                                        <?php foreach ($extraDateColumns as $extraLabel): ?><th><?php echo htmlspecialchars($extraLabel); ?></th><?php endforeach; ?>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -695,6 +715,9 @@ $formatDate = static fn(?string $date): string => $date ? date('M d, Y', strtoti
                                         <td class="text-end text-nowrap" data-order="<?php echo $amount; ?>" data-num="<?php echo $amount; ?>">₱<?php echo number_format($amount, 2); ?></td>
                                         <td><span class="badge <?php echo statusBadgeClass($item['status'] ?? ''); ?> badge-status"><?php echo htmlspecialchars(ucfirst($item['status'] ?? '')); ?></span></td>
                                         <td class="text-nowrap" data-order="<?php echo htmlspecialchars($item[$dateColumnKey] ?? ''); ?>" data-date="<?php echo htmlspecialchars($item[$dateColumnKey] ?? ''); ?>"><?php echo $formatDate($item[$dateColumnKey] ?? null); ?></td>
+                                        <?php foreach ($extraDateColumns as $extraKey => $extraLabel): ?>
+                                        <td class="text-nowrap" data-order="<?php echo htmlspecialchars($item[$extraKey] ?? ''); ?>" data-date="<?php echo htmlspecialchars($item[$extraKey] ?? ''); ?>"><?php echo $formatDate($item[$extraKey] ?? null); ?></td>
+                                        <?php endforeach; ?>
                                     </tr>
                                     <?php endforeach; ?>
                                 </tbody>
@@ -703,8 +726,7 @@ $formatDate = static fn(?string $date): string => $date ? date('M d, Y', strtoti
                                         <td>Total</td>
                                         <?php echo str_repeat('<td></td>', $showProvinceColumn ? 9 : 8); ?>
                                         <td class="text-end text-nowrap" data-num="<?php echo $summary['amount']; ?>">₱<?php echo number_format($summary['amount'], 2); ?></td>
-                                        <td></td>
-                                        <td></td>
+                                        <?php echo str_repeat('<td></td>', 2 + count($extraDateColumns)); ?>
                                     </tr>
                                 </tfoot>
                             </table>
@@ -727,6 +749,7 @@ $formatDate = static fn(?string $date): string => $date ? date('M d, Y', strtoti
                                         <th data-sum="count">Female</th>
                                         <th>Status</th>
                                         <th><?php echo htmlspecialchars($dateColumnLabel); ?></th>
+                                        <?php foreach ($extraDateColumns as $extraLabel): ?><th><?php echo htmlspecialchars($extraLabel); ?></th><?php endforeach; ?>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -753,6 +776,9 @@ $formatDate = static fn(?string $date): string => $date ? date('M d, Y', strtoti
                                         <td class="text-end" data-order="<?php echo $female; ?>" data-num="<?php echo $female; ?>"><?php echo number_format($female); ?></td>
                                         <td><span class="badge <?php echo statusBadgeClass($item['status'] ?? ''); ?> badge-status"><?php echo htmlspecialchars(ucfirst($item['status'] ?? '')); ?></span></td>
                                         <td class="text-nowrap" data-order="<?php echo htmlspecialchars($item[$dateColumnKey] ?? ''); ?>" data-date="<?php echo htmlspecialchars($item[$dateColumnKey] ?? ''); ?>"><?php echo $formatDate($item[$dateColumnKey] ?? null); ?></td>
+                                        <?php foreach ($extraDateColumns as $extraKey => $extraLabel): ?>
+                                        <td class="text-nowrap" data-order="<?php echo htmlspecialchars($item[$extraKey] ?? ''); ?>" data-date="<?php echo htmlspecialchars($item[$extraKey] ?? ''); ?>"><?php echo $formatDate($item[$extraKey] ?? null); ?></td>
+                                        <?php endforeach; ?>
                                     </tr>
                                     <?php endforeach; ?>
                                 </tbody>
@@ -764,13 +790,15 @@ $formatDate = static fn(?string $date): string => $date ? date('M d, Y', strtoti
                                         <td class="text-end" data-num="<?php echo $summary['beneficiaries']; ?>"><?php echo number_format($summary['beneficiaries']); ?></td>
                                         <td class="text-end" data-num="<?php echo $summary['male']; ?>"><?php echo number_format($summary['male']); ?></td>
                                         <td class="text-end" data-num="<?php echo $summary['female']; ?>"><?php echo number_format($summary['female']); ?></td>
-                                        <td></td>
-                                        <td></td>
+                                        <?php echo str_repeat('<td></td>', 2 + count($extraDateColumns)); ?>
                                     </tr>
                                 </tfoot>
                             </table>
                             <?php endif; ?>
                         </div>
+                    </div>
+                    <div class="card-footer bg-white text-muted small">
+                        This report was generated through the system on <?php echo (new DateTime('now', new DateTimeZone('Asia/Manila')))->format('M d, Y h:i A'); ?>.
                     </div>
                 </div>
                 <?php endif; ?>
@@ -801,7 +829,7 @@ $formatDate = static fn(?string $date): string => $date ? date('M d, Y', strtoti
             $('#reportTable').DataTable({
                 pageLength: 50,
                 lengthMenu: [[25, 50, 100, -1], [25, 50, 100, 'All']],
-                dom: 'lfrtip',
+                dom: 'lf<"report-table-scroll"rt>ip',
                 order: [],          // keep the server's order (newest first) until a header is clicked
                 language: {
                     search: "Search:",
