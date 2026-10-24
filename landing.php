@@ -1,22 +1,23 @@
 <?php
 // landing.php
-// Public front page for logged-out visitors (index.php sends them here). Explains what the
-// system does for the three field offices and leads to Sign in. The only data it shows are
-// province totals from models/PublicStats.php: aggregates, never names or records.
+// Public front page: every visit to the bare site address lands here (index.php sends it).
+// Explains what the system does for the three field offices and leads to Sign in, or to the
+// dashboard for staff who are already signed in. The only data it shows are province totals
+// from models/PublicStats.php: aggregates, never names or records.
 session_start();
 require_once 'config/database.php';
 require_once 'includes/Auth.php';
 require_once 'models/PublicStats.php';
 
 $auth = new Auth();
+$signedIn = false;
 try {
-    if ($auth->isLoggedIn()) {
-        header('Location: index.php');
-        exit;
-    }
+    $signedIn = $auth->isLoggedIn();
 } catch (Throwable $e) {
     // The page still works without a database; Sign in will report the problem.
 }
+$actionHref  = $signedIn ? 'index.php' : 'login.php';
+$actionLabel = $signedIn ? 'Open dashboard' : 'Sign in';
 
 // =========================================================
 // Province totals (server-rendered so the page works without JavaScript)
@@ -508,7 +509,7 @@ $year = $today->format('Y');
             <a class="link" href="#provinces">Provinces</a>
             <a class="link" href="#access">Access</a>
         </div>
-        <a class="button button--paper" href="login.php">Sign in</a>
+        <a class="button button--paper" href="<?php echo $actionHref; ?>"><?php echo $actionLabel; ?></a>
     </nav>
 
     <h1 class="hero__title">
@@ -521,7 +522,7 @@ $year = $today->format('Y');
         <span>for Negros Occidental, Negros Oriental and Siquijor.</span>
     </p>
 
-    <div class="hero__cta"><a class="button button--paper" href="login.php">Sign in</a></div>
+    <div class="hero__cta"><a class="button button--paper" href="<?php echo $actionHref; ?>"><?php echo $actionLabel; ?></a></div>
 </header>
 
 <main>
@@ -712,6 +713,14 @@ $year = $today->format('Y');
      CTA: a sentence with a blank
      ========================================================= -->
 <section class="section grid close" id="signin" aria-labelledby="close-title">
+    <?php if ($signedIn): ?>
+    <form method="get" action="index.php" data-reveal>
+        <h2 class="close__sentence" id="close-title">
+            Welcome back. <button class="close__submit" type="submit">Open dashboard</button>
+        </h2>
+        <p class="close__note">Pick up your records, fieldwork and reports where you left them.</p>
+    </form>
+    <?php else: ?>
     <form method="post" action="login.php" data-reveal>
         <input type="hidden" name="from" value="landing">
         <h2 class="close__sentence" id="close-title">
@@ -721,6 +730,7 @@ $year = $today->format('Y');
         </h2>
         <p class="close__note">Your password comes next, on the sign-in page. No account yet? Ask the admin of your field office to create one for you.</p>
     </form>
+    <?php endif; ?>
 </section>
 
 </main>
@@ -740,12 +750,12 @@ $year = $today->format('Y');
         <a class="totop link" href="#top">Back to top</a>
     </div>
     <div class="foot__main">
-        <h2><a class="link" href="login.php">dileepsys.com</a></h2>
-        <p>Sign in with the account your field office gave you.</p>
+        <h2><a class="link" href="<?php echo $actionHref; ?>">dileepsys.com</a></h2>
+        <p><?php echo $signedIn ? 'You are signed in. The dashboard is one click away.' : 'Sign in with the account your field office gave you.'; ?></p>
     </div>
     <div class="foot__meta">
         <div class="foot__links">
-            <a class="link" href="login.php">Sign in</a>
+            <a class="link" href="<?php echo $actionHref; ?>"><?php echo $actionLabel; ?></a>
             <a class="link" href="#stages">How it works</a>
             <a class="link" href="#provinces">Provinces</a>
         </div>

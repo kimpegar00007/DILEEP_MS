@@ -5,8 +5,11 @@ require_once 'includes/Auth.php';
 require_once 'models/Dashboard.php';
 
 $auth = new Auth();
-// Logged-out visitors get the public landing page instead of the bare login form.
-if (!$auth->isLoggedIn()) {
+// The bare site address (dileepsys.com/) always opens the public landing page, signed in or
+// not. The app's own links name index.php, so the dashboard is still reached through them.
+// Logged-out visitors who ask for index.php get the landing page too.
+$requestPath = parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH) ?: '/';
+if (basename($requestPath) !== 'index.php' || !$auth->isLoggedIn()) {
     header('Location: landing.php');
     exit;
 }

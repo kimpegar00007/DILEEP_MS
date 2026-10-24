@@ -1,0 +1,11 @@
+{
+ "date": "2026-10-24",
+ "features": [
+  ["dileepsys.com always opens the front page", "Typing dileepsys.com now always opens the front page, whether or not the person is signed in. The Dashboard links inside the system still open the dashboard as before", "Everyone who visits the site address sees the same front page first"],
+  ["Dashboard button for signed-in staff", "When staff who are already signed in open the front page, the Sign in button becomes Open dashboard, and the sign-in line at the bottom becomes a Welcome back message with an Open dashboard button", "Signed-in staff reach their work in one click without signing in again"]
+ ],
+ "screenshots": [
+  {"file": "docs/implementation-summaries/screenshots/2026-10-24-b/01-signed-in-landing.png", "caption": "Figure 1. For staff who are already signed in, the top of the front page shows Open dashboard instead of Sign in."},
+  {"file": "docs/implementation-summaries/screenshots/2026-10-24-b/02-signed-in-closing.png", "caption": "Figure 2. The bottom of the front page welcomes signed-in staff back and links straight to the dashboard."}
+ ]
+}
