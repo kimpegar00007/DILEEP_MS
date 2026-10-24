@@ -1,0 +1,18 @@
+{
+ "date": "2026-10-24",
+ "features": [
+  ["New public front page", "Visiting dileepsys.com while signed out now opens a front page that explains what the system does for NOCFO, NORFO and SFO, instead of going straight to the sign-in form. Staff who are already signed in still go straight to the dashboard", "Visitors and new staff understand what the system is before signing in, and the site looks like an official DOLE service"],
+  ["How a record moves, at a glance", "The page shows the five stages of a grant (Pending, Approved, Implemented, Liquidated, Monitored), the 10-day and 60-day liquidation rule, fieldwork email reminders, and that each office only sees its own province", "Explains the main rules of the system in plain words for new users"],
+  ["Liquidation deadline checker", "Anyone can type a turn-over date and immediately see when liquidation is due for LGU-associated and for other proponents, and how many days are left or overdue", "A quick way to check a deadline without opening a record"],
+  ["Live totals by province", "The page shows the amount released, people reached, group projects and individual grantees, for all provinces or for one province at a time. Only approved and later records are counted, and no names or project details are shown", "Shows the program's reach publicly while keeping beneficiary information private"],
+  ["Quicker sign-in from the front page", "Typing a username in the \"Sign in as\" line at the bottom of the front page opens the sign-in page with the username already filled in, ready for the password. The sign-in page also has an \"About the system\" link back to the front page", "One less step when signing in"],
+  ["Works on phones and tablets", "The front page has its own layout for phones and tablets, and works with animations turned off or without JavaScript", "Field staff can open it on any device"]
+ ],
+ "screenshots": [
+  {"file": "docs/implementation-summaries/screenshots/2026-10-24/01-landing-hero.png", "caption": "Figure 1. The new front page that signed-out visitors now see at dileepsys.com, with the Sign in button at the top right."},
+  {"file": "docs/implementation-summaries/screenshots/2026-10-24/02-landing-stages.png", "caption": "Figure 2. The five stages every grant record goes through, from Pending to Monitored."},
+  {"file": "docs/implementation-summaries/screenshots/2026-10-24/03-landing-deadline.png", "caption": "Figure 3. The liquidation deadline checker: a turn-over date of 3 March 2026 shows both due dates and how overdue they are."},
+  {"file": "docs/implementation-summaries/screenshots/2026-10-24/04-landing-provinces.png", "caption": "Figure 4. Live totals with Siquijor selected (sample test data, not real figures)."},
+  {"file": "docs/implementation-summaries/screenshots/2026-10-24/05-landing-phone.png", "caption": "Figure 5. The front page on a phone, with a full-width Sign in button."}
+ ]
+}

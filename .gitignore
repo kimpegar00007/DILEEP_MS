@@ -25,3 +25,6 @@ yarn-error.log
 /sql-database/
 /migrations/import_production_*.sql
 *.sql.gz
+
+# design-taste-frontend working files
+.taste-skill/

@@ -5,6 +5,11 @@ require_once 'includes/Auth.php';
 require_once 'models/Dashboard.php';
 
 $auth = new Auth();
+// Logged-out visitors get the public landing page instead of the bare login form.
+if (!$auth->isLoggedIn()) {
+    header('Location: landing.php');
+    exit;
+}
 $auth->requireLogin();
 
 // -----------------------------------------------------------------------

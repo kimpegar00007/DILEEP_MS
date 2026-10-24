@@ -5,6 +5,7 @@ require_once 'includes/Auth.php';
 
 $auth = new Auth();
 $error = '';
+$prefillUsername = '';
 
 // Redirect if already logged in
 if ($auth->isLoggedIn()) {
@@ -16,8 +17,11 @@ if ($auth->isLoggedIn()) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $username = $_POST['username'] ?? '';
     $password = $_POST['password'] ?? '';
-    
-    if (empty($username) || empty($password)) {
+
+    if (($_POST['from'] ?? '') === 'landing' && $password === '') {
+        // The landing page's "Sign in as ___" form only hands over the username.
+        $prefillUsername = substr(trim($username), 0, 100);
+    } elseif (empty($username) || empty($password)) {
         $error = 'Please enter both username and password.';
     } elseif ($auth->isLoginThrottled()) {
         $error = 'Too many failed sign-in attempts. Please wait ' . Auth::LOGIN_WINDOW_MINUTES . ' minutes and try again.';
@@ -459,7 +463,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <div class="glass-input-group">
                             <i class="bi bi-person input-icon" aria-hidden="true"></i>
                             <input type="text" class="glass-input" id="username" name="username"
-                                   placeholder="Enter your username" required autofocus
+                                   placeholder="Enter your username" required<?php echo $prefillUsername === '' ? ' autofocus' : ''; ?>
+                                   value="<?php echo htmlspecialchars($prefillUsername); ?>"
                                    autocomplete="username">
                         </div>
                     </div>
@@ -469,7 +474,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <div class="glass-input-group">
                             <i class="bi bi-lock input-icon" aria-hidden="true"></i>
                             <input type="password" class="glass-input" id="password" name="password"
-                                   placeholder="Enter your password" required
+                                   placeholder="Enter your password" required<?php echo $prefillUsername !== '' ? ' autofocus' : ''; ?>
                                    autocomplete="current-password">
                             <button type="button" class="password-toggle" id="passwordToggle" 
                                     aria-label="Toggle password visibility" title="Show password">
@@ -489,6 +494,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
 
             <div class="login-footer">
+                <a href="landing.php" style="color: inherit;">About the system</a> &middot;
                 &copy; 2026 Department of Labor and Employment | m1k0yw0rkz
             </div>
         </div>
