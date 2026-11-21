@@ -436,7 +436,7 @@ $formatDate = static fn(?string $date): string => $date ? date('M d, Y', strtoti
                             <div class="col-12 col-sm-6 col-lg-3">
                                 <label class="form-label" for="reportType">Report Type</label>
                                 <select name="type" id="reportType" class="form-select" required>
-                                    <option value="beneficiaries" <?php echo $reportType === 'beneficiaries' ? 'selected' : ''; ?>>Individual Beneficiaries</option>
+                                    <option value="beneficiaries" <?php echo $reportType === 'beneficiaries' ? 'selected' : ''; ?>>Individuals</option>
                                     <option value="proponents" <?php echo $reportType === 'proponents' ? 'selected' : ''; ?>>Group Proponents</option>
                                     <option value="cqpr" <?php echo $reportType === 'cqpr' ? 'selected' : ''; ?>>CQPR (Consolidated Quarterly)</option>
                                 </select>
@@ -618,7 +618,7 @@ $formatDate = static fn(?string $date): string => $date ? date('M d, Y', strtoti
                         </div>
                         <div class="col-6 col-lg-3 summary-item">
                             <h3><?php echo number_format($summary['beneficiaries']); ?></h3>
-                            <p>Beneficiaries</p>
+                            <p><?php echo $isIndividualReport ? 'Individuals' : 'Beneficiaries'; ?></p>
                         </div>
                         <div class="col-6 col-lg-3 summary-item">
                             <h3><?php echo number_format($summary['female']); ?> / <?php echo number_format($summary['male']); ?></h3>
@@ -646,7 +646,7 @@ $formatDate = static fn(?string $date): string => $date ? date('M d, Y', strtoti
                     <div class="card-header bg-white d-flex flex-wrap justify-content-between align-items-start gap-2">
                         <div>
                             <h5 class="mb-1">
-                                <?php echo $reportType === 'beneficiaries' ? 'Individual Beneficiaries' : 'Group Proponents'; ?> Report
+                                <?php echo $reportType === 'beneficiaries' ? 'Individuals' : 'Group Proponents'; ?> Report
                             </h5>
                             <?php include 'includes/report-applied-filters.php'; ?>
                         </div>
@@ -857,7 +857,7 @@ $formatDate = static fn(?string $date): string => $date ? date('M d, Y', strtoti
             // ---- Exports (and an activity-log entry for each) ----
             var reportMeta = <?php echo json_encode([
                 'type'     => $reportType,
-                'title'    => $reportType === 'beneficiaries' ? 'Beneficiaries Report' : ($reportType === 'proponents' ? 'Proponents Report' : 'CQPR'),
+                'title'    => $reportType === 'beneficiaries' ? 'Individuals Report' : ($reportType === 'proponents' ? 'Proponents Report' : 'CQPR'),
                 'subtitle' => $filterSummaryText,
                 'filename' => $exportFilename,
             ], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>;

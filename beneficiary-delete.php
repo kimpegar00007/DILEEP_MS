@@ -45,14 +45,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $logStmt->execute([
                     $_SESSION['user_id'],
                     $beneficiaryId,
-                    "Deleted beneficiary: " . $beneficiary['first_name'] . ' ' . $beneficiary['last_name'],
+                    "Deleted individual: " . $beneficiary['first_name'] . ' ' . $beneficiary['last_name'],
                     $_SERVER['REMOTE_ADDR'] ?? 'unknown'
                 ]);
                 
                 header('Location: beneficiaries.php?deleted=1');
                 exit;
             } else {
-                $errors[] = 'Failed to delete beneficiary';
+                $errors[] = 'Failed to delete individual';
             }
         } catch (Exception $e) {
             $errors[] = 'Database error: ' . $e->getMessage();
@@ -65,7 +65,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Delete Beneficiary - DOLE DILEEP Monitoring System</title>
+    <title>Delete Individual - DOLE DILEEP Monitoring System</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
     <?php include 'includes/shared-styles.php'; ?>
@@ -125,7 +125,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             <main class="col-md-10 ms-sm-auto px-md-4 py-4" id="mainContent" role="main">
                 <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h2><i class="bi bi-trash"></i> Delete Beneficiary</h2>
+                    <h2><i class="bi bi-trash"></i> Delete Individual</h2>
                     <a href="beneficiaries.php" class="btn btn-secondary">
                         <i class="bi bi-arrow-left"></i> Back to List
                     </a>
@@ -137,7 +137,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <li>This action cannot be undone</li>
                         <li>All associated data will be permanently deleted</li>
                         <li>This deletion will be logged in the activity logs</li>
-                        <li>Only administrators can delete beneficiaries</li>
+                        <li>Only administrators can delete individuals</li>
                     </ul>
                 </div>
 
@@ -154,7 +154,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <?php endif; ?>
 
                 <div class="beneficiary-info">
-                    <h5 class="mb-3"><i class="bi bi-info-circle"></i> Beneficiary Information</h5>
+                    <h5 class="mb-3"><i class="bi bi-info-circle"></i> Individual Information</h5>
                     <div class="info-row">
                         <div class="info-item">
                             <label>Full Name</label>
@@ -201,7 +201,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <div class="confirmation-box">
                             <h5><i class="bi bi-shield-exclamation"></i> Confirm Deletion</h5>
                             <p class="mb-0">
-                                Are you absolutely sure you want to delete this beneficiary record? 
+                                Are you absolutely sure you want to delete this individual record? 
                                 This action is <strong>permanent and irreversible</strong>.
                             </p>
                         </div>
@@ -212,14 +212,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     <input class="form-check-input" type="checkbox" name="confirm_delete" 
                                            id="confirmDelete" value="yes" required>
                                     <label class="form-check-label" for="confirmDelete">
-                                        I understand that deleting this beneficiary record is permanent and cannot be undone
+                                        I understand that deleting this individual record is permanent and cannot be undone
                                     </label>
                                 </div>
                             </div>
 
                             <div class="d-flex gap-2">
                                 <button type="submit" class="btn btn-danger">
-                                    <i class="bi bi-trash"></i> Delete Beneficiary
+                                    <i class="bi bi-trash"></i> Delete Individual
                                 </button>
                                 <a href="beneficiary-view.php?id=<?php echo $beneficiary['id']; ?>" class="btn btn-secondary">
                                     <i class="bi bi-x-circle"></i> Cancel

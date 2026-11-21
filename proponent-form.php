@@ -331,7 +331,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <h2><i class="bi bi-people"></i> <?php echo $isEdit ? 'Edit' : 'Add New'; ?> Proponent</h2>
                     <a href="<?php echo $isBeneficiaryReturn ? 'beneficiary-form.php?restore=1' : 'unified-beneficiaries-proponents.php'; ?>" class="btn btn-secondary">
-                        <i class="bi bi-arrow-left"></i> <?php echo $isBeneficiaryReturn ? 'Back to Beneficiary Form' : 'Back to List'; ?>
+                        <i class="bi bi-arrow-left"></i> <?php echo $isBeneficiaryReturn ? 'Back to Individual Form' : 'Back to List'; ?>
                     </a>
                 </div>
 
@@ -358,9 +358,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div class="alert alert-info d-flex align-items-center gap-2 mb-3">
                     <i class="bi bi-info-circle-fill"></i>
                     <div>
-                        <strong>Detour from Beneficiary form.</strong>
-                        Save this proponent to return automatically and link it to the beneficiary you were creating.
-                        Press Cancel to return without saving — your previous beneficiary entries are preserved.
+                        <strong>Detour from Individual form.</strong>
+                        Save this proponent to return automatically and link it to the individual you were creating.
+                        Press Cancel to return without saving — your previous individual entries are preserved.
                     </div>
                 </div>
                 <?php endif; ?>

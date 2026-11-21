@@ -174,8 +174,8 @@ $pageNum    = min(max(1, (int) ($_GET['page'] ?? 1)), $totalPages);
 $offset     = ($pageNum - 1) * CARDS_PER_PAGE;
 $pageItems  = array_slice($items, $offset, CARDS_PER_PAGE);
 
-$noun       = $isBeneficiaryView ? 'beneficiary' : 'proponent';
-$nounPlural = $isBeneficiaryView ? 'beneficiaries' : 'proponents';
+$noun       = $isBeneficiaryView ? 'individual' : 'proponent';
+$nounPlural = $isBeneficiaryView ? 'individuals' : 'proponents';
 $addUrl     = $isBeneficiaryView ? 'beneficiary-form.php' : 'proponent-form.php';
 ?>
 <!DOCTYPE html>
@@ -183,7 +183,7 @@ $addUrl     = $isBeneficiaryView ? 'beneficiary-form.php' : 'proponent-form.php'
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Beneficiaries & Proponents - DOLE DILEEP Monitoring System</title>
+    <title>Individuals & Proponents - DOLE DILEEP Monitoring System</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
     <?php include 'includes/shared-styles.php'; ?>
@@ -498,15 +498,15 @@ $addUrl     = $isBeneficiaryView ? 'beneficiary-form.php' : 'proponent-form.php'
                 <!-- Unified Header -->
                 <div class="unified-header d-flex flex-wrap justify-content-between align-items-start gap-3">
                     <div class="flex-grow-1" style="min-width: 0;">
-                        <h1 class="mb-2">Beneficiaries & Proponents</h1>
-                        <p class="mb-0 text-muted">Manage individual beneficiaries and group proponents in one place</p>
+                        <h1 class="mb-2">Individuals & Proponents</h1>
+                        <p class="mb-0 text-muted">Manage individuals and group proponents in one place</p>
                     </div>
                     <div class="header-actions d-flex flex-column align-items-stretch align-items-sm-end gap-2">
                         <div class="d-flex flex-wrap align-items-center gap-2">
                             <nav class="view-toggle" aria-label="Record type">
                                 <a href="<?php echo htmlspecialchars($viewUrls['beneficiaries']); ?>"
                                    <?php echo $isBeneficiaryView ? 'aria-current="page"' : ''; ?>>
-                                    <i class="bi bi-person" aria-hidden="true"></i> Beneficiaries
+                                    <i class="bi bi-person" aria-hidden="true"></i> Individuals
                                 </a>
                                 <a href="<?php echo htmlspecialchars($viewUrls['proponents']); ?>"
                                    <?php echo !$isBeneficiaryView ? 'aria-current="page"' : ''; ?>>
@@ -960,7 +960,7 @@ $addUrl     = $isBeneficiaryView ? 'beneficiary-form.php' : 'proponent-form.php'
 
             function showDetailModal(type, id) {
                 const isBeneficiary = type === 'beneficiary';
-                title.textContent = isBeneficiary ? 'Beneficiary details' : 'Proponent details';
+                title.textContent = isBeneficiary ? 'Individual details' : 'Proponent details';
                 viewBtn.href = (isBeneficiary ? 'beneficiary-view.php' : 'proponent-view.php') + '?id=' + encodeURIComponent(id);
                 if (editBtn) editBtn.href = (isBeneficiary ? 'beneficiary-form.php' : 'proponent-form.php') + '?id=' + encodeURIComponent(id);
                 content.innerHTML = '<div class="text-center py-4"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading…</span></div></div>';

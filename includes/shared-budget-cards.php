@@ -1,6 +1,6 @@
 <?php
 // includes/shared-budget-cards.php
-// HTML for the Proponent and Beneficiary cards inside shared-budget-form.php.
+// HTML for the Proponent and Individual cards inside shared-budget-form.php.
 // Every field of proponent-form.php and beneficiary-form.php is here, with names
 // prefixed proponents[<idx>][...] / beneficiaries[<idx>][...] so one form can hold many.
 // "__IDX__" / "__KEY__" are placeholders the page's JavaScript replaces when it clones a card.
@@ -332,8 +332,8 @@ function sb_render_beneficiary_card(string $idx, array $v, string $province): st
 <div class="card sb-card sb-beneficiary mb-3" data-kind="beneficiary" data-idx="<?php echo sb_h($idx); ?>"
      data-saved-muni="<?php echo sb_h($v['municipality'] ?? ''); ?>" data-saved-brgy="<?php echo sb_h($v['barangay'] ?? ''); ?>">
     <div class="card-header d-flex align-items-center gap-2 flex-wrap">
-        <span class="badge bg-primary"><i class="bi bi-person"></i> Beneficiary</span>
-        <strong class="sb-card-title flex-grow-1"><?php echo $title !== '' ? sb_h($title) : 'New beneficiary'; ?></strong>
+        <span class="badge bg-primary"><i class="bi bi-person"></i> Individual</span>
+        <strong class="sb-card-title flex-grow-1"><?php echo $title !== '' ? sb_h($title) : 'New individual'; ?></strong>
         <span class="badge bg-light text-dark border sb-card-share">&#8369;0.00</span>
         <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="collapse" data-bs-target="#sb-body-b<?php echo sb_h($idx); ?>" aria-expanded="true">
             <i class="bi bi-chevron-expand"></i> Show / hide
@@ -400,7 +400,7 @@ function sb_render_beneficiary_card(string $idx, array $v, string $province): st
                 <div class="col-md-4 mb-3">
                     <label class="form-label">Share of the budget (&#8369;) <span class="text-danger">*</span></label>
                     <input type="number" name="<?php echo $n; ?>[amount_worth]" class="form-control share-input" step="0.01" min="0.01" required value="<?php echo sb_h($v['amount_worth'] ?? ''); ?>">
-                    <small class="text-muted">Saved as this beneficiary's amount.</small>
+                    <small class="text-muted">Saved as this individual's amount.</small>
                 </div>
                 <div class="col-md-4 mb-3">
                     <label class="form-label">Source of Funds</label>

@@ -63,7 +63,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <div class="alert alert-warning">
                             <strong>This removes only the budget grouping.</strong>
                             The <?php echo (int) $budget['proponent_count']; ?> proponent(s) and
-                            <?php echo (int) $budget['beneficiary_count']; ?> beneficiary(ies) in it are <strong>kept</strong> as ordinary records
+                            <?php echo (int) $budget['beneficiary_count']; ?> individual(s) in it are <strong>kept</strong> as ordinary records
                             with their shares as their own amounts, so no money disappears from the totals.
                         </div>
                         <dl class="row mb-4">

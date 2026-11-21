@@ -9,7 +9,7 @@
 1. [Introduction](#1-introduction)
 2. [Getting Started](#2-getting-started)
 3. [Dashboard Overview](#3-dashboard-overview)
-4. [Managing Beneficiaries](#4-managing-beneficiaries)
+4. [Managing Individuals](#4-managing-individuals)
 5. [Managing Proponents](#5-managing-proponents)
 6. [Map Visualization](#6-map-visualization)
 7. [Generating Reports](#7-generating-reports)
@@ -23,10 +23,10 @@
 ## 1. Introduction
 
 ### 1.1 Purpose
-The DOLE DILP (Department of Labor and Employment - Integrated Livelihood Program) Monitoring System is designed to help government offices efficiently track and monitor livelihood program beneficiaries and proponents across Negros Occidental.
+The DOLE DILP (Department of Labor and Employment - Integrated Livelihood Program) Monitoring System is designed to help government offices efficiently track and monitor livelihood program individuals and proponents across Negros Occidental.
 
 ### 1.2 Key Features
-- Track individual beneficiaries and group proponents
+- Track individuals and group proponents
 - Interactive map visualization of project locations
 - Automated liquidation deadline tracking
 - Comprehensive reporting capabilities
@@ -88,7 +88,7 @@ The dashboard is your home screen and provides a comprehensive overview of the D
 **Top Row Statistics:**
 
 1. **Total Beneficiaries**
-   - Shows total number of individual beneficiaries
+   - Shows total number of individuals
    - Breakdown by gender (Male/Female)
    
 2. **Total Proponents**
@@ -105,7 +105,7 @@ The dashboard is your home screen and provides a comprehensive overview of the D
 
 ### 3.2 Status Overview Cards
 
-**Individual Beneficiaries Status:**
+**Individuals Status:**
 - **Pending**: Awaiting approval
 - **Approved**: Proposal approved
 - **Implemented**: Project turned over
@@ -128,22 +128,22 @@ The dashboard is your home screen and provides a comprehensive overview of the D
 
 ### 3.4 Interactive Map
 - Displays all approved and implemented projects
-- **Blue markers**: Individual beneficiaries
+- **Blue markers**: Individuals
 - **Green markers**: Group proponents
 - Click any marker to view project details
 - Map centered on Negros Occidental
 
 ---
 
-## 4. Managing Beneficiaries
+## 4. Managing Individuals
 
-Individual beneficiaries are single recipients of the livelihood program.
+Individuals are single recipients of the livelihood program.
 
-### 4.1 Viewing Beneficiaries List
+### 4.1 Viewing Individuals List
 
 **Navigation:**
-1. Click **"Beneficiaries"** in the left sidebar
-2. You'll see a table of all beneficiaries
+1. Click **"Individuals"** in the left sidebar
+2. You'll see a table of all individuals
 
 **Table Columns:**
 - ID
@@ -155,7 +155,7 @@ Individual beneficiaries are single recipients of the livelihood program.
 - Status
 - Actions (View/Edit/Delete buttons)
 
-### 4.2 Filtering Beneficiaries
+### 4.2 Filtering Individuals
 
 Use the filter form to narrow results:
 
@@ -172,10 +172,10 @@ Use the filter form to narrow results:
 - Use pagination at bottom to navigate pages
 - Adjust "Show X entries" to change items per page
 
-### 4.3 Adding a New Beneficiary
+### 4.3 Adding a New Individual
 
 **Steps:**
-1. Click **"Add New Beneficiary"** button (top-right)
+1. Click **"Add New Individual"** button (top-right)
 2. Fill in the form sections:
 
 **Personal Information:**
@@ -211,25 +211,25 @@ Use the filter form to narrow results:
 **Status:**
 - Select current status: Pending/Approved/Implemented/Monitored
 
-3. Click **"Save Beneficiary"**
+3. Click **"Save Individual"**
 
 **Tips:**
 - Fields marked with * are required
 - Dates should be in YYYY-MM-DD format
 - Coordinates can be obtained from Google Maps
 
-### 4.4 Editing a Beneficiary
+### 4.4 Editing an Individual
 
 **Steps:**
-1. Go to Beneficiaries list
-2. Find the beneficiary
+1. Go to Individuals list
+2. Find the individual
 3. Click the **pencil icon** (Edit button)
 4. Update the information
-5. Click **"Update Beneficiary"**
+5. Click **"Update Individual"**
 
 **Note:** All changes are logged in the activity log with your user ID and timestamp.
 
-### 4.5 Viewing Beneficiary Details
+### 4.5 Viewing Individual Details
 
 **Steps:**
 1. Click the **eye icon** (View button)
@@ -241,14 +241,14 @@ Use the filter form to narrow results:
    - Current status
    - Map location (if coordinates provided)
 
-### 4.6 Deleting a Beneficiary
+### 4.6 Deleting an Individual
 
 **⚠️ Admin Only Feature**
 
 **Steps:**
 1. Click the **trash icon** (Delete button)
 2. Confirm deletion in the popup
-3. Beneficiary will be permanently removed
+3. Individual will be permanently removed
 
 **Warning:** This action cannot be undone. Consider updating status instead of deleting.
 
@@ -259,13 +259,13 @@ Use the filter form to narrow results:
 2. Right-click on the location
 3. Click on the coordinates shown
 4. Copy latitude and longitude
-5. Paste into beneficiary form
+5. Paste into individual form
 
 **Method 2: GPS Device**
 1. Use GPS-enabled device
 2. Record coordinates at project site
 3. Convert to decimal degrees if necessary
-4. Enter in beneficiary form
+4. Enter in individual form
 
 ---
 
@@ -425,7 +425,7 @@ Group proponents are organizations or associations receiving livelihood assistan
 - Zoom and pan capabilities
 
 **Marker Colors:**
-- **Blue**: Individual Beneficiaries
+- **Blue**: Individuals
 - **Green**: Group Proponents
 
 ### 6.2 Using the Map
@@ -453,7 +453,7 @@ Group proponents are organizations or associations receiving livelihood assistan
 - Must have latitude and longitude coordinates
 
 **Steps:**
-1. When creating/editing beneficiary or proponent
+1. When creating/editing individual or proponent
 2. Enter coordinates in Latitude and Longitude fields
 3. Save the record
 4. Project will appear on map automatically
@@ -465,8 +465,8 @@ Group proponents are organizations or associations receiving livelihood assistan
 ### 7.1 Types of Reports
 
 **Available Reports:**
-1. **Beneficiaries Summary**
-   - All individual beneficiaries
+1. **Individuals Summary**
+   - All individuals
    - Filter by date, location, status
 
 2. **Proponents Summary**
@@ -677,7 +677,7 @@ Activity logs track all user actions for:
 
 ### 10.2 Workflow Recommendations
 
-**For Beneficiaries:**
+**For Individuals:**
 1. Create record when proposal received
 2. Set status to "Pending"
 3. Update dates as process advances
@@ -754,11 +754,11 @@ Activity logs track all user actions for:
 ### Q1: I forgot my password. What should I do?
 **A:** Contact your system administrator to reset your password. Only administrators can reset passwords.
 
-### Q2: Can I delete a beneficiary I created by mistake?
+### Q2: Can I delete an individual I created by mistake?
 **A:** Only administrators can delete records. Encoders and Users cannot delete. Contact your administrator, or edit the record to mark it as inactive.
 
 ### Q3: What if I enter the wrong amount?
-**A:** Simply edit the beneficiary or proponent record and update the amount field. All changes are logged.
+**A:** Simply edit the individual or proponent record and update the amount field. All changes are logged.
 
 ### Q4: How do I get coordinates for a project location?
 **A:** Use Google Maps: Right-click on the location → Click coordinates → Copy and paste into the form.
@@ -784,8 +784,8 @@ Activity logs track all user actions for:
 ### Q11: How do I filter for LGU proponents only?
 **A:** In Proponents page, use the "Proponent Type" filter and select "LGU-associated", then click Filter.
 
-### Q12: Can I print a beneficiary's details?
-**A:** Yes, open the beneficiary details view and use your browser's print function (Ctrl+P or Cmd+P).
+### Q12: Can I print an individual's details?
+**A:** Yes, open the individual details view and use your browser's print function (Ctrl+P or Cmd+P).
 
 ### Q13: What should I do if the system is running slow?
 **A:** Use filters to limit results, close unnecessary browser tabs, clear browser cache, or contact administrator.

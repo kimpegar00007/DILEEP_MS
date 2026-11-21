@@ -27,7 +27,7 @@ if (!$proponent) {
 $errors = [];
 $success = '';
 
-// Beneficiaries linked to this proponent (beneficiaries.proponent_id has no FK,
+// Individuals linked to this proponent (beneficiaries.proponent_id has no FK,
 // so they are unlinked explicitly when the proponent is deleted).
 $stmt = $db->prepare("SELECT COUNT(*) FROM beneficiaries WHERE proponent_id = ?");
 $stmt->execute([$proponentId]);
@@ -55,7 +55,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $_SESSION['user_id'],
                     $proponentId,
                     "Deleted proponent: " . $proponent['proponent_name']
-                        . ($linkedBeneficiaryCount ? " (unlinked {$linkedBeneficiaryCount} beneficiaries)" : ''),
+                        . ($linkedBeneficiaryCount ? " (unlinked {$linkedBeneficiaryCount} individuals)" : ''),
                     $_SERVER['REMOTE_ADDR'] ?? 'unknown'
                 ]);
                 $db->commit();

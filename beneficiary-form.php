@@ -20,7 +20,7 @@ $sessionProvince = $auth->getProvince();
 $isSuperAdmin    = $auth->isSuperAdmin();
 $isCrossProvince = $auth->isCrossProvince();
 
-// Beneficiary and worker type options (updated May 2026)
+// Individual and worker type options (updated May 2026)
 $beneficiaryTypeOptions = [
     'Marginalized and Landless Farmers',
     'Marginalized Fisherfolk',
@@ -115,7 +115,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!$linkedProponent) {
             $errors[] = 'The selected proponent was not found. Search and select it again.';
         } elseif ($beneficiaryProvince && $linkedProponent['province'] !== $beneficiaryProvince) {
-            $errors[] = 'The selected proponent belongs to ' . $linkedProponent['province'] . ', but this beneficiary is in ' . $beneficiaryProvince . '. Pick a proponent from the same province.';
+            $errors[] = 'The selected proponent belongs to ' . $linkedProponent['province'] . ', but this individual is in ' . $beneficiaryProvince . '. Pick a proponent from the same province.';
         }
     }
 
@@ -147,17 +147,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $data['last_name'], $data['first_name'], $data['project_name'], $excludeId
         );
         if ($duplicate) {
-            $errors[] = 'Duplicate detected: a beneficiary with the same full name and project name already exists in this province (Record #' . $duplicate['id'] . ' — ' . htmlspecialchars($duplicate['first_name'] . ' ' . $duplicate['last_name']) . ', ' . htmlspecialchars($duplicate['project_name']) . '). Please verify before saving.';
+            $errors[] = 'Duplicate detected: an individual with the same full name and project name already exists in this province (Record #' . $duplicate['id'] . ' — ' . htmlspecialchars($duplicate['first_name'] . ' ' . $duplicate['last_name']) . ', ' . htmlspecialchars($duplicate['project_name']) . '). Please verify before saving.';
         }
     }
 
     if (empty($errors)) {
         if ($isEdit) {
             if ($beneficiaryModel->update($_GET['id'], $data)) {
-                $success = 'Beneficiary updated successfully!';
+                $success = 'Individual updated successfully!';
                 $beneficiary = $beneficiaryModel->findById($_GET['id']);
             } else {
-                $errors[] = 'Failed to update beneficiary';
+                $errors[] = 'Failed to update individual';
             }
         } else {
             $id = $beneficiaryModel->create($data);
@@ -165,8 +165,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 header('Location: beneficiaries.php?success=created');
                 exit;
             } else {
-                $errors[] = 'Failed to create beneficiary. Please check the error logs or contact the administrator.';
-                error_log("Beneficiary creation failed for user: " . ($_SESSION['user_id'] ?? 'unknown') . " with data: " . json_encode($data));
+                $errors[] = 'Failed to create individual. Please check the error logs or contact the administrator.';
+                error_log("Individual creation failed for user: " . ($_SESSION['user_id'] ?? 'unknown') . " with data: " . json_encode($data));
             }
         }
     }
@@ -194,7 +194,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo $isEdit ? 'Edit' : 'Add'; ?> Beneficiary - DOLE DILEEP Monitoring System</title>
+    <title><?php echo $isEdit ? 'Edit' : 'Add'; ?> Individual - DOLE DILEEP Monitoring System</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
     <?php include 'includes/shared-styles.php'; ?>
@@ -225,7 +225,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             <main class="col-md-10 ms-sm-auto px-md-4 py-4" id="mainContent" role="main">
                 <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h2><i class="bi bi-person"></i> <?php echo $isEdit ? 'Edit' : 'Add New'; ?> Beneficiary</h2>
+                    <h2><i class="bi bi-person"></i> <?php echo $isEdit ? 'Edit' : 'Add New'; ?> Individual</h2>
                     <a href="unified-beneficiaries-proponents.php" class="btn btn-secondary">
                         <i class="bi bi-arrow-left"></i> Back to List
                     </a>
@@ -565,7 +565,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                             <div class="d-flex gap-2 flex-wrap">
                                 <button type="submit" class="btn btn-primary">
-                                    <i class="bi bi-save"></i> <?php echo $isEdit ? 'Update' : 'Save'; ?> Beneficiary
+                                    <i class="bi bi-save"></i> <?php echo $isEdit ? 'Update' : 'Save'; ?> Individual
                                 </button>
                                 <button type="button" id="btn-clear-form" class="btn btn-outline-warning">
                                     <i class="bi bi-eraser"></i> Clear Form
@@ -746,7 +746,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // For cross-province roles, the DILPLocation lib already wires auto-geocode via barangay change.
         // For locked-province, we wire it inside _loadBarangays above.
 
-        // ── Beneficiary-form draft snapshot helpers (used by the proponent
+        // ── Individual-form draft snapshot helpers (used by the proponent
         //    "create new" detour). Snapshots every form field into
         //    sessionStorage so the user returns to a fully-restored form.
         const DRAFT_KEY = 'dilp_beneficiary_draft';

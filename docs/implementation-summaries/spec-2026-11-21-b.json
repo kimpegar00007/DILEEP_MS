@@ -1,0 +1,34 @@
+{
+ "date": "2026-11-21",
+ "fixes": [
+  [
+   "Beneficiary is now called Individual everywhere",
+   "The records of single grantees are now called Individual (or Individuals) in the side menu, page titles, buttons, forms, lists, filters, reports, dashboard, notifications, messages, the Settings import and export area, the Activity Logs and the user manual. Older Activity Log entries show the new name too. One consistent name for the same thing, so staff are no longer switching between two words",
+   "✔ Fixed"
+  ],
+  [
+   "Group wording kept as it was",
+   "Words about the people inside a group project, such as Total, Male and Female Beneficiaries and DOLE's Type of Beneficiaries list, and the CQPR column headings are unchanged. Official terms and the CQPR format stay as DOLE expects",
+   "✔ Fixed"
+  ],
+  [
+   "Web addresses and saved data unchanged",
+   "Only the words on screen changed. Page addresses, saved records and existing links keep working exactly as before. No broken bookmarks and nothing to move or re-enter",
+   "✔ Fixed"
+  ]
+ ],
+ "screenshots": [
+  {
+   "file": "docs/implementation-summaries/screenshots/2026-11-21-b/01-individuals-and-proponents-list.png",
+   "caption": "Figure 1. The side menu, page title, filters and cards now say Individuals instead of Beneficiaries."
+  },
+  {
+   "file": "docs/implementation-summaries/screenshots/2026-11-21-b/02-add-individual-form.png",
+   "caption": "Figure 2. The form for adding a single grantee is now titled Add New Individual."
+  },
+  {
+   "file": "docs/implementation-summaries/screenshots/2026-11-21-b/03-reports-individuals.png",
+   "caption": "Figure 3. In Reports, the report type and its summary now read Individuals."
+  }
+ ]
+}

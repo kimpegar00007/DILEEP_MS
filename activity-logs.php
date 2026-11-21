@@ -9,6 +9,17 @@ $auth->requireRole('admin');
 
 $db = Database::getInstance()->getConnection();
 
+/**
+ * The people records are called "Individuals" on screen. The table keeps its name and older
+ * log rows were written with the old wording, so rename the word only when displaying.
+ */
+function logTerm(string $text): string {
+    $text = preg_replace('/\b(?:Individual )?Beneficiaries\b/', 'Individuals', $text);
+    $text = preg_replace('/\b(?:Individual )?Beneficiary\b/', 'Individual', $text);
+    $text = preg_replace('/\b(?:individual )?beneficiaries\b/', 'individuals', $text);
+    return preg_replace('/\b(?:individual )?beneficiary\b/', 'individual', $text);
+}
+
 $filters = [
     'action' => $_GET['action'] ?? '',
     'table_name' => $_GET['table_name'] ?? '',
@@ -144,7 +155,7 @@ $users = $stmt->fetchAll();
                                 <?php foreach ($tables as $table): ?>
                                 <option value="<?php echo htmlspecialchars($table); ?>" 
                                     <?php echo $filters['table_name'] === $table ? 'selected' : ''; ?>>
-                                    <?php echo ucfirst($table); ?>
+                                    <?php echo htmlspecialchars(ucfirst(logTerm($table))); ?>
                                 </option>
                                 <?php endforeach; ?>
                             </select>
@@ -230,13 +241,13 @@ $users = $stmt->fetchAll();
                                             </span>
                                         </td>
                                         <td>
-                                            <code><?php echo htmlspecialchars($log['table_name']); ?></code>
+                                            <code><?php echo htmlspecialchars(logTerm($log['table_name'])); ?></code>
                                         </td>
                                         <td>
                                             <?php echo $log['record_id']; ?>
                                         </td>
                                         <td class="log-description">
-                                            <?php echo htmlspecialchars($log['description'] ?: '-'); ?>
+                                            <?php echo htmlspecialchars(logTerm($log['description'] ?: '-')); ?>
                                         </td>
                                         <td class="ip-address">
                                             <?php echo htmlspecialchars($log['ip_address'] ?: 'Unknown'); ?>

@@ -1,6 +1,6 @@
 <?php
 // includes/shared-budget-notice.php
-// Non-blocking banner for a Proponent / Beneficiary that belongs to a shared budget.
+// Non-blocking banner for a Proponent / Individual that belongs to a shared budget.
 // Include it on a view or edit page after setting:
 //   $sbNoticeBudgetId  int|null  the record's shared_budget_id
 //   $sbNoticeAmount    float     the record's own amount (its share)

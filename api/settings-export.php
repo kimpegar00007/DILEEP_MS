@@ -112,7 +112,7 @@ try {
         'export',
         $table,
         0,
-        'Exported ' . count($rows) . ' records from ' . $table . ' as CSV' . ($dateFrom && $dateTo ? ' (' . $dateFrom . ' to ' . $dateTo . ')' : ''),
+        'Exported ' . count($rows) . ' records from ' . ($table === 'beneficiaries' ? 'individuals' : $table) . ' as CSV' . ($dateFrom && $dateTo ? ' (' . $dateFrom . ' to ' . $dateTo . ')' : ''),
         $_SERVER['REMOTE_ADDR'] ?? 'unknown'
     ]);
 

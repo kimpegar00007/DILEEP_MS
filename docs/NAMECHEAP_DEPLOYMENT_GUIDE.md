@@ -311,7 +311,7 @@ try {
 
 ### Step 3: Test Core Functionality
 
-- [ ] Create a test beneficiary
+- [ ] Create a test individual
 - [ ] Create a test proponent
 - [ ] Verify liquidation deadline calculation (if triggers work)
 - [ ] Check activity logs are recording
@@ -680,7 +680,7 @@ Use this checklist to ensure complete deployment:
 - [ ] Database connection tested
 - [ ] Login successful with admin/admin123
 - [ ] Dashboard loads correctly
-- [ ] Test beneficiary created
+- [ ] Test individual created
 - [ ] Test proponent created
 - [ ] Activity logs recording
 

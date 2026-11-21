@@ -157,30 +157,30 @@ Password: admin123
 
 ### 6.1 Dashboard
 The dashboard provides:
-- Statistics overview (beneficiaries, proponents, amounts)
+- Statistics overview (individuals, proponents, amounts)
 - Interactive map of Negros Occidental showing project locations
 - Overdue liquidation alerts
 - Status distribution charts
 
-### 6.2 Managing Beneficiaries (Individual Recipients)
+### 6.2 Managing Individuals (Individual Recipients)
 
-#### Adding a Beneficiary
-1. Navigate to **Beneficiaries** from the sidebar
-2. Click **"Add New Beneficiary"** button
+#### Adding an Individual
+1. Navigate to **Individuals** from the sidebar
+2. Click **"Add New Individual"** button
 3. Fill in required fields:
    - Personal information (name, gender, location)
    - Project details (name, type of worker, amount)
    - Process dates (as they occur)
-4. Click **"Save Beneficiary"**
+4. Click **"Save Individual"**
 
-#### Editing a Beneficiary
-1. Go to **Beneficiaries** page
-2. Click the **pencil icon** (Edit) next to the beneficiary
+#### Editing an Individual
+1. Go to **Individuals** page
+2. Click the **pencil icon** (Edit) next to the individual
 3. Update the information
-4. Click **"Update Beneficiary"**
+4. Click **"Update Individual"**
 
 #### Viewing Details
-1. Click the **eye icon** (View) to see complete beneficiary information
+1. Click the **eye icon** (View) to see complete individual information
 2. View all dates, findings, and status history
 
 #### Filtering and Searching
@@ -209,7 +209,7 @@ The dashboard provides:
 ### 6.4 Map Visualization
 
 #### Understanding Map Markers
-- **Blue markers**: Individual Beneficiaries
+- **Blue markers**: Individuals
 - **Green markers**: Group Proponents
 - Click any marker to view:
   - Name
@@ -231,7 +231,7 @@ When creating/editing records:
 #### Generating Reports
 1. Navigate to **Reports**
 2. Select report type:
-   - Beneficiaries Summary
+   - Individuals Summary
    - Proponents Summary
    - Financial Summary
    - Status Distribution
@@ -303,7 +303,7 @@ When creating/editing records:
 
 ### Current Features
 ✅ User authentication with role-based access
-✅ Individual beneficiary management (CRUD)
+✅ Individual management (CRUD)
 ✅ Group proponent management (CRUD)
 ✅ Interactive map visualization
 ✅ Automatic liquidation deadline calculation
@@ -315,7 +315,7 @@ When creating/editing records:
 
 ### Data Tracked
 
-#### For Individual Beneficiaries:
+#### For Individuals:
 - Personal information
 - Project details
 - Amount worth

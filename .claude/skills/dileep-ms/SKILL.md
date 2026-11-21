@@ -8,7 +8,12 @@ description: Project knowledge for DILEEP_MS, the DOLE DILEEP/DILP Monitoring & 
 Web app that encodes and monitors DOLE's Integrated Livelihood & Emergency Employment Program
 (DILEEP, older name DILP) grants. Two record types:
 
-- **Beneficiaries** (`beneficiaries`): individual grantees ("type I"), linked to a proponent.
+- **Individuals** (`beneficiaries` table, `Beneficiary` model, `beneficiary-*.php` pages): individual grantees
+  ("type I"), linked to a proponent. **Naming rule (since 2026-11-21):** everything users see says "Individual(s)"
+  (menus, headings, buttons, messages, reports, exports, docs, activity log text) while table, class, file and URL
+  names keep "beneficiary". The word "Beneficiaries" stays only for the people inside a group project (Total / Male /
+  Female Beneficiaries, Full Name(s) of Beneficiaries) and DOLE's "Type of Beneficiaries" classification, and in the
+  CQPR template column headers.
 - **Proponents** (`proponents`): group projects ("type G": LGUs, associations, ACPs), with long
   date pipelines, cheque/OR data, liquidation deadlines, associations and "returns".
 
@@ -130,7 +135,7 @@ Rules every data access must follow:
 - `proponents.beneficiary_full_name` stores a **JSON array** of names (legacy rows hold CSV);
   read it through `normalizeBeneficiaryNames()` in `proponent-form.php`. The count must equal
   `total_beneficiaries`, and male + female must not exceed the total.
-- Beneficiaries **must link a proponent** (`proponent_id`, nullable FK, required by the form).
+- Individuals **must link a proponent** (`proponent_id`, nullable FK, required by the form).
   The "Create new proponent" detour snapshots the beneficiary form into sessionStorage, opens
   `proponent-form.php?return=beneficiary-form`, then comes back with `?restore=1&link_proponent_id=…`.
 - **Duplicate guards**: beneficiary = same first + last name + project name (case/trim-insensitive,

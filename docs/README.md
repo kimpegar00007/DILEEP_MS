@@ -1,12 +1,12 @@
 # DOLE DILP Monitoring and Encoding System
 
-A comprehensive web-based system for monitoring and tracking the Department of Labor and Employment's Integrated Livelihood Program (DILP) beneficiaries and proponents in Negros Occidental, Philippines.
+A comprehensive web-based system for monitoring and tracking the Department of Labor and Employment's Integrated Livelihood Program (DILP) individuals and proponents in Negros Occidental, Philippines.
 
 ## Overview
 
-This system enables government offices to efficiently record, track, and monitor information about both individual beneficiaries and group proponents of the DILP program, with features including:
+This system enables government offices to efficiently record, track, and monitor information about both individuals and group proponents of the DILP program, with features including:
 
-- Individual beneficiary management
+- Individual management
 - Group proponent tracking (LGU and Non-LGU associated)
 - Interactive map visualization of approved projects
 - Automated liquidation deadline calculation
@@ -21,7 +21,7 @@ This system enables government offices to efficiently record, track, and monitor
 
 ## Features
 
-### Individual Beneficiaries Module
+### Individuals Module
 - Full CRUD operations
 - Personal information tracking
 - Project details management
@@ -48,7 +48,7 @@ This system enables government offices to efficiently record, track, and monitor
 - Customizable date range reports
 - Multiple export formats (PDF, Excel)
 - Financial summaries
-- Beneficiary demographics
+- Individual demographics
 
 ### User Management
 - Three role levels: Admin, Encoder, User
@@ -59,7 +59,7 @@ This system enables government offices to efficiently record, track, and monitor
 ## Map Visualization
 
 The system features an interactive map showing:
-- **Blue Markers**: Individual beneficiaries
+- **Blue Markers**: Individuals
 - **Green Markers**: Group proponents
 - Click markers to view project details
 - Automatic filtering by status (approved, implemented, monitored)
@@ -69,12 +69,12 @@ The system features an interactive map showing:
 | Role | Permissions |
 |------|-------------|
 | **Admin** | Full system access, user management, all CRUD operations, reports |
-| **Encoder** | Create, read, update beneficiaries and proponents, view reports |
+| **Encoder** | Create, read, update individuals and proponents, view reports |
 | **User** | View-only access for monitoring and reporting |
 
 ## Data Tracked
 
-### Beneficiaries (Individuals)
+### Individuals
 - Personal info (name, gender, location, contact)
 - Project details and type of worker
 - Amount worth

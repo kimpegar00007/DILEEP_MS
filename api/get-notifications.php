@@ -161,7 +161,7 @@ try {
     );
 
     // ---------------------------------------------------------
-    // Beneficiary monitoring: due 30 days after turn-over, until a monitoring date is
+    // Individual monitoring: due 30 days after turn-over, until a monitoring date is
     // entered or the record is marked monitored.
     // ---------------------------------------------------------
     $benefName = "TRIM(CONCAT(COALESCE(first_name, ''), ' ', COALESCE(last_name, '')))";
@@ -180,7 +180,7 @@ try {
             return [
                 'id' => 'upcoming_monitoring_beneficiary_' . $r['id'], 'type' => 'upcoming_monitoring', 'category' => 'monitoring',
                 'urgency' => 'upcoming', 'severity' => 'info',
-                'title' => 'Upcoming Monitoring (Beneficiary)',
+                'title' => 'Upcoming Monitoring (Individual)',
                 'subject' => $r['name'], 'project' => $r['project_name'], 'province' => $r['province'],
                 'message' => $r['name'] . ' - Monitoring due soon',
                 'details' => 'Expected: ' . $fmt($r['monitoring_due_date']) . ' (' . $days($n) . ' remaining)',
@@ -191,7 +191,7 @@ try {
                 'timestamp' => strtotime($r['monitoring_due_date']),
             ];
         },
-        25, 'Upcoming beneficiary monitoring'
+        25, 'Upcoming individual monitoring'
     );
 
     $run(
@@ -207,7 +207,7 @@ try {
             return [
                 'id' => 'overdue_monitoring_beneficiary_' . $r['id'], 'type' => 'monitoring', 'category' => 'monitoring',
                 'urgency' => 'overdue', 'severity' => 'warning',
-                'title' => 'Overdue Monitoring (Beneficiary)',
+                'title' => 'Overdue Monitoring (Individual)',
                 'subject' => $r['name'], 'project' => $r['project_name'], 'province' => $r['province'],
                 'message' => $r['name'] . ' - Monitoring overdue',
                 'details' => 'Expected: ' . $fmt($r['monitoring_due_date']) . ' (' . $days($n) . ' overdue)',
@@ -218,7 +218,7 @@ try {
                 'timestamp' => strtotime($r['monitoring_due_date']),
             ];
         },
-        25, 'Overdue beneficiary monitoring'
+        25, 'Overdue individual monitoring'
     );
 
     // ---------------------------------------------------------

@@ -72,7 +72,7 @@ function sbv_status_badge(string $s): string {
                         The shares add up to &#8369;<?php echo number_format($budget['allocated'], 2); ?> but the approved total is
                         &#8369;<?php echo number_format($budget['total_budget'], 2); ?>
                         (<?php echo $budget['difference'] > 0 ? '&#8369;' . number_format($budget['difference'], 2) . ' not yet assigned' : '&#8369;' . number_format(-$budget['difference'], 2) . ' over'; ?>).
-                        This usually happens when an amount is edited in a Proponent or Beneficiary form<?php echo $canWrite ? ' &mdash; use Edit to rebalance the shares' : ''; ?>.
+                        This usually happens when an amount is edited in a Proponent or Individual form<?php echo $canWrite ? ' &mdash; use Edit to rebalance the shares' : ''; ?>.
                     </div>
                 </div>
                 <?php endif; ?>
@@ -121,11 +121,11 @@ function sbv_status_badge(string $s): string {
                 </div>
 
                 <div class="card mb-4">
-                    <div class="card-header"><strong><i class="bi bi-people"></i> Beneficiaries (<?php echo count($beneficiaries); ?>)</strong></div>
+                    <div class="card-header"><strong><i class="bi bi-people"></i> Individuals (<?php echo count($beneficiaries); ?>)</strong></div>
                     <div class="table-responsive">
                         <table class="table table-hover align-middle mb-0">
                             <thead class="table-light"><tr>
-                                <th>Beneficiary</th><th>Project</th><th>Linked proponent</th><th>Status</th><th class="text-end">Share</th><th></th>
+                                <th>Individual</th><th>Project</th><th>Linked proponent</th><th>Status</th><th class="text-end">Share</th><th></th>
                             </tr></thead>
                             <tbody>
                                 <?php foreach ($beneficiaries as $b): ?>

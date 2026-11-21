@@ -23,7 +23,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 $formats = ['pdf' => 'PDF', 'excel' => 'Excel', 'csv' => 'CSV', 'print' => 'Print'];
-$reports = ['beneficiaries' => 'Individual Beneficiaries', 'proponents' => 'Group Proponents', 'cqpr' => 'CQPR'];
+$reports = ['beneficiaries' => 'Individuals', 'proponents' => 'Group Proponents', 'cqpr' => 'CQPR'];
 
 $format = is_string($_POST['format'] ?? null) ? $_POST['format'] : '';
 $report = is_string($_POST['report'] ?? null) ? $_POST['report'] : '';

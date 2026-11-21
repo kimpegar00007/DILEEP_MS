@@ -54,7 +54,7 @@
 Your system is now ready with:
 
 ✅ **Dashboard** - Statistics and interactive map
-✅ **Beneficiaries Module** - Track individual recipients
+✅ **Individuals Module** - Track individual recipients
 ✅ **Proponents Module** - Track group recipients (will be fully functional soon)
 ✅ **Map Visualization** - See projects on Negros Occidental map
 ✅ **User Authentication** - Secure role-based access
@@ -64,9 +64,9 @@ Your system is now ready with:
 
 ## 📋 Test Your Installation
 
-### Test 1: Create a Beneficiary
-1. Click "**Beneficiaries**" in sidebar
-2. Click "**Add New Beneficiary**" (Note: form page needs to be created)
+### Test 1: Create an Individual
+1. Click "**Individuals**" in sidebar
+2. Click "**Add New Individual**" (Note: form page needs to be created)
 3. For now, verify the list page loads correctly
 
 ### Test 2: Check the Map
@@ -90,7 +90,7 @@ Your system is now ready with:
 The core architecture is complete! You now need to create:
 
 **Priority 1 (Essential):**
-- [ ] `beneficiary-form.php` - Add/Edit beneficiaries
+- [ ] `beneficiary-form.php` - Add/Edit individuals
 - [ ] `beneficiary-view.php` - View details
 - [ ] `proponents.php` - List proponents
 - [ ] `proponent-form.php` - Add/Edit proponents
@@ -176,17 +176,17 @@ The core architecture is complete! You now need to create:
 **Day 1:** Installation & Basic Navigation
 - Install system
 - Explore dashboard
-- View beneficiaries list
+- View individuals list
 - Read USER_MANUAL sections 1-3
 
 **Day 2:** Understanding Data Structure
 - Review database schema
-- Understand beneficiary fields
+- Understand individual fields
 - Understand proponent fields
 - Read USER_MANUAL sections 4-5
 
 **Day 3:** Adding Data
-- Create test beneficiaries
+- Create test individuals
 - Add coordinates for map
 - View on map
 - Read USER_MANUAL sections 6-7
@@ -240,7 +240,7 @@ Contact your system administrator with:
 - Easy navigation
 
 📊 **Comprehensive**
-- Track 19+ dates for beneficiaries
+- Track 19+ dates for individuals
 - Track 30+ dates for proponents
 - Full reporting capabilities
 
@@ -251,7 +251,7 @@ Contact your system administrator with:
 You're ready when:
 - ✅ Can login successfully
 - ✅ Dashboard loads with map
-- ✅ Can view beneficiaries list
+- ✅ Can view individuals list
 - ✅ Map displays Negros Occidental
 - ✅ Changed default password
 - ✅ Read USER_MANUAL sections 1-3

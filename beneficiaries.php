@@ -59,7 +59,7 @@ if ($provinceFilter) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Beneficiaries - DOLE DILEEP Monitoring System</title>
+    <title>Individuals - DOLE DILEEP Monitoring System</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
@@ -77,10 +77,10 @@ if ($provinceFilter) {
             <!-- Main Content -->
             <main class="col-md-10 ms-sm-auto px-md-4 py-4" id="mainContent" role="main">
                 <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h2><i class="bi bi-person"></i> Beneficiaries</h2>
+                    <h2><i class="bi bi-person"></i> Individuals</h2>
                     <?php if ($auth->hasRole(['admin', 'encoder'])): ?>
                     <a href="beneficiary-form.php" class="btn btn-primary">
-                        <i class="bi bi-plus-circle"></i> Add New Beneficiary
+                        <i class="bi bi-plus-circle"></i> Add New Individual
                     </a>
                     <?php endif; ?>
                 </div>
@@ -90,7 +90,7 @@ if ($provinceFilter) {
                     <div class="card-body">
                         <form method="GET" action="" class="row g-3">
                             <div class="col-md-2">
-                                <label class="form-label">Beneficiary Type</label>
+                                <label class="form-label">Individual Type</label>
                                 <select name="type" class="form-select" onchange="this.form.submit()">
                                     <option value="individual" <?php echo ($_GET['type'] ?? 'individual') === 'individual' ? 'selected' : ''; ?>>Individual</option>
                                     <option value="group" <?php echo ($_GET['type'] ?? '') === 'group' ? 'selected' : ''; ?>>Group (Proponents)</option>
@@ -170,7 +170,7 @@ if ($provinceFilter) {
                     </div>
                 </div>
 
-                <!-- Beneficiaries Table -->
+                <!-- Individuals Table -->
                 <div class="card">
                     <div class="card-body">
                         <div class="table-responsive">
@@ -261,13 +261,13 @@ if ($provinceFilter) {
                 language: {
                     search: "Search:",
                     lengthMenu: "Show _MENU_ entries",
-                    info: "Showing _START_ to _END_ of _TOTAL_ beneficiaries"
+                    info: "Showing _START_ to _END_ of _TOTAL_ individuals"
                 }
             });
         });
 
         function deleteBeneficiary(id) {
-            if (confirm('Are you sure you want to delete this beneficiary? This action cannot be undone.')) {
+            if (confirm('Are you sure you want to delete this individual? This action cannot be undone.')) {
                 window.location.href = 'beneficiary-delete.php?id=' + id;
             }
         }

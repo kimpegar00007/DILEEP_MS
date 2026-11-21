@@ -227,7 +227,7 @@ $tableCount = $tablesStmt->rowCount();
                                 <div class="col-md-6">
                                     <div class="export-card">
                                         <div class="export-icon"><i class="bi bi-person"></i></div>
-                                        <h6>Beneficiaries</h6>
+                                        <h6>Individuals</h6>
                                         <div class="record-count"><?php echo number_format($beneficiaryCount); ?></div>
                                         <small class="text-muted d-block mb-3">Total Records</small>
                                         <div class="row g-2 mt-2 text-start">
@@ -243,7 +243,7 @@ $tableCount = $tablesStmt->rowCount();
                                         <small class="text-muted d-block mt-1 mb-3">Leave empty to export all records</small>
                                         <div id="lastExportBeneficiaries" class="text-muted small mb-3" style="font-style: italic;"></div>
                                         <button type="button" class="btn btn-primary" onclick="exportData('beneficiaries')">
-                                            <i class="bi bi-file-earmark-arrow-down"></i> Export Beneficiaries
+                                            <i class="bi bi-file-earmark-arrow-down"></i> Export Individuals
                                         </button>
                                     </div>
                                 </div>
@@ -287,11 +287,11 @@ $tableCount = $tablesStmt->rowCount();
                             <p class="text-muted mb-4">Upload CSV files to import records into the database. The CSV must include a header row matching the expected column names. Click <strong>Format Guide</strong> to view required columns and download sample templates.</p>
 
                             <div class="row g-4">
-                                <!-- Beneficiaries Import -->
+                                <!-- Individuals Import -->
                                 <div class="col-md-6">
                                     <div class="card h-100">
                                         <div class="card-header bg-white d-flex align-items-center justify-content-between">
-                                            <h6 class="mb-0"><i class="bi bi-person"></i> Import Beneficiaries</h6>
+                                            <h6 class="mb-0"><i class="bi bi-person"></i> Import Individuals</h6>
                                             <button type="button" class="btn btn-xs btn-outline-secondary btn-sm"
                                                     onclick="downloadTemplate('beneficiaries')" title="Download CSV template">
                                                 <i class="bi bi-download me-1"></i>Template
@@ -436,7 +436,7 @@ $tableCount = $tablesStmt->rowCount();
                     <ul class="nav nav-tabs mb-3" id="fgTabs" role="tablist">
                         <li class="nav-item">
                             <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#fgBenef" type="button">
-                                <i class="bi bi-person me-1"></i>Beneficiaries
+                                <i class="bi bi-person me-1"></i>Individuals
                             </button>
                         </li>
                         <li class="nav-item">
@@ -448,7 +448,7 @@ $tableCount = $tablesStmt->rowCount();
 
                     <div class="tab-content" id="fgTabContent">
 
-                        <!-- Beneficiaries tab -->
+                        <!-- Individuals tab -->
                         <div class="tab-pane fade show active" id="fgBenef" role="tabpanel">
                             <p class="text-muted small mb-2">
                                 Download a pre-filled template or create your own CSV with the columns below.
@@ -461,8 +461,8 @@ $tableCount = $tablesStmt->rowCount();
                                         <tr><th>Column Name</th><th>Type</th><th>Required?</th><th>Notes / Allowed Values</th></tr>
                                     </thead>
                                     <tbody style="font-size:.82rem;">
-                                        <tr><td><code>last_name</code></td><td>Text</td><td><span class="badge bg-danger">required</span></td><td>Beneficiary's last name</td></tr>
-                                        <tr><td><code>first_name</code></td><td>Text</td><td><span class="badge bg-danger">required</span></td><td>Beneficiary's first name</td></tr>
+                                        <tr><td><code>last_name</code></td><td>Text</td><td><span class="badge bg-danger">required</span></td><td>Individual's last name</td></tr>
+                                        <tr><td><code>first_name</code></td><td>Text</td><td><span class="badge bg-danger">required</span></td><td>Individual's first name</td></tr>
                                         <tr><td><code>middle_name</code></td><td>Text</td><td><span class="badge bg-secondary">optional</span></td><td></td></tr>
                                         <tr><td><code>suffix</code></td><td>Text</td><td><span class="badge bg-secondary">optional</span></td><td>e.g. Jr., Sr., III</td></tr>
                                         <tr><td><code>gender</code></td><td>Text</td><td><span class="badge bg-danger">required</span></td><td><code>Male</code> or <code>Female</code></td></tr>
@@ -485,7 +485,7 @@ $tableCount = $tablesStmt->rowCount();
                             </div>
                             <div class="mt-3">
                                 <button type="button" class="btn btn-sm btn-success" onclick="downloadTemplate('beneficiaries');bootstrap.Modal.getInstance(document.getElementById('formatGuideModal')).hide();">
-                                    <i class="bi bi-download me-1"></i>Download Beneficiaries Template
+                                    <i class="bi bi-download me-1"></i>Download Individuals Template
                                 </button>
                             </div>
                         </div>
@@ -766,7 +766,7 @@ $tableCount = $tablesStmt->rowCount();
         // ==================== CSV TEMPLATE DOWNLOAD ====================
         var CSV_TEMPLATES = {
             beneficiaries: {
-                filename: 'beneficiaries_template.csv',
+                filename: 'individuals_template.csv',
                 headers: [
                     'last_name','first_name','middle_name','suffix','gender',
                     'barangay','municipality','contact_number','project_name',

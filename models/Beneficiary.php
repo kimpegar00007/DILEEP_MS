@@ -1,6 +1,6 @@
 <?php
 // models/Beneficiary.php
-// Model for Individual Beneficiaries
+// Model for Individuals
 // v2.1: Province-scoped — all reads/writes are automatically filtered by the
 //       logged-in user's province. super_admin and regional_director bypass all
 //       province filters (CROSS_PROVINCE_ROLES).
@@ -32,7 +32,7 @@ class Beneficiary {
                 );
             }
         } catch (PDOException $e) {
-            error_log('[Beneficiary] Failed to ensure proponent_id column: ' . $e->getMessage());
+            error_log('[Individual] Failed to ensure proponent_id column: ' . $e->getMessage());
         }
     }
 
@@ -121,7 +121,7 @@ class Beneficiary {
             }
 
             $insertId = $this->db->lastInsertId();
-            $this->logActivity('create', $insertId, 'Created new beneficiary');
+            $this->logActivity('create', $insertId, 'Created new individual');
             return $insertId;
         } catch (PDOException $e) {
             $this->logDatabaseError('PDOException in create', [
@@ -175,7 +175,7 @@ class Beneficiary {
                 return false;
             }
 
-            $this->logActivity('update', $id, 'Updated beneficiary');
+            $this->logActivity('update', $id, 'Updated individual');
             return $result;
         } catch (PDOException $e) {
             $this->logDatabaseError('PDOException in update', [
@@ -204,7 +204,7 @@ class Beneficiary {
             }
 
             if ($result) {
-                $this->logActivity('delete', $id, 'Deleted beneficiary');
+                $this->logActivity('delete', $id, 'Deleted individual');
             }
 
             return $result;
@@ -365,7 +365,7 @@ class Beneficiary {
     }
 
     private function logDatabaseError($context, $errorInfo) {
-        $msg  = "[Beneficiary Model] {$context}\n";
+        $msg  = "[Individual Model] {$context}\n";
         if (is_array($errorInfo)) {
             foreach (['code', 'message', 'file', 'line'] as $k) {
                 if (isset($errorInfo[$k])) $msg .= ucfirst($k) . ": {$errorInfo[$k]}\n";

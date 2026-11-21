@@ -26,7 +26,7 @@ if (!$beneficiary) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>View Beneficiary - DOLE DILEEP Monitoring System</title>
+    <title>View Individual - DOLE DILEEP Monitoring System</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -78,7 +78,7 @@ if (!$beneficiary) {
 
             <main class="col-md-10 ms-sm-auto px-md-4 py-4" id="mainContent" role="main">
                 <div class="d-flex justify-content-between align-items-center mb-4 no-print">
-                    <h2><i class="bi bi-person"></i> Beneficiary Details</h2>
+                    <h2><i class="bi bi-person"></i> Individual Details</h2>
                     <div class="btn-group" role="group">
                         <?php if ($auth->hasRole(['admin', 'encoder'])): ?>
                         <a href="beneficiary-form.php?id=<?php echo $beneficiary['id']; ?>" class="btn btn-warning">

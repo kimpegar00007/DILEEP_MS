@@ -100,7 +100,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             );
             $logStmt->execute([
                 $_SESSION['user_id'] ?? null,
-                'Erased proponent and beneficiary records. Proponents: ' . $beforeCounts['proponents'] . ', Beneficiaries: ' . $beforeCounts['beneficiaries'] . '.',
+                'Erased proponent and individual records. Proponents: ' . $beforeCounts['proponents'] . ', Individuals: ' . $beforeCounts['beneficiaries'] . '.',
                 $_SERVER['REMOTE_ADDR'] ?? 'unknown',
             ]);
 
@@ -120,7 +120,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
 
-            $success = 'Proponent and beneficiary records were erased successfully. The next encoded ID will start at 1.';
+            $success = 'Proponent and individual records were erased successfully. The next encoded ID will start at 1.';
             $counts  = resetLoadCounts($db);
 
         } catch (Exception $e) {
@@ -182,7 +182,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             <main class="col-md-10 ms-sm-auto px-md-4 py-4" id="mainContent" role="main">
                 <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h2><i class="bi bi-exclamation-octagon"></i> Reset Proponent and Beneficiary Records</h2>
+                    <h2><i class="bi bi-exclamation-octagon"></i> Reset Proponent and Individual Records</h2>
                     <a href="settings.php" class="btn btn-secondary">
                         <i class="bi bi-arrow-left"></i> Back to Settings
                     </a>
@@ -209,10 +209,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 <div class="reset-warning">
                     <h4 class="text-danger"><i class="bi bi-exclamation-triangle-fill"></i> Permanent Data Reset</h4>
-                    <p class="mb-2">This will permanently erase all records from proponents and beneficiaries, including proponent associations and return history.</p>
+                    <p class="mb-2">This will permanently erase all records from proponents and individuals, including proponent associations and return history.</p>
                     <ul class="mb-0">
                         <li>User accounts, settings, fieldwork schedules, and activity logs will remain.</li>
-                        <li>After successful deletion, the next encoded proponent and beneficiary ID will start at 1.</li>
+                        <li>After successful deletion, the next encoded proponent and individual ID will start at 1.</li>
                         <li>This action cannot be undone from this screen.</li>
                     </ul>
                 </div>
@@ -220,7 +220,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div class="row g-4 mb-4">
                     <div class="col-md-6 col-xl-3">
                         <div class="reset-count-card">
-                            <div class="text-muted">Beneficiaries</div>
+                            <div class="text-muted">Individuals</div>
                             <div class="count-value"><?php echo number_format($counts['beneficiaries']); ?></div>
                         </div>
                     </div>
@@ -254,7 +254,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <div class="form-check mb-4">
                             <input class="form-check-input" type="checkbox" name="confirm_delete" id="confirmDelete" value="yes" required>
                             <label class="form-check-label" for="confirmDelete">
-                                I understand this will permanently erase all proponent and beneficiary records.
+                                I understand this will permanently erase all proponent and individual records.
                             </label>
                         </div>
                         <button type="submit" class="btn btn-danger">

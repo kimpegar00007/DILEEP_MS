@@ -30,7 +30,7 @@ try {
         $entity = $beneficiaryModel->findById($id);
         
         if (!$entity) {
-            echo '<div class="alert alert-danger">Beneficiary not found.</div>';
+            echo '<div class="alert alert-danger">Individual not found.</div>';
             exit;
         }
 
@@ -201,7 +201,7 @@ try {
                     <?php endif; ?>
                 </div>
                 <div class="col-md-6">
-                    <h6 class="text-primary mb-1">Beneficiary Information</h6>
+                    <h6 class="text-primary mb-1">Individual Information</h6>
                     <div class="mb-2">
                         <strong>Total Beneficiaries:</strong> <?php echo number_format($entity['total_beneficiaries']); ?>
                     </div>

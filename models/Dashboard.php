@@ -298,7 +298,7 @@ class Dashboard {
         return $rows;
     }
 
-    /** Beneficiaries have no category, so this is group projects only */
+    /** Individuals have no category, so this is group projects only */
     private function getCategoryDistribution(string $where, array $params): array {
         $rows = $this->fetchAll(
             "SELECT category, COUNT(*) as count

@@ -159,7 +159,7 @@ dilp-system/
 ### 6. Testing
 - [ ] Login functionality tested
 - [ ] User roles and permissions tested
-- [ ] Beneficiary CRUD operations tested
+- [ ] Individual CRUD operations tested
 - [ ] Proponent CRUD operations tested
 - [ ] Map visualization working
 - [ ] Reports generating correctly

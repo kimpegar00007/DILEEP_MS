@@ -161,8 +161,8 @@ foreach (Auth::PROVINCES as $pName) {
                 <div class="alert alert-info d-flex gap-2">
                     <i class="bi bi-info-circle-fill"></i>
                     <div>
-                        One budget is shared by several Proponents and Beneficiaries. Give each party its own share;
-                        <strong>all shares must add up to the total budget</strong>. Each party is saved as a normal Proponent or Beneficiary record,
+                        One budget is shared by several Proponents and Individuals. Give each party its own share;
+                        <strong>all shares must add up to the total budget</strong>. Each party is saved as a normal Proponent or Individual record,
                         so it appears in the usual lists and reports, and the budget is counted only once.
                     </div>
                 </div>
@@ -227,8 +227,8 @@ foreach (Auth::PROVINCES as $pName) {
                     </div>
 
                     <div class="d-flex justify-content-between align-items-center mb-2 mt-4">
-                        <h4 class="mb-0"><i class="bi bi-people"></i> Beneficiaries</h4>
-                        <button type="button" class="btn btn-primary btn-sm" id="addBeneficiary"><i class="bi bi-plus-circle"></i> Add Beneficiary</button>
+                        <h4 class="mb-0"><i class="bi bi-people"></i> Individuals</h4>
+                        <button type="button" class="btn btn-primary btn-sm" id="addBeneficiary"><i class="bi bi-plus-circle"></i> Add Individual</button>
                     </div>
                     <div id="beneficiaryCards">
                         <?php foreach ($beneficiaryCards as $idx => $v): ?>
@@ -300,7 +300,7 @@ foreach (Auth::PROVINCES as $pName) {
             }
         }
 
-        // ── Beneficiary → Proponent dropdowns ──────────────────────────────
+        // ── Individual → Proponent dropdowns ──────────────────────────────
         function refreshProponentOptions() {
             const options = Array.from(proponentWrap.querySelectorAll('.sb-proponent')).map((card, i) => ({
                 key: card.querySelector('.sb-key').value,
@@ -479,7 +479,7 @@ foreach (Auth::PROVINCES as $pName) {
             if (t.classList.contains('sb-name')) { card.querySelector('.sb-card-title').textContent = t.value.trim() || 'New proponent'; refreshProponentOptions(); }
             if (t.classList.contains('sb-first') || t.classList.contains('sb-last')) {
                 const n = (card.querySelector('.sb-first').value + ' ' + card.querySelector('.sb-last').value).trim();
-                card.querySelector('.sb-card-title').textContent = n || 'New beneficiary';
+                card.querySelector('.sb-card-title').textContent = n || 'New individual';
             }
             if (t.classList.contains('sb-male') || t.classList.contains('sb-female') || t.classList.contains('sb-total-ben')) {
                 const total = parseInt(card.querySelector('.sb-total-ben').value, 10) || 0;
@@ -519,7 +519,7 @@ foreach (Auth::PROVINCES as $pName) {
             const card = remove.closest('.sb-card');
             const isProponent = card.classList.contains('sb-proponent');
             if (isProponent && proponentWrap.querySelectorAll('.sb-proponent').length === 1) { alert('A shared budget needs at least one Proponent.'); return; }
-            if (!isProponent && beneficiaryWrap.querySelectorAll('.sb-beneficiary').length === 1) { alert('A shared budget needs at least one Beneficiary.'); return; }
+            if (!isProponent && beneficiaryWrap.querySelectorAll('.sb-beneficiary').length === 1) { alert('A shared budget needs at least one Individual.'); return; }
             const msg = remove.dataset.hasId === '1'
                 ? 'Remove this record from the shared budget? The record itself stays in the system, but its share no longer counts toward this budget.'
                 : 'Remove this card?';

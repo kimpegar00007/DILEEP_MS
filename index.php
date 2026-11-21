@@ -466,7 +466,7 @@ $mapAreaLabel = $sessionProvince ?? 'All Provinces';
                     <div class="col-sm-12 col-md-6">
                         <div class="card dash-card h-100">
                             <div class="card-header bg-white">
-                                <h5 class="mb-0"><i class="bi bi-person"></i> Individual Beneficiaries Status</h5>
+                                <h5 class="mb-0"><i class="bi bi-person"></i> Individuals Status</h5>
                             </div>
                             <div class="card-body d-flex align-items-center">
                                 <div class="row text-center w-100">
@@ -526,7 +526,7 @@ $mapAreaLabel = $sessionProvince ?? 'All Provinces';
 
                 <!-- Data Visualization Charts -->
                 <div class="row g-3 mb-4" id="widget-charts">
-                    <!-- Beneficiary Municipality Distribution -->
+                    <!-- Individual Municipality Distribution -->
                     <div class="col-lg-6">
                         <div class="card dash-card h-100">
                             <div class="card-header bg-white">
@@ -620,7 +620,7 @@ $mapAreaLabel = $sessionProvince ?? 'All Provinces';
                     <div class="card-footer bg-white">
                         <div class="row text-center">
                             <div class="col-6">
-                                <span class="badge bg-primary me-2">●</span> Individual Beneficiaries
+                                <span class="badge bg-primary me-2">●</span> Individuals
                             </div>
                             <div class="col-6">
                                 <span class="badge bg-success me-2">●</span> Group Proponents
@@ -841,7 +841,7 @@ $mapAreaLabel = $sessionProvince ?? 'All Provinces';
                     indexAxis: 'y',
                     plugins: {
                         legend: { display: false },
-                        tooltip: { callbacks: { label: ctx => 'Beneficiaries: ' + formatCount(ctx.parsed.x) } }
+                        tooltip: { callbacks: { label: ctx => 'Individuals: ' + formatCount(ctx.parsed.x) } }
                     },
                     scales: { x: { beginAtZero: true, ticks: { precision: 0 } } }
                 }
@@ -970,7 +970,7 @@ $mapAreaLabel = $sessionProvince ?? 'All Provinces';
                     }),
                     datasets: [
                         {
-                            label: 'Individual Beneficiaries',
+                            label: 'Individuals',
                             data: trends.beneficiaries,
                             borderColor: chartColors.primary,
                             backgroundColor: chartColors.primary + '20',
@@ -1163,16 +1163,16 @@ $mapAreaLabel = $sessionProvince ?? 'All Provinces';
 
     // Dashboard Tour Steps (run when the user clicks "Start Tour")
     const dashboardTourSteps = [
-        { target: '.stat-card.bg-primary', title: 'Beneficiary Overview', description: 'View total individual beneficiaries with gender breakdown at a glance.' },
+        { target: '.stat-card.bg-primary', title: 'Individual Overview', description: 'View total individuals with gender breakdown at a glance.' },
         { target: '.stat-card.bg-success', title: 'Proponent Overview', description: 'Track group proponents categorized by LGU and Non-LGU types.' },
-        { target: '.stat-card.bg-teal', title: 'PCL Records', description: 'Count individual beneficiaries and group projects tagged as Parents/Guardians of Child Laborers.' },
+        { target: '.stat-card.bg-teal', title: 'PCL Records', description: 'Count individuals and group projects tagged as Parents/Guardians of Child Laborers.' },
         { target: '.stat-card.bg-warning', title: 'Financial Summary', description: 'See the combined total amount for all individual and group projects.' },
-        { target: '#widget-status', title: 'Status Overview', description: 'Monitor the status distribution of both individual beneficiaries and group proponents.' },
+        { target: '#widget-status', title: 'Status Overview', description: 'Monitor the status distribution of both individuals and group proponents.' },
         { target: '#widget-charts', title: 'Data Visualization', description: 'Interactive charts showing municipality distribution, project types, funding sources, and monthly trends.' },
-        { target: '#municipalityChart', title: 'Municipality Analysis', description: 'Bar chart displaying the top 10 municipalities with the most individual beneficiaries.' },
+        { target: '#municipalityChart', title: 'Municipality Analysis', description: 'Bar chart displaying the top 10 municipalities with the most individuals.' },
         { target: '#trendsChart', title: 'Monthly Trends', description: 'Line chart tracking approval trends over the last 12 months for both individuals and groups.' },
         { target: '#map', title: 'Project Map', description: 'Interactive map showing where approved projects are located. Click markers for details.' },
-        { target: '.sidebar', title: 'Navigation', description: 'Use the sidebar to navigate between Beneficiaries, Proponents, Reports, and more.' }
+        { target: '.sidebar', title: 'Navigation', description: 'Use the sidebar to navigate between Individuals, Proponents, Reports, and more.' }
     ];
     
     document.getElementById('startTourBtn').addEventListener('click', function() {

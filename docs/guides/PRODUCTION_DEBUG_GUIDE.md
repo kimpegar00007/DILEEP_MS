@@ -3,14 +3,14 @@
 ## Overview
 This guide helps diagnose and resolve data creation issues in the production environment (InfinityFree).
 
-## Issue: "Failed to create beneficiary" / "Failed to create proponent"
+## Issue: "Failed to create individual" / "Failed to create proponent"
 
 ### Root Cause Analysis
 The original code had **no error handling** in the model's `create()`, `update()`, and `delete()` methods. When database operations failed silently, users saw generic error messages without diagnostic information.
 
 ### What Was Fixed
 
-#### 1. **Beneficiary Model** (`models/Beneficiary.php`)
+#### 1. **Individual Model** (`models/Beneficiary.php`)
 - Added try-catch blocks around all database operations
 - Added statement preparation validation
 - Added comprehensive error logging via `logDatabaseError()` method
@@ -21,7 +21,7 @@ The original code had **no error handling** in the model's `create()`, `update()
   - Timestamp, user ID, and IP address
 
 #### 2. **Proponent Model** (`models/Proponent.php`)
-- Applied identical error handling as Beneficiary model
+- Applied identical error handling as Individual model
 - Same comprehensive logging mechanism
 
 #### 3. **Form Pages** (`beneficiary-form.php`, `proponent-form.php`)
@@ -114,7 +114,7 @@ DESCRIBE proponents;
    - **Remember to change back to production after debugging**
 
 2. **Submit Test Data**:
-   - Try creating a minimal beneficiary/proponent with only required fields
+   - Try creating a minimal individual/proponent with only required fields
    - Check error logs immediately after submission
 
 3. **Check Submitted Data**:

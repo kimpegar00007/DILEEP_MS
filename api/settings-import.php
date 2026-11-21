@@ -330,7 +330,7 @@ try {
         'import',
         $table,
         0,
-        'Imported ' . $insertedCount . ' records into ' . $table . ' from CSV',
+        'Imported ' . $insertedCount . ' records into ' . ($table === 'beneficiaries' ? 'individuals' : $table) . ' from CSV',
         $_SERVER['REMOTE_ADDR'] ?? 'unknown'
     ]);
 
@@ -338,7 +338,7 @@ try {
 
     echo json_encode([
         'success' => true,
-        'message' => 'Successfully imported ' . $insertedCount . ' records into ' . $table . '.'
+        'message' => 'Successfully imported ' . $insertedCount . ' records into ' . ($table === 'beneficiaries' ? 'individuals' : $table) . '.'
     ]);
 
 } catch (PDOException $e) {

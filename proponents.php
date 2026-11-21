@@ -170,7 +170,7 @@ if ($provinceFilter) {
                                         <th>Project Title</th>
                                         <th>Type</th>
                                         <th>Amount</th>
-                                        <th>Beneficiaries</th>
+                                        <th>Individuals</th>
                                         <th>Status</th>
                                         <th>Actions</th>
                                     </tr>

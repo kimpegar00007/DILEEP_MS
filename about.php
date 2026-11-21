@@ -80,7 +80,7 @@ foreach ($orgChartData as $row) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="DILEEP Monitoring System — web-based platform for managing beneficiaries and proponents under DOLE DILEEP in Negros Occidental.">
+    <meta name="description" content="DILEEP Monitoring System — web-based platform for managing individuals and proponents under DOLE DILEEP in Negros Occidental.">
     <title>About - <?php echo htmlspecialchars($appName); ?></title>
     <meta name="theme-color" content="#1B7A3D">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">

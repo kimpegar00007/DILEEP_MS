@@ -9,9 +9,9 @@
 
 ## System Description
 
-A comprehensive web-based monitoring system for tracking the Department of Labor and Employment's Integrated Livelihood Program (DILP). The system manages both individual beneficiaries and group proponents with features including:
+A comprehensive web-based monitoring system for tracking the Department of Labor and Employment's Integrated Livelihood Program (DILP). The system manages both individuals and group proponents with features including:
 
-- Complete CRUD operations for beneficiaries and proponents
+- Complete CRUD operations for individuals and proponents
 - Interactive map visualization using Leaflet.js
 - Automated liquidation deadline tracking
 - Role-based access control (Admin, Encoder, User)
@@ -91,12 +91,12 @@ dilp-system/
 1. database_migrations.sql - Complete database schema
 2. config/database.php - Database configuration
 3. includes/Auth.php - Authentication system
-4. models/Beneficiary.php - Beneficiary model
+4. models/Beneficiary.php - Individual model
 5. models/Proponent.php - Proponent model
 6. index.php - Dashboard with map
 7. login.php - Login page
 8. logout.php - Logout handler
-9. beneficiaries.php - Beneficiaries list page
+9. beneficiaries.php - Individuals list page
 10. README.md - Quick start guide
 11. INSTALLATION_GUIDE.md - Installation guide
 12. USER_MANUAL.md - User manual
@@ -138,7 +138,7 @@ dilp-system/
    - Proponent type (LGU/Non-LGU)
    - Control number system
    - 30+ trackable date fields
-   - Beneficiary demographics
+   - Individual demographics
    - Financial tracking
    - Automatic liquidation deadline calculation
 
@@ -172,7 +172,7 @@ dilp-system/
 - ✅ Session management
 - ✅ Activity logging
 
-### 2. Beneficiary Management
+### 2. Individual Management
 - ✅ Complete CRUD operations
 - ✅ Advanced filtering
 - ✅ Search functionality
@@ -184,7 +184,7 @@ dilp-system/
 - ✅ Automatic liquidation deadlines
 - ✅ Overdue alerts
 - ✅ Financial tracking
-- ✅ Beneficiary demographics
+- ✅ Individual demographics
 
 ### 4. Dashboard
 - ✅ Real-time statistics
@@ -259,7 +259,7 @@ Before deployment, verify:
 
 - [ ] Database connection works
 - [ ] Login with default credentials
-- [ ] Create test beneficiary
+- [ ] Create test individual
 - [ ] Create test proponent
 - [ ] View dashboard statistics
 - [ ] Map loads and displays markers
@@ -387,7 +387,7 @@ mysqldump -u root dilp_monitoring > C:\backup\dilp_%date%.sql
 
 ## Conclusion
 
-This DOLE DILP Monitoring System provides a solid foundation for tracking and managing livelihood program beneficiaries and proponents. The system is:
+This DOLE DILP Monitoring System provides a solid foundation for tracking and managing livelihood program individuals and proponents. The system is:
 
 - **Ready to Deploy:** All core functionality implemented
 - **Well-Documented:** Comprehensive guides included

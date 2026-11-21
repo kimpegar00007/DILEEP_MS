@@ -53,7 +53,7 @@ $mismatches  = count(array_filter($budgets, function ($b) { return $b['mismatch'
                     <button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
                 <?php endif; ?>
 
-                <p class="text-muted">Livelihood projects where several Proponents and Beneficiaries share one budget, each with their own share.</p>
+                <p class="text-muted">Livelihood projects where several Proponents and Individuals share one budget, each with their own share.</p>
 
                 <div class="row g-3 mb-4">
                     <div class="col-md-4"><div class="card"><div class="card-body">
@@ -95,7 +95,7 @@ $mismatches  = count(array_filter($budgets, function ($b) { return $b['mismatch'
                                     <th class="text-end">Total Budget</th>
                                     <th class="text-end">Allocated</th>
                                     <th class="text-center">Proponents</th>
-                                    <th class="text-center">Beneficiaries</th>
+                                    <th class="text-center">Individuals</th>
                                     <th>Check</th>
                                     <th class="text-end">Actions</th>
                                 </tr>

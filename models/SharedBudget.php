@@ -1,6 +1,6 @@
 <?php
 // models/SharedBudget.php
-// Model for budgets shared by several Proponents and Beneficiaries.
+// Model for budgets shared by several Proponents and Individuals.
 //
 // How the money works: each party's peso share is stored in the amount column its
 // record already has (proponents.amount / beneficiaries.amount_worth). The shares
@@ -242,7 +242,7 @@ class SharedBudget {
 
     /**
      * Create a budget with all of its members in ONE transaction: either the budget,
-     * every Proponent and every Beneficiary are saved, or nothing is.
+     * every Proponent and every Individual are saved, or nothing is.
      *
      * @param array $budget        title, province, total_budget, source_of_funds, notes
      * @param array $proponents    each: key, data (Proponent::create columns), association_names/addresses
@@ -273,7 +273,7 @@ class SharedBudget {
 
             $this->saveMembers($budgetId, $province, $proponents, $beneficiaries);
             $this->logActivity('create', $budgetId, sprintf(
-                'Created shared budget "%s" (%d proponent(s), %d beneficiary(ies))',
+                'Created shared budget "%s" (%d proponent(s), %d individual(s))',
                 $budget['title'], count($proponents), count($beneficiaries)
             ));
 
@@ -347,7 +347,7 @@ class SharedBudget {
             }
             $this->db->prepare("DELETE FROM shared_budgets WHERE id = ?")->execute([(int) $id]);
             $this->logActivity('delete', (int) $id, sprintf(
-                'Deleted shared budget "%s"; %d proponent(s) and %d beneficiary(ies) were kept and unlinked',
+                'Deleted shared budget "%s"; %d proponent(s) and %d individual(s) were kept and unlinked',
                 $existing['title'], $existing['proponent_count'], $existing['beneficiary_count']
             ));
             $this->db->commit();
@@ -398,7 +398,7 @@ class SharedBudget {
             $data = $b['data'];
             $data['province'] = $province;
             if (!isset($keyToProponentId[$b['proponent_key']])) {
-                throw new RuntimeException('A beneficiary is linked to a proponent that is not in this budget.');
+                throw new RuntimeException('An individual is linked to a proponent that is not in this budget.');
             }
             $data['proponent_id'] = $keyToProponentId[$b['proponent_key']];
 
@@ -406,12 +406,12 @@ class SharedBudget {
                 $id = (int) $b['id'];
                 $this->assertMember('beneficiaries', $id, $budgetId);
                 if (!$this->beneficiaries->update($id, $data)) {
-                    throw new RuntimeException('Could not update beneficiary "' . $data['first_name'] . ' ' . $data['last_name'] . '".');
+                    throw new RuntimeException('Could not update individual "' . $data['first_name'] . ' ' . $data['last_name'] . '".');
                 }
             } else {
                 $id = (int) $this->beneficiaries->create($data);
                 if ($id <= 0) {
-                    throw new RuntimeException('Could not create beneficiary "' . $data['first_name'] . ' ' . $data['last_name'] . '".');
+                    throw new RuntimeException('Could not create individual "' . $data['first_name'] . ' ' . $data['last_name'] . '".');
                 }
                 $this->db->prepare("UPDATE beneficiaries SET shared_budget_id = ? WHERE id = ?")->execute([$budgetId, $id]);
             }
@@ -590,7 +590,7 @@ class SharedBudget {
 
     /**
      * Same rules as proponent-form.php and beneficiary-form.php, plus the sharing rules
-     * (shares add up to the total, every share > 0, every beneficiary linked to a proponent in this budget).
+     * (shares add up to the total, every share > 0, every individual linked to a proponent in this budget).
      *
      * @param string $province the (already resolved) province every member will be saved in
      * @return string[] error messages; empty means valid
@@ -605,7 +605,7 @@ class SharedBudget {
         if ($budget['total_budget'] <= 0) $errors[] = 'Total budget must be greater than zero.';
         if (!in_array($province, Auth::PROVINCES, true)) $errors[] = 'Invalid province selected.';
         if (!$props) $errors[] = 'Add at least one Proponent.';
-        if (!$bens) $errors[] = 'Add at least one Beneficiary.';
+        if (!$bens) $errors[] = 'Add at least one Individual.';
 
         $range = self::PROVINCE_RANGES[$province] ?? null;
         $checkCoords = function (?float $lat, ?float $lng, string $label) use (&$errors, $range, $province) {
@@ -656,7 +656,7 @@ class SharedBudget {
         foreach ($bens as $i => $b) {
             $d = $b['data'];
             $name = trim($d['first_name'] . ' ' . $d['last_name']);
-            $label = 'Beneficiary #' . ($i + 1) . ($name !== '' ? ' (' . $name . ')' : '');
+            $label = 'Individual #' . ($i + 1) . ($name !== '' ? ' (' . $name . ')' : '');
 
             if ($d['last_name'] === '') $errors[] = "{$label}: last name is required.";
             if ($d['first_name'] === '') $errors[] = "{$label}: first name is required.";
@@ -701,7 +701,7 @@ class SharedBudget {
                 $d = $b['data'];
                 $dup = $this->beneficiaries->checkBeneficiaryDuplicate($d['last_name'], $d['first_name'], $d['project_name'], $b['id'] ?: null);
                 if ($dup) {
-                    $errors[] = 'Beneficiary #' . ($i + 1) . ': a beneficiary with the same full name and project name already exists (Record #' . $dup['id'] . ').';
+                    $errors[] = 'Individual #' . ($i + 1) . ': an individual with the same full name and project name already exists (Record #' . $dup['id'] . ').';
                 }
             }
         }

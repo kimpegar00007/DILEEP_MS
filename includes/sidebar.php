@@ -13,7 +13,7 @@
             </li>
             <li class="nav-item">
                 <a class="nav-link <?php echo ($currentPage ?? '') === 'unified' ? 'active' : ''; ?>" href="unified-beneficiaries-proponents.php" aria-current="<?php echo ($currentPage ?? '') === 'unified' ? 'page' : 'false'; ?>">
-                    <i class="bi bi-layers" aria-hidden="true"></i> <span>Beneficiaries & Proponents</span>
+                    <i class="bi bi-layers" aria-hidden="true"></i> <span>Individuals & Proponents</span>
                 </a>
             </li>
             <li class="nav-item">

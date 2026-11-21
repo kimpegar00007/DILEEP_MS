@@ -168,7 +168,7 @@ try {
                         <div class="col-md-3">
                             <div class="stat-card">
                                 <div class="stat-number"><?php echo number_format($beneficiaryCount); ?></div>
-                                <div class="stat-label">Beneficiaries</div>
+                                <div class="stat-label">Individuals</div>
                             </div>
                         </div>
                         <div class="col-md-3">
@@ -296,7 +296,7 @@ try {
                             <div class="col-md-9">
                                 <h6 class="mb-1">Reset All Records</h6>
                                 <small class="text-muted">
-                                    Permanently delete all beneficiaries and proponents, and reset auto-increment IDs to 1.
+                                    Permanently delete all individuals and proponents, and reset auto-increment IDs to 1.
                                 </small>
                             </div>
                             <div class="col-md-3 text-end">
