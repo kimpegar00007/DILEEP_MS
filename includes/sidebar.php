@@ -17,6 +17,11 @@
                 </a>
             </li>
             <li class="nav-item">
+                <a class="nav-link <?php echo ($currentPage ?? '') === 'shared-budgets' ? 'active' : ''; ?>" href="shared-budgets.php" aria-current="<?php echo ($currentPage ?? '') === 'shared-budgets' ? 'page' : 'false'; ?>">
+                    <i class="bi bi-pie-chart" aria-hidden="true"></i> <span>Shared Budgets</span>
+                </a>
+            </li>
+            <li class="nav-item">
                 <a class="nav-link <?php echo ($currentPage ?? '') === 'reports' ? 'active' : ''; ?>" href="reports.php" aria-current="<?php echo ($currentPage ?? '') === 'reports' ? 'page' : 'false'; ?>">
                     <i class="bi bi-file-earmark-text" aria-hidden="true"></i> <span>Reports</span>
                 </a>

@@ -51,6 +51,7 @@ DROP TABLE IF EXISTS `fieldwork_schedule`;
 DROP TABLE IF EXISTS `activity_logs`;
 DROP TABLE IF EXISTS `beneficiaries`;
 DROP TABLE IF EXISTS `proponents`;
+DROP TABLE IF EXISTS `shared_budgets`;
 DROP TABLE IF EXISTS `org_chart`;
 DROP TABLE IF EXISTS `provinces`;
 DROP TABLE IF EXISTS `system_settings`;
@@ -141,6 +142,7 @@ CREATE TABLE `beneficiaries` (
     `longitude` DECIMAL(11,8) DEFAULT NULL,
     `source_of_funds` VARCHAR(255) DEFAULT NULL COMMENT 'Funding source (e.g., GAA, Centrally Managed Fund)',
     `status` ENUM('pending', 'approved', 'implemented', 'monitored') DEFAULT 'pending',
+    `shared_budget_id` INT(11) UNSIGNED NULL DEFAULT NULL COMMENT 'Set when this beneficiary shares a budget (see shared_budgets)',
     `created_by` INT(11) DEFAULT NULL,
     `updated_by` INT(11) DEFAULT NULL,
     `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -154,7 +156,8 @@ CREATE TABLE `beneficiaries` (
     KEY `idx_beneficiaries_date_approved` (`date_approved`),
     KEY `idx_beneficiaries_province` (`province`),
     KEY `idx_beneficiaries_province_status` (`province`, `status`),
-    KEY `idx_beneficiaries_province_municipality` (`province`, `municipality`)
+    KEY `idx_beneficiaries_province_municipality` (`province`, `municipality`),
+    KEY `idx_beneficiaries_shared_budget_id` (`shared_budget_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
 COMMENT='Individual beneficiary records';
 
@@ -205,6 +208,7 @@ CREATE TABLE `proponents` (
     `latitude` DECIMAL(10,8) DEFAULT NULL,
     `longitude` DECIMAL(11,8) DEFAULT NULL,
     `status` ENUM('pending', 'approved', 'implemented', 'liquidated', 'monitored') DEFAULT 'pending',
+    `shared_budget_id` INT(11) UNSIGNED NULL DEFAULT NULL COMMENT 'Set when this proponent shares a budget (see shared_budgets)',
     `created_by` INT(11) DEFAULT NULL,
     `updated_by` INT(11) DEFAULT NULL,
     `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -220,9 +224,33 @@ CREATE TABLE `proponents` (
     KEY `idx_proponents_date_approved` (`date_approved`),
     KEY `idx_proponents_province` (`province`),
     KEY `idx_proponents_province_status` (`province`, `status`),
-    KEY `idx_proponents_province_type` (`province`, `proponent_type`)
+    KEY `idx_proponents_province_type` (`province`, `proponent_type`),
+    KEY `idx_proponents_shared_budget_id` (`shared_budget_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
 COMMENT='Proponent and organization records';
+
+-- ----------------------------------------------------------------------------
+-- Table: shared_budgets
+-- Description: One budget shared by several proponents and beneficiaries. Each
+--              party's peso share lives in its own amount column
+--              (proponents.amount / beneficiaries.amount_worth), so existing
+--              totals count the money once.
+-- ----------------------------------------------------------------------------
+CREATE TABLE `shared_budgets` (
+    `id` INT(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+    `title` VARCHAR(255) NOT NULL,
+    `province` VARCHAR(100) NOT NULL,
+    `total_budget` DECIMAL(15,2) NOT NULL,
+    `source_of_funds` VARCHAR(255) DEFAULT NULL,
+    `notes` TEXT DEFAULT NULL,
+    `created_by` INT(11) DEFAULT NULL,
+    `updated_by` INT(11) DEFAULT NULL,
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    KEY `idx_shared_budgets_province` (`province`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
+COMMENT='Budgets shared between proponents and beneficiaries';
 
 -- ----------------------------------------------------------------------------
 -- Table: proponent_associations

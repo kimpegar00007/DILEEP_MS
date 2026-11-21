@@ -740,7 +740,7 @@ $addUrl     = $isBeneficiaryView ? 'beneficiary-form.php' : 'proponent-form.php'
                                 <?php endif; endif; ?>
                             </div>
                             <div class="card-footer">
-                                <div class="amount">₱<?php echo number_format((float) $beneficiary['amount_worth'], 2); ?></div>
+                                <div class="amount">₱<?php echo number_format((float) $beneficiary['amount_worth'], 2); ?><?php if (!empty($beneficiary['shared_budget_id'])): ?> <span class="badge bg-info text-dark ms-1" title="Part of a shared budget"><i class="bi bi-pie-chart"></i> Shared</span><?php endif; ?></div>
                                 <i class="bi bi-arrow-right" aria-hidden="true"></i>
                             </div>
                         </article>
@@ -790,7 +790,7 @@ $addUrl     = $isBeneficiaryView ? 'beneficiary-form.php' : 'proponent-form.php'
                                 <?php endif; ?>
                             </div>
                             <div class="card-footer">
-                                <div class="amount">₱<?php echo number_format((float) $proponent['amount'], 2); ?></div>
+                                <div class="amount">₱<?php echo number_format((float) $proponent['amount'], 2); ?><?php if (!empty($proponent['shared_budget_id'])): ?> <span class="badge bg-info text-dark ms-1" title="Part of a shared budget"><i class="bi bi-pie-chart"></i> Shared</span><?php endif; ?></div>
                                 <i class="bi bi-arrow-right" aria-hidden="true"></i>
                             </div>
                         </article>

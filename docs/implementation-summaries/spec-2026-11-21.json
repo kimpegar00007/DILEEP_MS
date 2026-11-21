@@ -1,0 +1,18 @@
+{
+ "date": "2026-11-21",
+ "features": [
+  ["Shared Budgets section", "A new Shared Budgets item in the side menu lists every livelihood project where several Proponents and Beneficiaries share one budget. Staff can search it, see how many Proponents and Beneficiaries are in each one, and open, edit or delete it", "Shared-budget projects now have one place of their own, without touching the current Proponent and Beneficiary lists"],
+  ["One form for the whole shared budget", "Staff enter the total budget once, then add as many Proponents and Beneficiaries as needed, each with their own share. Every field from the current Proponent and Beneficiary forms is included, and each Beneficiary picks which Proponent it is linked to. A live bar shows how much of the budget is assigned and the form only saves when the shares add up exactly to the total", "No more encoding the same project twice, and no typing mistakes in the split"],
+  ["All-or-nothing saving", "The budget, its Proponents and its Beneficiaries are saved together. If anything cannot be saved, nothing is saved", "No half-finished projects are left behind in the records"],
+  ["Counted only once in the numbers", "Each share is saved as the amount of its own Proponent or Beneficiary record, so the dashboard, reports, CQPR and the public front page already add up to the exact budget with no double counting", "Totals stay correct and the current reports keep working as before"],
+  ["Shared tags and mismatch warnings", "Records that belong to a shared budget show a Shared tag in the Beneficiaries & Proponents list and a notice on their view and edit pages. If someone changes an amount in the normal forms so the shares no longer match the total, a warning appears on the shared budget and in its list, and the normal form still saves", "Staff can keep using the forms they know, and any difference in the budget is caught instead of going unnoticed"],
+  ["Safe removal and province rules", "Deleting a shared budget (administrators only) removes only the grouping; the Proponent and Beneficiary records are kept. Each shared budget stays within its province, so staff only see and edit budgets of their own province", "Money never disappears from the records, and provinces stay separate"]
+ ],
+ "screenshots": [
+  {"file": "docs/implementation-summaries/screenshots/2026-11-21/01-shared-budgets-list.png", "caption": "Figure 1. The new Shared Budgets page lists each shared budget and shows whether its shares match the total."},
+  {"file": "docs/implementation-summaries/screenshots/2026-11-21/02-shared-budget-form.png", "caption": "Figure 2. The shared budget form: total budget at the top, one card for each Proponent and Beneficiary, and a bar showing the shares add up to the total."},
+  {"file": "docs/implementation-summaries/screenshots/2026-11-21/03-shared-budget-view.png", "caption": "Figure 3. A saved shared budget shows its Proponents and Beneficiaries with their shares, which add up to the total."},
+  {"file": "docs/implementation-summaries/screenshots/2026-11-21/04-shares-warning.png", "caption": "Figure 4. When an amount is changed elsewhere and the shares no longer match the total, a red warning explains the difference."},
+  {"file": "docs/implementation-summaries/screenshots/2026-11-21/05-shared-badge-in-list.png", "caption": "Figure 5. In the regular Beneficiaries & Proponents list, records that belong to a shared budget carry a Shared tag next to their amount."}
+ ]
+}

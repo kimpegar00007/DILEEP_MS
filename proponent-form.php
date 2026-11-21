@@ -365,6 +365,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
                 <?php endif; ?>
 
+                <?php if ($isEdit && $proponent) { $sbNoticeBudgetId = $proponent['shared_budget_id'] ?? null; $sbNoticeAmount = $proponent['amount']; include 'includes/shared-budget-notice.php'; } ?>
+
                 <div class="card">
                     <div class="card-body">
                         <form method="POST" action="">

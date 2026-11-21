@@ -105,6 +105,8 @@ if (!$proponent) {
                     </div>
                 </div>
 
+                <?php $sbNoticeBudgetId = $proponent['shared_budget_id'] ?? null; $sbNoticeAmount = $proponent['amount']; include 'includes/shared-budget-notice.php'; ?>
+
                 <div class="header-info">
                     <h2>
                         <?php echo htmlspecialchars($proponent['proponent_name']); ?>

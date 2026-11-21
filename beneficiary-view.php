@@ -94,9 +94,11 @@ if (!$beneficiary) {
                     </div>
                 </div>
 
+                <?php $sbNoticeBudgetId = $beneficiary['shared_budget_id'] ?? null; $sbNoticeAmount = $beneficiary['amount_worth']; include 'includes/shared-budget-notice.php'; ?>
+
                 <div class="header-info">
                     <h2>
-                        <?php echo htmlspecialchars($beneficiary['first_name'] . ' ' . 
+                        <?php echo htmlspecialchars($beneficiary['first_name'] . ' ' .
                                   ($beneficiary['middle_name'] ? substr($beneficiary['middle_name'], 0, 1) . '. ' : '') . 
                                   $beneficiary['last_name'] . 
                                   ($beneficiary['suffix'] ? ' ' . $beneficiary['suffix'] : '')); ?>

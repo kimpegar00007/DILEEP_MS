@@ -88,7 +88,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             // Delete parent tables
-            foreach (['proponents', 'beneficiaries'] as $tableName) {
+            foreach (['proponents', 'beneficiaries', 'shared_budgets'] as $tableName) {
                 if (resetTableExists($db, $tableName)) {
                     $db->exec("DELETE FROM `" . str_replace('`', '``', $tableName) . "`");
                 }
@@ -108,7 +108,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             // Reset AUTO_INCREMENT counters outside the transaction (DDL cannot be rolled back).
             // Wrap separately so a failure here does not mask the successful data deletion.
-            foreach (['proponent_returns', 'proponent_associations', 'proponents', 'beneficiaries'] as $tableName) {
+            foreach (['proponent_returns', 'proponent_associations', 'proponents', 'beneficiaries', 'shared_budgets'] as $tableName) {
                 if (resetTableExists($db, $tableName)) {
                     try {
                         $db->exec(

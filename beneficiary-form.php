@@ -250,6 +250,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
                 <?php endif; ?>
 
+                <?php if ($isEdit && $beneficiary) { $sbNoticeBudgetId = $beneficiary['shared_budget_id'] ?? null; $sbNoticeAmount = $beneficiary['amount_worth']; include 'includes/shared-budget-notice.php'; } ?>
+
                 <div class="card">
                     <div class="card-body">
                         <form method="POST" action="">
